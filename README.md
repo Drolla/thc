@@ -9,7 +9,7 @@ THC is characterized through the following aspects :
 * Platform independent - THC can be installed on each platform that runs Tcl (version 8.5 or higher).
 * Low resource needs - THC requires only about 2% CPU time on a on Raspberry PI version 1 (for a setup with 20 devices)
 
-A web interface provides an optimal experience on desktop and mobile devices:
+A web interface provides an optimal experience on desktop and mobile devices.
 
 ![THC web interface](https://github.com/Drolla/thc/blob/master/developper/doc/thc_Web.gif)
 
@@ -17,5 +17,5 @@ While the users can perform control operations via the web interface the setup o
 
 ### What next
 
-* _THC-Getting_ started provides instructions for the installation and configuration of THC on your own computer.
-* _THC-Basics_ provides some basics about the way THC works and how to handle device states and events.
+* [THC Getting started](https://github.com/Drolla/thc/wiki/THC-Getting-started) provides instructions for the installation and configuration of THC on your own computer.
+* [THC Basics](https://github.com/Drolla/thc/wiki/THC-Basics) provides some basics about the way THC works and how to handle device states and events.
