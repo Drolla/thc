@@ -1,0 +1,17 @@
+table, th, td {
+	border: 1px solid black;
+}
+
+table {
+	margin: 5px 10px 5px 10px ;
+}
+
+p.entry_title {
+	margin: 30px 0px 0px 10px ;
+}
+
+p.entry_comment {
+	font-size:0.7em; }
+
+.entry_field {
+	font-size: 1em; }
