@@ -1,0 +1,76 @@
+Title: Developer information
+
+This page provides information for developers that write THC modules or that
+contribute to the evolution of THC.
+
+
+Topic: Modules
+
+Single Tcl file modules can directly be stored inside the folder *modules*.
+Modules that have multiple files should have a dedicated sub-folder that is 
+placed inside *modules*.
+
+For that modules are automatically loaded during initialization, the module
+Tcl names has to follow the following name convention: thc_<ModuleName>.tcl.
+The name of dedicated module sub-directories need to follow the following 
+convention: thc_<ModuleName>.
+
+Modules should use their dedicated namespace thc_<ModuleName>. Target interface
+modules allow accessing devices of a specific target via the following standard
+functions:
+
+   Init <args> - Optional, allows initializing the target. This command is not
+	          automatically called, but needs to be called from the 
+				 configuration file.
+
+   DeviceSetup <GetCmd> - Optional, is called when a new device is registered 
+             by <DefineDevice>. The device's 'get' command specification 
+				 is provided as argument to 'DeviceSetup'.
+
+   Get <GetCmdList> - Has to return the states of a list of devices. The 'get'
+             commands for the device list is provided as argument. If a device 
+				 state is not available 'Get' has to return an empty string ("").
+
+   Set <SetCmdList> <NewState> - Hast to set the states of a list of devices.
+             the 'set' commands for the device list, as well as the new common
+				 state for all devices, are provided as arguments.
+
+The 'get' and 'set' commands are derived from the command specifications 
+provided to the <DefineDevice> command. This is illustrated using the zWay 
+module as example.
+
+The configuration file contains an explicitly initialization of the z-way 
+interface :
+
+  > thc_zWay::Init "http://localhost:8083"
+
+The configuration file also registers 2 zWay devices :
+
+  > DefineDevice LightSalon,state -get {thc_zWay "SwitchBinary 8.1"} \
+  >                               -set {thc_zWay "SwitchBinary 8.1"}
+  > DefineDevice LightEntry,state -get {thc_zWay "SwitchBinary 9.2"} \
+  >                               -set {thc_zWay "SwitchBinary 9.2"}
+
+The command <DefineDevice> calls 'DeviceSetup' of the relevant module, 
+providing as argument the 'get' command specification:
+
+  > thc_zWay::DeviceSetup "SwitchBinary 8.1"
+  > thc_zWay::DeviceSetup "SwitchBinary 9.2"
+
+When the states of all devices are updated every heartbeat, the module's 'get' 
+command is called with a list of 'get' command specifications for all devices.
+The module's 'get' command has to return the list of the device states. In the
+following example the states of 2 devices is read.
+
+  > thc_zWay::Get {"SwitchBinary 8.1" "SwitchBinary 9.2"}
+
+Devices states are defined with the <Set> command, that accepts a list of
+devices to set:
+
+  > Set {LightSalon,state LightEntry,state} 1
+
+The <Set> command calls the module's Set command, providing as argument the 
+list of 'set' command specifications:
+
+  > thc_zWay::Set {"SwitchBinary 8.1" "SwitchBinary 9.2"} 1
+

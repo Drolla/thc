@@ -1,0 +1,105 @@
+Format: 1.52
+
+
+# You can add a title and sub-title to your menu like this:
+# Title: [project name]
+# SubTitle: [subtitle]
+
+# You can add a footer to your documentation like this:
+# Footer: [text]
+# If you want to add a copyright notice, this would be the place to do it.
+
+# You can add a timestamp to your documentation like one of these:
+# Timestamp: Generated on month day, year
+# Timestamp: Updated mm/dd/yyyy
+# Timestamp: Last updated mon day
+#
+#   m     - One or two digit month.  January is "1"
+#   mm    - Always two digit month.  January is "01"
+#   mon   - Short month word.  January is "Jan"
+#   month - Long month word.  January is "January"
+#   d     - One or two digit day.  1 is "1"
+#   dd    - Always two digit day.  1 is "01"
+#   day   - Day with letter extension.  1 is "1st"
+#   yy    - Two digit year.  2006 is "06"
+#   yyyy  - Four digit year.  2006 is "2006"
+#   year  - Four digit year.  2006 is "2006"
+
+
+# --------------------------------------------------------------------------
+# 
+# Cut and paste the lines below to change the order in which your files
+# appear on the menu.  Don't worry about adding or removing files, Natural
+# Docs will take care of that.
+# 
+# You can further organize the menu by grouping the entries.  Add a
+# "Group: [name] {" line to start a group, and add a "}" to end it.
+# 
+# You can add text and web links to the menu by adding "Text: [text]" and
+# "Link: [name] ([URL])" lines, respectively.
+# 
+# The formatting and comments are auto-generated, so don't worry about
+# neatness when editing the file.  Natural Docs will clean it up the next
+# time it is run.  When working with groups, just deal with the braces and
+# forget about the indentation and comments.
+# 
+# You can use this file on other computers even if they use different
+# directories.  As long as the command line points to the same source files,
+# Natural Docs will be able to correct the locations automatically.
+# 
+# --------------------------------------------------------------------------
+
+
+File: THC - Introduction  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\developper\doc\thc_introduction.txt)
+File: THC - Getting started  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\developper\doc\thc_getting_started.txt)
+File: THC - Basics  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\developper\doc\thc_basics.txt)
+File: THC - Core functions  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\bin\thc.tcl)
+
+Group: Target interface modules  {
+
+   File: MeteoSwiss  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_MeteoSwiss.tcl)
+   File: OpenWeatherMap  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_OpenWeatherMap.tcl)
+   File: Virtual devices  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_Virtual.tcl)
+   File: z-Way/Razberry interface  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_zWay\thc_zWay.tcl)
+   }  # Group: Target interface modules
+
+Group: Extension modules  {
+
+   File: Job timer  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_Timer\thc_Timer.tcl)
+   File: HTTP debug server  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_HttpDServer.tcl)
+   File: Mail alert  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_MailAlert.tcl)
+   File: Random light control  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_RandomLight.tcl)
+   File: Status logging and graph generation  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_Rrd\thc_Rrd.tcl)
+   File: Web interface  (no auto-title, C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_Web\thc_Web.tcl)
+   }  # Group: Extension modules
+
+Group: Targets  {
+
+   File: THC installation on a Raspberry  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\targets\Raspberry\installation_readme.txt)
+   }  # Group: Targets
+
+Group: Utilities  {
+
+   File: THC RRD database manipulation utility  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_Rrd\RrdManip.tcl)
+   }  # Group: Utilities
+
+Group: Developers  {
+
+   File: Developer information  (no auto-title, C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\developper\doc\thc_developers.txt)
+   File: Web server API  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_Web\thc_Web_API.tcl)
+   File: z-Way extension for THC  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_zWay\thc_zWay.js)
+   }  # Group: Developers
+
+Group: Index  {
+
+   Index: Everything
+   Function Index: Functions
+   }  # Group: Index
+
+
+
+##### Do not change or remove these lines. #####
+Data: 1(D3330wba6GH6bK\fHGp6XBHuoo8\`GHbBG/GouIEG\tbCp6IYGHHQXgvbtR9bfG/GouIIGHbfu9)
+Data: 1(h3330wba6GH6bK\fHGp6XBHuoo8\`GHbBG/GouIEG\tbCp6IYGHHQXgvbtR9bY8\)
+Data: 1(T3330wba6GH6bK\fHGp6XBHuoo8\`GHbBG/GouIEG\tbCp6IYGHHQXgvbtR9bEufNoG6)
+Data: 1(-3330wba6GH6bK\fHGp6XBHuoo8\`GHbBG/GouIEG\tbCp6IYGHHQXgvbtR9btpH`Gt6)

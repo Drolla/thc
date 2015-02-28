@@ -1,0 +1,14 @@
+p {
+   text-indent: 0;
+   margin-bottom: 1em;
+}
+
+.CDLEntry { /* Override the default NaturalyDoc style */
+	font: 10pt Verdana, Arial, sans-serif;
+	/* color: #000000; */
+   white-space: wrap
+	padding-bottom: .25em;
+}
+
+.CDescriptionList {
+        margin: .5em 5ex .7ex 5ex }
