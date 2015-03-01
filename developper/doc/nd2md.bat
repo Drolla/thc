@@ -18,3 +18,4 @@ tclsh nd2md.tcl ../../modules/thc_Web/thc_Web.tcl
 tclsh nd2md.tcl ../../modules/thc_zWay/thc_zWay.tcl
 
 tclsh nd2md.tcl ../../targets/Raspberry/Raspberry-installation.txt
+tclsh nd2md.tcl ../../modules/thc_Web/thc_Web_API.tcl
