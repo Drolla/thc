@@ -1,0 +1,78 @@
+Title: THC installation on a Raspberry
+
+These are the instruction about the the THC installation on a Raspberry running
+with the Raspbian/Debian Wheezy operating system.
+
+
+Topic: THC installation
+
+Install Tcl:
+Run the following command to install Tcl without graphical extension (Tk)
+  > sudo apt-get install tcl
+Optionally you can also install the graphical extension/toolkit Tk by running 
+the following command
+  > sudo apt-get install tk
+
+Install the RRDTool library for Tcl:
+Run the following command to install the RRDTool library for Tcl
+  > sudo apt-get install rrdtool-tcl
+You can also install the standalone RRDTools. This provides tools to manipulate 
+the RRD databases
+  > sudo apt-get install rrdtool
+
+Install mail send support:
+For details see http://rpi.tnet.com/project/faqs/smtp.
+Run the following command
+  > sudo apt-get install ssmtp heirloom-mailx
+
+Configure the SMTP settings inside /etc/ssmtp/ssmtp.conf
+  > sudo nano /etc/ssmtp/ssmtp.conf
+Check with the command 'mail' that the mail settings are correct
+  > mail <MailDestinationAddress> ...
+
+Install THC:
+Copy the full THC package into /opt and make it executable :
+  > sudo cp -r <CurrentThcDirectory> /opt
+  > sudo chmod 775 /opt/thc/bin/thc.tcl
+
+Edit the configuration file in the THC home directory (config.tcl). Create the 
+log directory if necessary (e.g. /var/thc).
+
+Setup THC as a service:
+ Copy the THC service start/stop script from the Razberry target into /etc/init.d, 
+make it executable, and register it:
+  > cd /etc/init.d
+  > sudo cp /opt/thc/targets/Raspberry/thc.sh .
+  > sudo chmod 775 ./thc.sh
+  > sudo update-rc.d thc.sh defaults 98 02
+
+
+Topic: zWay/Razberry installation
+
+To download the latest Z-Way version for your RaZberry, execute the following 
+line:
+  > wget -q -O - razberry.z-wave.me/install | sudo bash 
+Performance issues have been observed with z-Way version 1.7. A version that 
+performs well is version 1.5.1-rc3. Execute the following line to install 
+explicitly this z-Way version:
+  > wget -q -O - http://razberry.z-wave.me/install/v1.5.0-rc3 | sudo bash
+
+  
+Topic: Others
+
+Configure static IP address:
+See http://www.raspberryshake.com/raspberry-pistatic-ip-address
+Change in file /etc/network/interfaces the single line
+  > iface eth0 inet dhcp
+into the following lines
+  > iface eth0 inet static
+  > address <IpAddress>           (f.e: 192.168.1.21)
+  > netmask <NetMask>             (f.e: 255.255.255.0
+  > network <Network>             (f.e: 192.168.1.0
+  > broadcast <BroadcastAddress>  (f.e: 192.168.1.255
+  > gateway <GateWayAddress>      (f.e: 192.168.1.1
+
+Disable TV output (HDMI):
+Execute the following command
+  > sudo /opt/vc/bin/tvservice -o
+
