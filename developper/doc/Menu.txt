@@ -50,9 +50,9 @@ Format: 1.52
 # --------------------------------------------------------------------------
 
 
-File: THC - Introduction  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\developper\doc\thc_introduction.txt)
-File: THC - Getting started  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\developper\doc\thc_getting_started.txt)
-File: THC - Basics  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\developper\doc\thc_basics.txt)
+File: THC - Introduction  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\developper\doc\THC-Introduction.txt)
+File: THC - Getting started  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\developper\doc\THC-Getting-started.txt)
+File: THC - Basics  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\developper\doc\THC-Basics.txt)
 File: THC - Core functions  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\bin\thc.tcl)
 
 Group: Target interface modules  {
@@ -75,7 +75,7 @@ Group: Extension modules  {
 
 Group: Targets  {
 
-   File: THC installation on a Raspberry  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\targets\Raspberry\installation_readme.txt)
+   File: THC installation on a Raspberry  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\targets\Raspberry\Raspberry-installation.txt)
    }  # Group: Targets
 
 Group: Utilities  {
@@ -85,7 +85,7 @@ Group: Utilities  {
 
 Group: Developers  {
 
-   File: Developer information  (no auto-title, C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\developper\doc\thc_developers.txt)
+   File: Developer information  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\developper\doc\THC-Developers.txt)
    File: Web server API  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_Web\thc_Web_API.tcl)
    File: z-Way extension for THC  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_zWay\thc_zWay.js)
    }  # Group: Developers

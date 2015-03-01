@@ -1,4 +1,4 @@
-perl "NaturalDocs" ^
+perl "C:\Users\Andreas Drollinger\Development\NaturalDocs\NaturalDocs" ^
 	--project "." ^
 	--source "." ^
 	--source "..\..\bin" ^

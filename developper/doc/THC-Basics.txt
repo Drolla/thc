@@ -1,0 +1,53 @@
+Title: THC - Basics
+
+
+Topic: Main control loop
+
+Once THC completed the setup tasks it enter forever into the main control loop.
+In an interval defined by *HeartBeatMS* the following sequence is executed:
+* The device states and device events are updated
+* The jobs scheduled for the current time are executed
+
+
+Topic: Device states and events
+
+Each heartbeat interval the device states and device events are updated. The 
+device state is available for custom scripts and tasks via the *State* array
+variable:
+   > State(<DeviceName>)
+Example:
+   > puts $State(Siren,state)
+   > -> 0
+   > puts $State(MotionSalon,battery)
+   > -> 80
+
+The *Event* array variable that is also updated every heartbeat will contain 
+during a single heartbeat interval the state value of a device if the state is 
+switched to a new valid value (non ""). Transitions from and to non valid 
+values ("") are filtered: A transition from an initial state value to an 
+invalid value ("") and back to the initial value will not generate an event. 
+However a transition from a first value to an invalid value, and then to a last 
+value that is different from the first value, will generate an event.
+   > _____???_____???-------???----???_________---------________
+	>                 ^                ^        ^        ^       
+	>                 |Event=1         |Event=0 |Event=1 |Event=0
+Example:
+   > DefineJob -tag Surv -description "Surveillance" {
+   >    if {$Event(MySensor)==1} {
+   >       Set {Sirene,state LightSalon,state} 1 }
+	> }
+
+Finally, for devices that have been declared with the *-sticky* option 
+(see <DefineDevice>) the first occurring device state that is valid and 
+non-zero is also stored in the array variable *StickyState*. The sticky state 
+variable can be cleared with the command *ResetStickyStates*, which needs to 
+be called by a custom job.
+
+The sticky state variable allows capturing over a certain period the 
+occurrence of an event, to log the event then by a longer interval job. Logging 
+functions like <thc_Rrd::Log> log typically the sticky state values instead of 
+the instantaneous state, for devices that have a sticky state. Example:
+
+	> DefineJob -tag RrdLog -time +1m -repeat 1m -description "RRD log" {
+	>    thc_Rrd::Log
+	>    ResetStickyStates }
