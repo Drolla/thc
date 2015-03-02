@@ -1,4 +1,4 @@
-THC, Tight Home Control, provides a multi-protocol and manufacturer-independent automation framework that allows running control tasks, like for example for home automation.
+**THC**, **Tight Home Control**, provides a multi-protocol and manufacturer-independent automation framework that allows running control tasks, like for example for home automation.
 
 THC is characterized through the following aspects :
 
