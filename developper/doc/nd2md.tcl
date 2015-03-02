@@ -32,6 +32,7 @@ proc nd2md {NdFile MdFile} {
 	set SubMode ""
 	set Section "^"; # Page begin
 	set MdFileContent ""
+	set LinkList {}
 	foreach Line [split $Data "\n"] {
 		set MdLine ""
 		set AppendMdLine 0
@@ -59,12 +60,26 @@ proc nd2md {NdFile MdFile} {
 				set NewSection ProcSectionTitle
 			} elseif {$Mode!=""} {
 				regsub -all {\|} $Comment {\\|} CommentT
+
+				# Handle links
+				set LinkList2 {}
+				foreach LinkPos [lreverse [regexp -inline -indices -all {\\<[^\s][^!?*<>|\"]*[^\s]>} $Comment]] {
+					set Link [string range $Comment [lindex $LinkPos 0]+2 [lindex $LinkPos 1]-1]
+					if {[regexp {\.(gif)|(png)|(jpg)$} $Link]} {
+						set Comment [string replace $Comment {*}$LinkPos "!\[\]($Link)"]
+					} else {
+						lappend LinkList2 $Link
+						set Comment [string replace $Comment {*}$LinkPos "\[$Link\]"]
+					}
+				}
+				
 				if {[regexp {^>(.*)$} $Comment {} Code]} {
 					set NewSection Code
 					set MdLine $Code
-				} elseif {[regexp {^([-+*].*)$} $Comment {} List]} {
+				} elseif {[regexp {^([-+*][\s].*)$} $Comment {} List]} {
 					set NewSection List
 					set MdLine $List
+					lappend LinkList {*}$LinkList2
 				} elseif {[regexp {^(.+) - (.+)$} $CommentT {} Col0 Col1]} { # Definition list: Will be transformed in a table
 					if {$Section!="DefList"} {
 						set MdLine "|$SubMode|Description\n|--:|---\n"
@@ -82,6 +97,7 @@ proc nd2md {NdFile MdFile} {
 					regsub -all {^-$} $Comment {\-} Comment
 					set MdLine $Comment
 					set NewSection "Paragraph"
+					lappend LinkList {*}$LinkList2
 				}
 			}
 			if {$Section=="Code" && $NewSection!="Code"} {
@@ -109,6 +125,12 @@ proc nd2md {NdFile MdFile} {
 			set SubMode ""
 			set Section ""
 		}
+	}
+	
+	# Add the link references
+	append MdFileContent "\n\n" 
+	foreach Link [lsort -unique $LinkList] {
+		append MdFileContent "\[$Link\]: $Link\n"
 	}
 	
 	# Open the MarkDown file, and write the content
