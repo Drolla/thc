@@ -159,7 +159,8 @@ namespace eval thc_Web::API {
 		global UpdateDeviceList State DeviceAttributes
 		set DeviceStatesJSON "\{"
 		foreach Device $UpdateDeviceList {
-			set DeviceState [format $DeviceAttributes($Device,format) $State($Device)]
+			set DeviceState $State($Device)
+			catch {set DeviceState [format $DeviceAttributes($Device,format) $DeviceState]}
 			append DeviceStatesJSON "\"$Device\":\"$DeviceState\","
 		}
 		append DeviceStatesJSON "\}"
