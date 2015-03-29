@@ -777,10 +777,12 @@ exec tclsh "$0" ${1+"$@"}
 			Log {Timeout executing GetUrl $Url, HTTP status: $HttpStatus (trial $trials)} 1
 			after 1000
 		}
-		if {$trials>10} {
+		if {$Error} {
+			Log {   Host coulnd't be reached ($Url)} 3
+		} elseif {$trials>10} {
 			Log {   Host hasn't responded, did $trials trials ($Url)} 3
 		} elseif {$trials>1} {
-			Log {   Host has responded after $trials trials: value=$value} 3
+			Log {   Host has responded after $trials trials ($Url} 3
 		}
 		return $value
 	}
