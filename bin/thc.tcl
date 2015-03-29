@@ -746,8 +746,9 @@ exec tclsh "$0" ${1+"$@"}
 	
 	##########################
 	# Proc: GetUrl
-	#    Performs a HTTP POST transaction. GetUrl blocks until the operation
-	#    completes. Special URL characters are correctly encoded.
+	#    Performs a HTTP POST transaction. GetUrl performs multiple trials 
+	#    if a transaction has a timeout. Special URL characters are correctly 
+	#    encoded.
 	#
 	# Parameters:
 	#    <URL> - Uniform resource locator/web address
@@ -762,26 +763,24 @@ exec tclsh "$0" ${1+"$@"}
 	
 	proc GetUrl {Url} {
 		set CleanedUrl [CleanUrl $Url]
-		for {set trials 1} {$trials<=60} {incr trials} {
+		for {set trials 1} {$trials<=10} {incr trials} {
 			set value "?"
 			set HttpStatus "?"
 			set Error [catch {
 				set h [::http::geturl $CleanedUrl -query {} -timeout 5000]
-				#regexp {^(\d+) } [time {set h [::http::geturl $CleanedUrl -query {} -timeout 5000]}] {} GetUrlTimeMS
-				#lappend ::GetUrlTimeMSList $GetUrlTimeMS
 				set HttpStatus [::http::status $h]
 				set value [http::data $h]
 				regexp "^\"(.*)\"$" $value {} value
 				::http::cleanup $h
 			}]
-			if {!$Error && $HttpStatus=="ok" && $value!="?"} break
-			Log {Failure executing GetUrl $Url, HTTP status: $HttpStatus (trial $trials)} 1
+			if {$HttpStatus!="timeout"} break
+			Log {Timeout executing GetUrl $Url, HTTP status: $HttpStatus (trial $trials)} 1
 			after 1000
 		}
-		if {$trials>60} {
-			Log {   HTTP access failed after $trials failures ($Url)} 3
+		if {$trials>10} {
+			Log {   Host hasn't responded, did $trials trials ($Url)} 3
 		} elseif {$trials>1} {
-			Log {   HTTP access successful after $trials failures: value=$value} 3
+			Log {   Host has responded after $trials trials: value=$value} 3
 		}
 		return $value
 	}
@@ -1033,7 +1032,6 @@ exec tclsh "$0" ${1+"$@"}
 
 				# Update the old (previous) state and the event. Do this update 
 				# only if the current state is valid (=not '')
-				puts .
 				set Event(*_tmp) 0
 				foreach Index $DeviceUpdate(0) { # Evaluate the events and sticky states
 					if {$State($Index)!=""} {
@@ -1047,7 +1045,6 @@ exec tclsh "$0" ${1+"$@"}
 				}
 				if {$Event(*_tmp)} {
 					incr Event(*) $Event(*_tmp)
-					puts -->$Event(*)
 				}
 				
 				# Wait a tick, and update 'Time' and 'DayTime'
