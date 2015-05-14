@@ -55,7 +55,7 @@ proc nd2md {NdFile MdFile} {
 				set MdLine "***\n\#\#\# Proc: $Proc"
 				set Mode Proc
 				set NewSection Proc
-			} elseif {$Mode=="Proc" && [regexp {(.*)\s*:\s*$} $Comment {} SubMode]} {
+			} elseif {$Mode=="Proc" && $Section=="" && [regexp {(.*[^\s]):\s*$} $Comment {} SubMode]} {
 				set MdLine "\#\#\#\#\# $SubMode"
 				set NewSection ProcSectionTitle
 			} elseif {$Mode!=""} {
@@ -107,7 +107,7 @@ proc nd2md {NdFile MdFile} {
 				append MdFileContent "\n"; # Add an empty line between the sections
 			}
 			
-			#puts "$Mode ::$Section :: $NewSection --- $MdLine"
+			#append MdFileContent "\n[string repeat { } 90]$Mode :: $Section :: $NewSection\n"
 			if {$MdLine!=""} {
 				if {!$AppendMdLine} {
 					append MdFileContent "\n"
@@ -139,10 +139,21 @@ proc nd2md {NdFile MdFile} {
 	close $f
 }
 
+set nd2md_DestDir "md"
+catch {source nd2md_settings.tcl}
+
+file mkdir $nd2md_DestDir
+
 foreach NdFile $argv {
 	regsub {\.\w*$} [file tail $NdFile] {.md} MdFile
 	if {[regexp {/modules/} $NdFile]} {set MdFile "Module-$MdFile"}
 	if {[regexp {/targets/} $NdFile]} {set MdFile "Target-$MdFile"}
-	nd2md $NdFile md/$MdFile
+	catch {set MdFile $nd2md_nd2md($NdFile)}
+	set MdFile $nd2md_DestDir/$MdFile
+	
+	if {[file exists $MdFile] && [file mtime $NdFile]<[file mtime $MdFile]} continue
+	
+	nd2md $NdFile $MdFile
 }
+
 exit

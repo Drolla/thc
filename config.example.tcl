@@ -97,7 +97,7 @@
 	# Register temperature and humidity measurement devices
 	DefineDevice MultiAux,temp \
 				-name "Temp Aux" -group Environment -format "%s°C" -range {10 30} -update 1m \
-				-get {thc_zWay "SensorMultilevel 5.0.1"} -gexpr {$Value-2.0}
+				-get {thc_zWay "SensorMultilevel 5.0.1"} -gexpr {$Value-1.5}
 	DefineDevice MultiAux,battery \
 				-name Aux -group Battery -format "%s%%" -update 1h \
 				-get {thc_zWay "Battery 5"}
@@ -154,7 +154,7 @@
 		set Zone 1
 
 		# Define the lights that should be randomly controlled in surveillance mode
-		Define LightLiv,state       -time {7.2 $SunriseT-0.3 $SunsetT+0.0 21.5} -min_intervall 0.30 -probability_on 0.2
+		Define LightLiv,state         -time {7.2 $SunriseT-0.3 $SunsetT+0.0 21.5} -min_intervall 0.30 -probability_on 0.2
 		Define LightRoomParent,state  -time {6.7 $SunriseT-0.0 $SunsetT+0.2 23.0} -min_intervall 0.30 -probability_on 0.7 -default 1
 		Define LightCorridor,state    -time {7.0 $SunriseT-0.2 $SunsetT+0.3 22.0} -min_intervall 0.30 -probability_on 0.4
 		Define LightCorridor1st,state -time {6.5 $SunriseT-0.1 $SunsetT+0.4 22.5} -min_intervall 0.30 -probability_on 0.8
@@ -323,109 +323,118 @@
 
 	set AlarmSireneOffT 3m; # Defines how long the sirens have to run after an intrusion
 	set AlarmLightOffT 45m; # Defines how long the lights should be switched on after an intrusion
-	set AlarmRetriggerT [expr 5.0/60]; # Defines minimum alarm retrigger interval (in hours)
+	set AlarmRetriggerT 5m; # Defines minimum alarm retrigger interval
 	set AlertMailRetriggerT 45m
 
-	set AlarmStatus(LastTime) -1
+	
+	# Check if any of the specified intrusion detection devices detected an activity:
+	proc GetSensorEvent {} {
+		global SensorDeviceList Event
+		foreach Sensor $SensorDeviceList {
+			if {$Event($Sensor)==1} {
+				return 1 } }
+		return 0
+	}
 
-	DefineJob -tag Survey -repeat 0 -description "Continuous surveillance/control task" {
-			# Tag reader input handling
-			foreach TagReader $TagReaderList {
-				if {$Event(TagReader1,state)!=""} {
-					Log "Tag reader event: $State(TagReader1,state)"
-					switch -exact -- [lindex $State(TagReader1,state) 1] {
-						"tamper" {}
-						"lock" {
-							# Set the surveillance device state, this will enable the 
-							# surveillance mode (the next heartbeat)
-							Set {Surveillance,state} 1 }
-						"unlock" {
-							# Disable the surveillance device state, this will disable 
-							# the surveillance mode (the next heartbeat)
-							Set {Surveillance,state} 0 }
-						"wrongcode" {
-							# If the surveillance mode is not use active, accept 
-							# codes '1111' and '2222' to respectively enable and 
-							# disable all lights.
-							if {$State(Surveillance,state)==0} {
-								switch -- [lindex $State(TagReader1,state) 2] {
-									"1111" {
-										Set {AllLights,state} 1 }
-									"2222" {
-										Set {AllLights,state} 0 } 
-									default {
-										Log "Tag reader: Wrong code entered: [lindex $State(TagReader1,state) 3]" }
-								}
-							}
+	proc GetTagReaderEvents {} {
+		global TagReaderList Event
+		set TagReaderEvents {}
+		foreach TagReader $TagReaderList {
+			if {$Event($TagReader)!=""} {
+				lappend TagReaderEvents [lrange $Event($TagReader) 1 end]} }
+		return $TagReaderEvents
+	}
+
+	# Tag reader input handling
+	DefineJob -tag TRCheck -description "Continuous surveillance/control task" -repeat 0 {
+		foreach TagReaderEvent [GetTagReaderEvents] {
+			Log "Tag reader event: $TagReaderEvent"
+			switch -exact -- [lindex $TagReaderEvent 0] {
+				"tamper" {}
+				"lock" {
+					# Set the surveillance device state, this will enable the 
+					# surveillance mode (the next heartbeat)
+					Set {Surveillance,state} 1 }
+				"unlock" {
+					# Disable the surveillance device state, this will disable 
+					# the surveillance mode (the next heartbeat)
+					Set {Surveillance,state} 0 }
+				"wrongcode" {
+					# If the surveillance mode is not use active, accept 
+					# codes '1111' and '2222' to respectively enable and 
+					# disable all lights.
+					if {$State(Surveillance,state)==0} {
+						switch -- [lindex $TagReaderEvent 1] {
+							"1111"  { Set {AllLights,state} 1 }
+							"2222"  { Set {AllLights,state} 0 } 
+							default { Log "Tag reader: Wrong code entered: [lindex $TagReaderEvent 1]" }
 						}
 					}
 				}
 			}
+		}
+	}
 
-			# Surveillance enabling
-			if {$Event(Surveillance,state)==1} {
-				Log "Enabling surveillance"
-				thc_RandomLight::Control 0
-				Set Alarm,state 0
-				set StartRandomLightScene 1; # This enables the initial light settings
+	# Surveillance enabling
+	DefineJob -tag SurvEn -description "Surveillance enabling" -repeat 0 -condition {$Event(Surveillance,state)==1} {
+		Log "Enabling surveillance"
+		thc_RandomLight::Control 0
+		Set Alarm,state 0
 
-				DefineJob -tag RdmLight -time +5s -repeat 1m -description "Random light activity" {
-					if {$AlarmStatus(LastTime)<0 && $State(Surveillance,state)==1} {thc_RandomLight::Control}
-				}
-			}
+		DefineJob -tag RdmLight -time +5s -repeat 1m -description "Random light activity" \
+		          -condition {$State(Surveillance,state)==1 && $State(Alarm,state)!=1} {
+			thc_RandomLight::Control
+		}
+	}
 
-			# Surveillance disabling
-			if {$Event(Surveillance,state)==0} {
-				Log "Disabling surveillance"
-				Set $SireneDeviceList 0
-				thc_RandomLight::Control 0
-				Set Alarm,state 0
-				KillJob AlarmOn AlrtMail SirenOff LightOff RdmLight
-			}
+	# Surveillance disabling
+	DefineJob -tag SurvDis -description "Surveillance disabling" -repeat 0 -condition {$Event(Surveillance,state)==0} {
+		Log "Disabling surveillance"
+		Set $SireneDeviceList 0
+		thc_RandomLight::Control 0
+		Set Alarm,state 0
+		KillJob AlarmOn AlrtMail SirenOff LightOff RdmLight
+	}
 
-			# All light control
-			if {$Event(AllLights,state)==0 || $Event(AllLights,state)==1} {
-				Log "All Lights"
-				Set $SireneDeviceList 0
-				thc_RandomLight::Control $State(AllLights,state)
-				KillJob AlarmOn AlrtMail SirenOff LightOff
-				set AlarmStatus(LastTime) -1
-			}
+	# All light control
+	DefineJob -tag AllLight -description "All light control" -repeat 0 -condition {$Event(AllLights,state)==0 || $Event(AllLights,state)==1} {
+		Log "All Lights"
+		Set $SireneDeviceList 0
+		thc_RandomLight::Control $State(AllLights,state)
+		KillJob AlarmOn AlrtMail SirenOff LightOff
+	}
+	
+	# Intrusion detection
+	DefineJob -tag Intrusion -description "Intrusion detection" \
+	          -repeat 0 -min_intervall $AlarmRetriggerT \
+	          -condition {$State(Surveillance,state)==1 && [GetSensorEvent]} {
+		# An intrusion has been detected: Run new jobs to initiate the alarm and to send alert mails/SMS
 
-			# Intrusion detection
-			if {$State(Surveillance,state)==1 && $Time-$AlarmStatus(LastTime)>$AlarmRetriggerT*3600} {
-				# Check if any of the specified intrusion detection devices detected an activity:
-				foreach Sensor $SensorDeviceList {
-					if {$Event($Sensor)==1} {
-						
-						# An intrusion has been detected: Run new jobs to initiate the alarm and to send alert mails/SMS
-						set AlarmStatus(LastTime) $Time
-						DefineJob -tag AlarmOn -description "Start the alarm" {
-							Log "Alarm on"
-							Set $SireneDeviceList 1
-							thc_RandomLight::Control 1
-							Set Alarm,state 1
-						}
-						DefineJob -tag AlrtMail -description "Send alert mail" -min_intervall $AlertMailRetriggerT -time +1s {
-							thc_MailAlert::Send \
-								-to abcd@abcd.ch \
-								-from efgh@efgh.ch \
-								-title "Alarm Alert" \
-								"Sensor $Sensor triggered"
-							Log "Alarm mail alerts sent"
-						}
-						DefineJob -tag SirenOff -description "Stop the alarm siren" -time +$AlarmSireneOffT {
-							Set $SireneDeviceList 0
-							Log "Alarm siren stopped"
-						}
-						DefineJob -tag LightOff -description "Switch off the alarm lights" -time +$AlarmLightOffT {
-							thc_RandomLight::Control 0
-							Set Alarm,state 0
-							Log "Alarm lights turned off"
-							set AlarmStatus(LastTime) -1
-						}
-						break
-					}
-				}
-			}
+		DefineJob -tag AlarmOn -description "Start the alarm" {
+			Log "Alarm on"
+			Set $SireneDeviceList 1
+			thc_RandomLight::Control 1
+			Set Alarm,state 1
+		}
+
+		DefineJob -tag AlrtMail -description "Send alert mail" -min_intervall $AlertMailRetriggerT -time +2s {
+			thc_MailAlert::Send \
+				-to andreas@drollinger.ch \
+				-to 0041793396400@sms.ecall.ch \
+				-from fusion18security.drollinger@bluewin.ch \
+				-title "Fusion 18 - Alarm Alert" \
+				"Sensor triggered"
+				Log "Alarm mail alerts sent"
+		}
+
+		DefineJob -tag SirenOff -description "Stop the alarm siren" -time +$AlarmSireneOffT {
+			Set $SireneDeviceList 0
+			Log "Alarm siren stopped"
+		}
+
+		DefineJob -tag LightOff -description "Switch off the alarm lights" -time +$AlarmLightOffT {
+			thc_RandomLight::Control 0
+			Set Alarm,state 0
+			Log "Alarm lights turned off"
+		}
 	}

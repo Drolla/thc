@@ -24,7 +24,7 @@ functions:
 				 configuration file.
 
    DeviceSetup <GetCmd> - Optional, is called when a new device is registered 
-             by <DefineDevice>. The device's 'get' command specification 
+             by <DefineDevice>. The 'get' command specification of the device
 				 is provided as argument to 'DeviceSetup'.
 
    Get <GetCmdList> - Has to return the states of a list of devices. The 'get'
@@ -57,9 +57,9 @@ providing as argument the 'get' command specification:
   > thc_zWay::DeviceSetup "SwitchBinary 8.1"
   > thc_zWay::DeviceSetup "SwitchBinary 9.2"
 
-When the states of all devices are updated every heartbeat, the module's 'get' 
-command is called with a list of 'get' command specifications for all devices.
-The module's 'get' command has to return the list of the device states. In the
+When the states of all devices are updated every heartbeat, the 'get' command
+of the module is called with a list of 'get' command specifications for all devices.
+The 'get' command of the module has to return the list of the device states. In the
 following example the states of 2 devices is read.
 
   > thc_zWay::Get {"SwitchBinary 8.1" "SwitchBinary 9.2"}
@@ -69,7 +69,7 @@ devices to set:
 
   > Set {LightSalon,state LightEntry,state} 1
 
-The <Set> command calls the module's Set command, providing as argument the 
+The <Set> command calls the Set command of the module, providing as argument the 
 list of 'set' command specifications:
 
   > thc_zWay::Set {"SwitchBinary 8.1" "SwitchBinary 9.2"} 1

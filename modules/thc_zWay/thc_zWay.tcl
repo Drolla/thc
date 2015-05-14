@@ -25,7 +25,7 @@
 #    - The z-Way server needs to be installed and running on the target system.
 #    - The Z-Wave devices need to be included into the Z-Wave network controlled 
 #      by the z-Way server.
-#    - The THC-z-Way interface script (thc_zWay.js) needs to be stored in z-Way's
+#    - The THC-z-Way interface script (thc_zWay.js) needs to be stored in the z-Way
 #      automation directory.
 #
 # *THC server setup*
@@ -63,10 +63,12 @@
 #    Virtual - Allows accessing virtual devices from the z-way automation 
 #              system.
 #    TagReader - Provides info about the last event of the BeNEXT tag 
-#                reader. The <Get> command returns a list of 2 elements. 
+#                reader. The <Get> command returns a list of 2-3 elements. 
 #                The first one corresponds to the last event time, the 
 #                second one is one of the following event names: 'lock', 
-#                'unlock', 'tamper', 'wrongcode'.
+#                'unlock', 'tamper', 'wrongcode'. In case the event is 
+#                'wrongcode' the 3rd element corresponds to this wrong
+#                code.
 #    Control - Allows implementing on the z-Way server control states
 #    
 # Examples:
@@ -97,7 +99,7 @@ namespace eval thc_zWay {
 	##########################
 	# Proc: thc_zWay::Init
 	#    Initializes the z-Way/Razberry interface. Init waits first until the 
-	#    z-Way server is accessible, and loads then the THC extension to z-Way's 
+	#    z-Way server is accessible, and loads then the THC extension to the z-Way
 	#    JavaScript interpreter.
 	#    Init needs to be called before any z-Way devices are declared.
 	#

@@ -30,7 +30,7 @@ namespace eval thc_Timer {
 
 	##########################
 	# Proc: thc_Timer::Define
-	#    Registers a new timer task. A timer task allows controlling a device's 
+	#    Registers a new timer task. A timer task allows controlling a device 
 	#    state at a certain time and in a certain interval.
 	#
 	# Parameters:
@@ -69,8 +69,7 @@ namespace eval thc_Timer {
 		
 		# Define the timer job
 		if {[catch {
-			::DefineJob -tag $JobTag -time $Time -repeat $Repeat \
-				-priority 100 -description $Description \
+			::DefineJob -tag $JobTag -time $Time -repeat $Repeat -description $Description \
 				[list thc_Timer::StateControl $Device $Command]
 		} Err]} {
 			regsub {DefineJob} $Err {thc_Timer::Define} Err
@@ -149,7 +148,7 @@ namespace eval thc_Timer {
 		
 		# Loop over all defined jobs
 		foreach Job $::JobList {
-			# Job syntax:         { {NextExecTime Priority} Tag RepeatIntervall MinIntervall Description Script }
+			# Job syntax:         { NextExecTime Tag RepeatIntervall MinIntervall Description Script }
 			# Job example:        { {1420533000 100} timer2 3600 {} {Timer 2: Surveillance,state Off @ 2015-01-06 09:30, rep='1h'} {thc_Timer::StateControl Surveillance,state Off} }
 			# Timer task example: { timer2 {Tue Jan 06 09:30:00 CET 2015} Surveillance,state Off 3600 {Timer 2: Surveillance,state Off @ 2015-01-06 09:30, rep='1h'} }
 
@@ -157,14 +156,13 @@ namespace eval thc_Timer {
 			if {![regexp {^timer} [lindex $Job 1]]} continue
 
 			# Extract the timer task data
-			set Time [clock format [lindex $Job 0 0]]; # Create a human readable data/time string 
+			set Time [clock format [lindex $Job 0]]; # Create a human readable data/time string 
 			set Tag [lindex $Job 1]
 			set Repeat [lindex $Job 2]
 			if {[string is integer -strict $Repeat]} {
 				set Repeat [format "%2.2dD%2.2dH%2.2dM%2.2dS" [expr $Repeat/24/3600] [expr ($Repeat/3600)%24] [expr ($Repeat/60)%60] [expr $Repeat%60]] }
 			set Description [lindex $Job 4]
-			set Device [lindex $Job 5 1]
-			set Command [lindex $Job 5 2]
+			regexp {thc_Timer::StateControl\s+([^\s]+)\s+([^\s]+)\s} [info body ::Job($Tag)] - Device Command
 			
 			# Append the task to the task list
 			lappend TimerTaskList [list $Tag $Time $Device $Command $Repeat $Description]

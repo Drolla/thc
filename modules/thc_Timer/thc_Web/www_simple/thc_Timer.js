@@ -22,14 +22,16 @@ function AddTimer() {
 		<p class="entry_comment">Format: YYYY/MM/DD HH:MM</p>\
 		<input type="text" id="datetime" class="entry_field"/>\
 		<p class="entry_title">Repeat</p>\
-		<p class="entry_comment">Format: ddDhhHmmM, comment: keep empty if no repetition is required</p>\
+		<p class="entry_comment">Format: {YY}Y{MM}M{WW}W{DD}D{hh}h{mm}m{ss}s, comment: keep empty if no repetition is required</p>\
 		<select id="repeattime" class="entry_field">\
 			<option value="">no repeat</option>\
 			<option value="1h">1h</option>\
 			<option value="4h">4h</option>\
 			<option value="12h">12h</option>\
-			<option value="1d">1d</option>\
-			<option value="7d">7d</option>\
+			<option value="1D">1D</option>\
+			<option value="1W">1W</option>\
+			<option value="1M">1M</option>\
+			<option value="1Y">1Y</option>\
 		</select>\
 		<div></div>\
 		<p class="entry_title">Device:</p>\

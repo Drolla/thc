@@ -37,7 +37,7 @@ namespace eval thc_Rrd {
 
 	##########################
 	# Proc: thc_Rrd::Open
-	#    Creates or opens an RRD database. This command is a wrapper of RRDTool's
+	#    Creates or opens an RRD database. This command is a wrapper of the RRDTool
 	#    create function, using a simplified syntax. If the database doesn't 
 	#    exist it will be created. The round robin archives of the database are 
 	#    specified via the -rra option. All declared devices are automatically 
@@ -135,14 +135,14 @@ namespace eval thc_Rrd {
 		}
 		
 		# Check that the file is specified. Create a new Rrd file if not alreay
-		# existing. Check if the existing file's dataset setup 
+		# existing. Check if the dataset setup in the current file
 		# corresponds to the current set of devices and add new devices if 
 		# necessary.
 		Assert [info exists Options(-file)] "thc_Rrd::Open: Option '-file' is mandatory!"
 		variable RrdFile $Options(-file)
 		variable Step $Options(-step)
 		if {[file exists $RrdFile]} {
-			# Check the existing file's dataset setup corresponds to the set of 
+			# Check the existing dataset setup of the current file corresponds to the set of 
 			# new devices. This can only happen using the standalone Rrd tools.
 			if {!$RrdToolAvailable} {
 				::Log { -> Rrd tools are not installed, datasets cannot be verified/completed} 3$
@@ -233,7 +233,7 @@ namespace eval thc_Rrd {
 			error "Rrd database '$RrdFile' cannot be parsed, 'rrdtool info' failed."
 		}
 
-		# The existing file's device setup could be read, parse all device names.
+		# The existing device setup of the file could be read, parse all device names.
 		# The following lines have to be extracted and parsed from the info
 		# data (the name in the brackets is the Rrd device name):
 		#
@@ -554,7 +554,7 @@ namespace eval thc_Rrd {
 
 	##########################
 	# Proc: thc_Rrd::Log
-	#    Logs the devices states. This command calls the RRDTool's update 
+	#    Logs the devices states. This command calls the RRDTool update 
 	#    function. The states of all declared devices is written to the opened 
 	#    RRD database.
 	#
@@ -628,7 +628,7 @@ namespace eval thc_Rrd {
 
 	##########################
 	# Proc: thc_Rrd::Graph
-	#    Generates a graph picture. This command calls the RRDTool's graph 
+	#    Generates a graph picture. This command calls the RRDTool graph 
 	#    function. The -type option allows specifying if the graphs have to be 
 	#    plotted overlaying (analog values), or if they have to be stacked 
 	#    (digital values).
