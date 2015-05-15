@@ -615,7 +615,8 @@ exec tclsh "$0" ${1+"$@"}
 	##########################
 	# Proc: DefineJob
 	#    Registers a new job. A job is a command sequence that is executed 
-	#    either at a certain moment or in a certain interval.
+	#    either at a certain moment or in a certain interval. If a job with
+	#    the same tag already exists it will be replaced by the new job.
 	#
 	# Parameters:
 	#    [-tag <Tag>] - 8-character tag. A long string is reduced to 8 characters. 
@@ -780,6 +781,9 @@ exec tclsh "$0" ${1+"$@"}
 		
 		# Option validity checks
 		Assert {$Options(-time)!=""} "DefineJob, no time is defined"
+		
+		# Delete an eventual existing job that has the same tag
+		KillJob $Options(-tag)
 
 		# Create the job procedure
 		set Tag $Options(-tag)

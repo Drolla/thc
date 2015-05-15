@@ -376,14 +376,48 @@
 	}
 
 	# Surveillance enabling
-	DefineJob -tag SurvEn -description "Surveillance enabling" -repeat 0 -condition {$Event(Surveillance,state)==1} {
+	DefineJob -tag SurvEn -description "Surveillance enabling" -repeat 0 \
+	          -condition {$Event(Surveillance,state)==1} {
 		Log "Enabling surveillance"
 		thc_RandomLight::Control 0
 		Set Alarm,state 0
 
 		DefineJob -tag RdmLight -time +5s -repeat 1m -description "Random light activity" \
-		          -condition {$State(Surveillance,state)==1 && $State(Alarm,state)!=1} {
+		          -condition {$State(Alarm,state)!=1} {
 			thc_RandomLight::Control
+		}
+
+		# Intrusion detection
+		DefineJob -tag Intrusion -description "Intrusion detection" \
+		          -repeat 0 -min_intervall $AlarmRetriggerT \
+					 -condition {[GetSensorEvent]} {
+
+		 	# An intrusion has been detected: Enable the sirens, and run new jobs 
+			# to send alert mails/SMS
+			Log "Alarm on"
+			Set Alarm,state 1
+			Set $SireneDeviceList 1
+			thc_RandomLight::Control 1
+			
+			DefineJob -tag AlrtMail -description "Send alert mail" -min_intervall $AlertMailRetriggerT -time +2s {
+				thc_MailAlert::Send \
+					-to abcd@abcd.ch \
+					-from efgh@efgh.ch \
+					-title "Alarm Alert" \
+					"Sensor triggered"
+					Log "Alarm mail alerts sent"
+			}
+	
+			DefineJob -tag SirenOff -description "Stop the alarm siren" -time +$AlarmSireneOffT {
+				Set $SireneDeviceList 0
+				Log "Alarm siren stopped"
+			}
+	
+			DefineJob -tag LightOff -description "Switch off the alarm lights" -time +$AlarmLightOffT {
+				thc_RandomLight::Control 0
+				Set Alarm,state 0
+				Log "Alarm lights turned off"
+			}
 		}
 	}
 
@@ -393,48 +427,13 @@
 		Set $SireneDeviceList 0
 		thc_RandomLight::Control 0
 		Set Alarm,state 0
-		KillJob AlarmOn AlrtMail SirenOff LightOff RdmLight
+		KillJob RdmLight Intrusion AlrtMail SirenOff LightOff
 	}
 
 	# All light control
-	DefineJob -tag AllLight -description "All light control" -repeat 0 -condition {$Event(AllLights,state)==0 || $Event(AllLights,state)==1} {
+	DefineJob -tag AllLight -description "All light control" -repeat 0 \
+	          -condition {$Event(AllLights,state)==0 || $Event(AllLights,state)==1} {
 		Log "All Lights"
 		Set $SireneDeviceList 0
 		thc_RandomLight::Control $State(AllLights,state)
-		KillJob AlarmOn AlrtMail SirenOff LightOff
-	}
-	
-	# Intrusion detection
-	DefineJob -tag Intrusion -description "Intrusion detection" \
-	          -repeat 0 -min_intervall $AlarmRetriggerT \
-	          -condition {$State(Surveillance,state)==1 && [GetSensorEvent]} {
-		# An intrusion has been detected: Run new jobs to initiate the alarm and to send alert mails/SMS
-
-		DefineJob -tag AlarmOn -description "Start the alarm" {
-			Log "Alarm on"
-			Set $SireneDeviceList 1
-			thc_RandomLight::Control 1
-			Set Alarm,state 1
-		}
-
-		DefineJob -tag AlrtMail -description "Send alert mail" -min_intervall $AlertMailRetriggerT -time +2s {
-			thc_MailAlert::Send \
-				-to andreas@drollinger.ch \
-				-to 0041793396400@sms.ecall.ch \
-				-from fusion18security.drollinger@bluewin.ch \
-				-title "Fusion 18 - Alarm Alert" \
-				"Sensor triggered"
-				Log "Alarm mail alerts sent"
-		}
-
-		DefineJob -tag SirenOff -description "Stop the alarm siren" -time +$AlarmSireneOffT {
-			Set $SireneDeviceList 0
-			Log "Alarm siren stopped"
-		}
-
-		DefineJob -tag LightOff -description "Switch off the alarm lights" -time +$AlarmLightOffT {
-			thc_RandomLight::Control 0
-			Set Alarm,state 0
-			Log "Alarm lights turned off"
-		}
 	}
