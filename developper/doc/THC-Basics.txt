@@ -3,7 +3,7 @@ Title: THC - Basics
 
 Topic: Main control loop
 
-Once THC completed the setup tasks it enter forever into the main control loop.
+Once THC completed the setup phase it enter forever into the main control loop.
 In an interval defined by *HeartBeatMS* the following sequence is executed:
 * The device states and device events are updated
 * The jobs scheduled for the current time are executed

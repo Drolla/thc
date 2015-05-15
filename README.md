@@ -1,6 +1,6 @@
 **THC**, **Tight Home Control**, provides a multi-protocol and manufacturer-independent automation framework that allows running control tasks, like for example for home automation.
 
-THC is characterized through the following aspects :
+THC has the following features :
 
 * Flexible automation solution - High flexibility through the Tcl scripting language and powerful job definitions
 * Target device independent - THC provides a standardized way to access and control various types of target devices: z-Way/Razberry (Z-Wave controller), OpenWeatherMap (access to weather data), MeteoSwiss (access to weather data).

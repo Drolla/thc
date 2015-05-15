@@ -36,7 +36,7 @@
 # The definition of an MeteoSwiss devices requires the declaration of the
 # 'get' command, using the following syntax:
 #
-# : {thc_MeteoSwiss {<LocationAbbreviation> <WeatherParameter>}}
+#    > {thc_MeteoSwiss {<LocationAbbreviation> <WeatherParameter>}}
 # 
 # Examples:
 #    > DefineDevice Bern,temp \

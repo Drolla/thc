@@ -86,7 +86,7 @@ namespace eval thc_Rrd {
 	#    
 	# See also:
 	#    <thc_Rrd::Log>, <thc_Rrd::Graph>, 
-	#    <rrdcreate documentation at http://oss.oetiker.ch/rrdtool/doc/rrdcreate.en.html>
+	#    RrdCreate documentation on <http://oss.oetiker.ch/rrdtool/doc/rrdcreate.en.html>
 	##########################
 
 	proc Open {args} {
@@ -571,7 +571,7 @@ namespace eval thc_Rrd {
 	#    
 	# See also:
 	#    <thc_Rrd::Open>, <thc_Rrd::Graph>, <ResetStickyStates>,
-	#    <rrdupdate documentation at http://oss.oetiker.ch/rrdtool/doc/rrdupdate.en.html>
+	#    RrdUpdate documentation on <http://oss.oetiker.ch/rrdtool/doc/rrdupdate.en.html>
 	##########################
 
 	proc Log {} {
@@ -707,8 +707,8 @@ namespace eval thc_Rrd {
 	#
 	# See also:
 	#    <thc_Rrd::Open>, <thc_Rrd::Log>, 
-	#    <rrdgraph  documentation at http://oss.oetiker.ch/rrdtool/doc/rrdgraph.en.html>, 
-	#    <rrd rpn documentation at http://http://oss.oetiker.ch/rrdtool/doc/rrdgraph_rpn.en.html>
+	#    RrdGraph  documentation on <http://oss.oetiker.ch/rrdtool/doc/rrdgraph.en.html>, 
+	#    Rrd RPN documentation on <http://http://oss.oetiker.ch/rrdtool/doc/rrdgraph_rpn.en.html>
 	##########################
 
 	proc Graph {args} {

@@ -36,7 +36,7 @@
 # The definition of an OpenWeatherMap devices requires the declaration of the
 # 'get' command, using the following syntax:
 #
-# : {thc_OpenWeatherMap {<Location> <WeatherParameter>}}
+#    > {thc_OpenWeatherMap {<Location> <WeatherParameter>}}
 # 
 # Examples:
 #    > DefineDevice Bern,temp \

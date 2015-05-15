@@ -33,7 +33,7 @@
 #
 # *THC configuration (config.tcl)*
 #   - Initialize the interface with the <thc_zWay::Init> command
-#   - Declare the Z-Wave devices with <DefineDevice> (see <z-Way device definitions>)
+#   - Declare the Z-Wave devices with <DefineDevice>, see <z-Way device definitions>
 #
 # Once this setup is completed the declared Z-Wave devices are accessible via 
 # the global <Get> and <Set> commands.
