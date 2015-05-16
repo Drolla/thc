@@ -346,7 +346,7 @@
 	}
 
 	# Tag reader input handling
-	DefineJob -tag TRCheck -description "Continuous surveillance/control task" -repeat 0 {
+	DefineJob -tag TRCheck -description "Tag Reader Check" -repeat 0 {
 		foreach TagReaderEvent [GetTagReaderEvents] {
 			Log "Tag reader event: $TagReaderEvent"
 			switch -exact -- [lindex $TagReaderEvent 0] {
@@ -422,7 +422,8 @@
 	}
 
 	# Surveillance disabling
-	DefineJob -tag SurvDis -description "Surveillance disabling" -repeat 0 -condition {$Event(Surveillance,state)==0} {
+	DefineJob -tag SurvDis -description "Surveillance disabling" -repeat 0 \
+	          -condition {$Event(Surveillance,state)==0} {
 		Log "Disabling surveillance"
 		Set $SireneDeviceList 0
 		thc_RandomLight::Control 0
