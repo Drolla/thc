@@ -840,10 +840,10 @@ exec tclsh "$0" ${1+"$@"}
 	##########################
 
 	proc KillJob {args} {
-		foreach JobListVar {::JobList ::PermanentJobList} {
+		foreach {JobListVar TagIndex} {::JobList 1 ::PermanentJobList 0} {
 			set JobList {}
 			foreach Job [set $JobListVar] {
-				if {[lsearch $args [lindex $Job 1]]<0} {
+				if {[lsearch $args [lindex $Job $TagIndex]]<0} {
 					lappend JobList $Job
 				}
 			}
@@ -905,7 +905,7 @@ exec tclsh "$0" ${1+"$@"}
 		set line ""
 		if {$WithPermanentJobs} {
 			foreach Job $::PermanentJobList {
-				append line [format "%3s:%-8s " 0 [lindex $Job 1]]
+				append line [format "%3s:%-8s " 0 [lindex $Job 0]]
 			}
 		}
 		
