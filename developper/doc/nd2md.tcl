@@ -81,7 +81,7 @@ proc nd2md {NdFile MdFile LinkFile} {
 					}
 				}
 				
-				if {[regexp {^>(.*)$} $Comment {} Code]} {
+				if {[regexp {^[>:|](.*)$} $Comment {} Code]} {
 					set NewSection Code
 					set MdLine $Code
 				} elseif {[regexp {^([-+*][\s].*)$} $Comment {} List]} {
