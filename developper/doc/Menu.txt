@@ -50,10 +50,10 @@ Format: 1.52
 # --------------------------------------------------------------------------
 
 
-File: THC - Introduction  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\developper\doc\THC-Introduction.txt)
-File: THC - Getting started  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\developper\doc\THC-Getting-started.txt)
-File: THC - Basics  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\developper\doc\THC-Basics.txt)
-File: THC - Core functions  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\bin\thc.tcl)
+File: Introduction  (no auto-title, C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\developper\doc\THC-Introduction.txt)
+File: Getting started  (no auto-title, C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\developper\doc\THC-Getting-started.txt)
+File: Basics  (no auto-title, C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\developper\doc\THC-Basics.txt)
+File: Core functions  (no auto-title, C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\bin\thc.tcl)
 
 Group: Target interface modules  {
 

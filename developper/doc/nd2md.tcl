@@ -71,13 +71,17 @@ proc nd2md {NdFile MdFile LinkFile} {
 	
 				# Handle links
 				set LinkList2 {}
-				foreach {- LinkPos} [lreverse [regexp -inline -indices -all {[^\w](\\<[^\s][^!?*<>|\"]*[^\s]>)[^\w]} " $Comment "]] {
+				foreach {LinkInsertPos LinkPos} [lreverse [regexp -inline -indices -all {[^\w](\\<[^\s][^!?*<>|\"]*[^\s]>)[^\w]} " $Comment "]] {
 					set Link [string range $Comment [lindex $LinkPos 0]+2 [lindex $LinkPos 1]-3]
-					if {[regexp {\.(gif)|(png)|(jpg)$} $Link]} {
-						set Comment [string replace $Comment [expr {[lindex $LinkPos 0]+0}] [expr {[lindex $LinkPos 1]-2}] "!\[\]($Link)"]
-					} else {
-						lappend LinkList2 $Link
-						set Comment [string replace $Comment [expr {[lindex $LinkPos 0]+0}] [expr {[lindex $LinkPos 1]-2}] "\[$Link\]"]
+					lappend LinkList2 $Link
+					set Comment [string replace $Comment [expr {[lindex $LinkPos 0]+0}] [expr {[lindex $LinkPos 1]-2}] "\[$Link\]"]
+				}
+
+				# Handle images
+				foreach {PictFilePos PictInsertPos} [lreverse [regexp -inline -indices -all {\(see\s+([^\s\)]+)\)} $Comment]] {
+					set PictureFile [string range $Comment {*}$PictFilePos]
+					if {[regexp {\.(gif)|(png)|(jpg)$} $PictureFile]} {
+						set Comment [string replace $Comment {*}$PictInsertPos "!\[\]($PictureFile)"]
 					}
 				}
 				
