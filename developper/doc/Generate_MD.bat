@@ -21,4 +21,7 @@ tclsh nd2md.tcl ../../modules/thc_zWay/thc_zWay.tcl
 tclsh nd2md.tcl ../../targets/Raspberry/Raspberry-installation.txt
 tclsh nd2md.tcl ../../modules/thc_Web/thc_Web_API.tcl
 
+' Generate the index file
+tclsh nd2md.tcl
+
 copy thc_Web.gif ..\..\..\thc.wiki

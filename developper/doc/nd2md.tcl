@@ -15,6 +15,24 @@ exec tclsh "$0" ${1+"$@"}
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 ##########################################################################
 
+# Build and return from a link text the MD link.
+proc GetLink {LinkText {LinkFile ""}} {
+	global nd2md_Link
+	set Link $LinkText
+	if {[info exists nd2md_Link($Link)]} {
+		set LkFile [lindex $nd2md_Link($Link) 1]
+		if {$LkFile==$LinkFile} {
+			set LkFile ""}
+		set LkSection [string tolower [lindex $nd2md_Link($Link) 2]]
+		regsub -all {:} $LkSection {} LkSection
+		regsub -all { } $LkSection {-} LkSection
+		set Link "$LkFile\#$LkSection"
+	}
+	return $Link
+}
+
+# Parse the NaturalDoc documentation in a file, and generate the corresponding
+# MarkDown file.
 proc nd2md {NdFile MdFile LinkFile} {
 	global nd2md_Link
 	# Read the Natural Docs file
@@ -51,18 +69,18 @@ proc nd2md {NdFile MdFile LinkFile} {
 				set MdLine "\# $Title"
 				set Mode Title
 				set NewSection Title
-				set nd2md_Link($Title) [list $LinkFile $Title]
+				set nd2md_Link($Title) [list title $LinkFile $Title]
 			} elseif {[regexp {Group\s*:\s*(.+)} $Comment {} Group] |
 			          [regexp {Topics{0,1}\s*:\s*(.+)} $Comment {} Group]} {
 				set MdLine "\#\# $Group"
 				set Mode Group
 				set NewSection Group
-				set nd2md_Link($Group) [list $LinkFile $Group]
+				set nd2md_Link($Group) [list group $LinkFile $Group]
 			} elseif {[regexp {Proc\s*:\s*(.+)} $Comment {} Proc]} {
 				set MdLine "***\n\#\#\# Proc: $Proc"
 				set Mode Proc
 				set NewSection Proc
-				set nd2md_Link($Proc) [list $LinkFile "proc-$Proc"]
+				set nd2md_Link($Proc) [list proc $LinkFile "proc-$Proc"]
 			} elseif {$Mode=="Proc" && $Section=="" && [regexp {(.*[^\s]):\s*$} $Comment {} SubMode]} {
 				set MdLine "\#\#\#\#\# $SubMode"
 				set NewSection ProcSectionTitle
@@ -143,17 +161,7 @@ proc nd2md {NdFile MdFile LinkFile} {
 	# Add the link references
 	append MdFileContent "\n\n" 
 	foreach LinkText [lsort -unique $LinkList] {
-		set Link $LinkText
-		if {[info exists nd2md_Link($Link)]} {
-			set LkFile [lindex $nd2md_Link($Link) 0]
-			if {$LkFile==$LinkFile} {
-				set LkFile ""}
-			set LkSection [string tolower [lindex $nd2md_Link($Link) 1]]
-			regsub -all {:} $LkSection {} LkSection
-			regsub -all { } $LkSection {-} LkSection
-			set Link "$LkFile\#$LkSection"
-		}
-		append MdFileContent "\[$LinkText\]: $Link\n"
+		append MdFileContent "\[$LinkText\]: [GetLink $LinkText $LinkFile]\n"
 	}
 	
 	# Remove leading empty lines
@@ -165,6 +173,43 @@ proc nd2md {NdFile MdFile LinkFile} {
 	close $f
 }
 
+# Generate the index file
+proc GenIndexFile {MdIndexFile} {
+	global nd2md_Link
+
+	# Classify all links
+	array set Links {proc  {} doc {}}
+	foreach {LinkText v} [array get nd2md_Link] {
+		switch [lindex $v 0] {
+			"proc" {
+				set ProcName $LinkText
+				set ProcNS ""
+				regexp {^(.*)::(.+?)$} $LinkText {} ProcNS ProcName
+				lappend Links(proc) [list "$ProcName - ${ProcNS}::${ProcName}" $LinkText]
+			}
+			"title" {
+				lappend Links(doc) [list $LinkText]
+			}
+		}
+	}
+
+	# Open the Index MarkDown file, and write the content
+	set f [open $MdIndexFile w]
+	puts $f "\# THC - Index"
+	
+	foreach {SectionKey SectionTitle} {
+		doc "Documents"
+		proc "Procedures"
+	} {
+		puts $f "\n\## $SectionTitle\n"
+		foreach Link [lsort -index 0 -dictionary $Links($SectionKey)] {
+			puts $f "  * \[[lindex $Link 0]\]([GetLink [lindex $Link end]])"
+		}
+	}
+
+	close $f
+}
+
 array set nd2md_nd2md {}
 set nd2md_DestDir "md"
 array set nd2md_Link {}
@@ -172,37 +217,44 @@ catch {source nd2md_settings.tcl}
 
 file mkdir $nd2md_DestDir
 
-foreach NdFile $argv {
-	regsub {\.\w*$} [file tail $NdFile] {.md} MdFile
-	if {[regexp {/modules/} $NdFile]} {set MdFile "Module-$MdFile"}
-	if {[regexp {/targets/} $NdFile]} {set MdFile "Target-$MdFile"}
-	catch {set MdFile $nd2md_nd2md($NdFile)}
-	set MdFile $nd2md_DestDir/$MdFile
-
-	set LinkFile [file tail $MdFile]
-	regsub {\.md$} $LinkFile {} LinkFile
+# Extract from all provided files the NaturalDocs documentation and generate 
+# the corresponding MarkDown file.
+# If no file has been provided generate the index file.
+if {$argv!={}} {
+	foreach NdFile $argv {
+		regsub {\.\w*$} [file tail $NdFile] {.md} MdFile
+		if {[regexp {/modules/} $NdFile]} {set MdFile "Module-$MdFile"}
+		if {[regexp {/targets/} $NdFile]} {set MdFile "Target-$MdFile"}
+		catch {set MdFile $nd2md_nd2md($NdFile)}
+		set MdFile $nd2md_DestDir/$MdFile
 	
-	#if {[file exists $MdFile] && [file mtime $NdFile]<[file mtime $MdFile]} continue
+		set LinkFile [file tail $MdFile]
+		regsub {\.md$} $LinkFile {} LinkFile
+		
+		#if {[file exists $MdFile] && [file mtime $NdFile]<[file mtime $MdFile]} continue
+		
+		nd2md $NdFile $MdFile $LinkFile
+	}
 	
-	nd2md $NdFile $MdFile $LinkFile
+	set f [open nd2md_settings.tcl w]
+	
+	puts $f "set nd2md_DestDir \"$nd2md_DestDir\""
+	
+	puts $f "array set nd2md_nd2md \{"
+	foreach {n v} [array get nd2md_nd2md] {
+		puts $f "  $n \{$v\}"
+	}
+	puts $f "\}"
+	
+	puts $f "array set nd2md_Link \{"
+	foreach {n v} [array get nd2md_Link] {
+		puts $f "  \"$n\" \{$v\}"
+	}
+	puts $f "\}"
+	
+	close $f
+} else {
+	GenIndexFile $nd2md_DestDir/THC-Index.md
 }
-
-set f [open nd2md_settings.tcl w]
-
-puts $f "set nd2md_DestDir \"$nd2md_DestDir\""
-
-puts $f "array set nd2md_nd2md \{"
-foreach {n v} [array get nd2md_nd2md] {
-	puts $f "  $n \{$v\}"
-}
-puts $f "\}"
-
-puts $f "array set nd2md_Link \{"
-foreach {n v} [array get nd2md_Link] {
-	puts $f "  \"$n\" \{$v\}"
-}
-puts $f "\}"
-
-close $f
-
+	
 exit
