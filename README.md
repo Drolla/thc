@@ -19,4 +19,6 @@ While the users can perform control operations via the web interface the setup o
 
 * [THC Getting started](https://github.com/Drolla/thc/wiki/THC-Getting-started) provides instructions for the installation and configuration of THC on your own computer.
 * [THC Basics](https://github.com/Drolla/thc/wiki/THC-Basics) provides some basics about the way THC works and how to handle device states and events.
+* [THC - Core functions](https://github.com/Drolla/thc/wiki/THC-Core-functions) provides documentation for the THC core functions.
+* [THC - Index](https://github.com/Drolla/thc/wiki/THC-Index) provides an index to the different documentation pages and API procedures.
  
