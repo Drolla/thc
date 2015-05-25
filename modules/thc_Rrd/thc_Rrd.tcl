@@ -19,9 +19,9 @@
 # This module implements an interface to the RRD database. It provides 
 # functions to log and plot device states.
 #
-# It requires the Tcl package 'Rrd' or the standalone Rrdtool. If both the 
-# package and the standalone tool are not available all thc_Rrd commands are 
-# simply ignored.
+# It requires the Tcl package 'Rrd' or the standalone tool 'Rrdtool'. If 
+# both the package and the standalone tool are not available all thc_Rrd 
+# commands are simply ignored by THC.
 
 
 ######## RRD ########
@@ -58,7 +58,8 @@ namespace eval thc_Rrd {
 	#          parameter of the 'rrdcreate' RRD library command.
 	#    -rra {StepS NbrRow} - Specifies a round robin archive for MAX and AVERAGE 
 	#          values. The two provided elements of the list specify the step time 
-	#          (in seconds) and the number of rows.
+	#          (in seconds) and the number of rows. This argument can be repeated
+	#          to specify multiple round robin archives.
 	#
 	# Returns:
 	#    -

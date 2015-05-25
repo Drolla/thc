@@ -15,10 +15,10 @@ A web interface provides an optimal experience on desktop and mobile devices.
 
 While the users can perform control operations via the web interface the setup of THC is made via a configuration file that is based on Tcl syntax.  THC is in fact entirely programmed in Tcl.  Having some basic knowledge of this scripting language is an advantage for the creation of the configuration file.
 
-### What next
+### Next steps
 
-* [THC Getting started](https://github.com/Drolla/thc/wiki/THC-Getting-started) provides instructions for the installation and configuration of THC on your own computer.
-* [THC Basics](https://github.com/Drolla/thc/wiki/THC-Basics) provides some basics about the way THC works and how to handle device states and events.
+* [THC - Getting started](https://github.com/Drolla/thc/wiki/THC-Getting-started) provides instructions for the installation and configuration of THC on your own computer.
+* [THC - Basics](https://github.com/Drolla/thc/wiki/THC-Basics) provides some basics about the way THC works and how to handle device states and events.
 * [THC - Core functions](https://github.com/Drolla/thc/wiki/THC-Core-functions) provides documentation for the THC core functions.
 * [THC - Index](https://github.com/Drolla/thc/wiki/THC-Index) provides an index to the different documentation pages and API procedures.
  

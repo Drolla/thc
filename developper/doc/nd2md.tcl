@@ -210,11 +210,35 @@ proc GenIndexFile {MdIndexFile} {
 	close $f
 }
 
-array set nd2md_nd2md {}
-set nd2md_DestDir "md"
-array set nd2md_Link {}
-catch {source nd2md_settings.tcl}
+# Load the settings and index cache
+proc LoadConfigAndIndex {} {
+	uplevel {
+		array set nd2md_nd2md {}
+		set nd2md_DestDir "md"
+		array set nd2md_Link {}
+		catch {source _nd2md.settings}
+		catch {source _nd2md.index}
+	}
+}
 
+# Store the index
+proc StoreIndex {} {
+	global nd2md_Link
+	set f [open _nd2md.index w]
+	
+	puts $f "array set nd2md_Link \{"
+	foreach {n v} [array get nd2md_Link] {
+		puts $f "  \"$n\" \{$v\}"
+	}
+	puts $f "\}"
+	
+	close $f
+}
+
+# Load the settings
+LoadConfigAndIndex
+
+# Create the destination directory if not yet existing
 file mkdir $nd2md_DestDir
 
 # Extract from all provided files the NaturalDocs documentation and generate 
@@ -236,23 +260,7 @@ if {$argv!={}} {
 		nd2md $NdFile $MdFile $LinkFile
 	}
 	
-	set f [open nd2md_settings.tcl w]
-	
-	puts $f "set nd2md_DestDir \"$nd2md_DestDir\""
-	
-	puts $f "array set nd2md_nd2md \{"
-	foreach {n v} [array get nd2md_nd2md] {
-		puts $f "  $n \{$v\}"
-	}
-	puts $f "\}"
-	
-	puts $f "array set nd2md_Link \{"
-	foreach {n v} [array get nd2md_Link] {
-		puts $f "  \"$n\" \{$v\}"
-	}
-	puts $f "\}"
-	
-	close $f
+	StoreIndex
 } else {
 	GenIndexFile $nd2md_DestDir/THC-Index.md
 }
