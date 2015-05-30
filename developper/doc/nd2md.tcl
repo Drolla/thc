@@ -185,10 +185,10 @@ proc GenIndexFile {MdIndexFile} {
 				set ProcName $LinkText
 				set ProcNS ""
 				regexp {^(.*)::(.+?)$} $LinkText {} ProcNS ProcName
-				lappend Links(proc) [list "$ProcName - ${ProcNS}::${ProcName}" $LinkText]
+				lappend Links(proc) [list [list $ProcName $ProcNS] $LinkText]
 			}
 			"title" {
-				lappend Links(doc) [list $LinkText]
+				lappend Links(doc) [list [list $LinkText ""] $LinkText]
 			}
 		}
 	}
@@ -197,13 +197,22 @@ proc GenIndexFile {MdIndexFile} {
 	set f [open $MdIndexFile w]
 	puts $f "\# THC - Index"
 	
-	foreach {SectionKey SectionTitle} {
-		doc "Documents"
-		proc "Procedures"
+	
+	foreach {SectionKey SectionTitle AddSubSections} {
+		doc "Documents" 0
+		proc "Procedures" 1
 	} {
 		puts $f "\n\## $SectionTitle\n"
+		set SubSection ""
 		foreach Link [lsort -index 0 -dictionary $Links($SectionKey)] {
-			puts $f "  * \[[lindex $Link 0]\]([GetLink [lindex $Link end]])"
+			set NsText [lindex $Link 0 1]
+			if {$NsText!=""} {
+				set NsText ", $NsText" }
+			set NewSubSection [string toupper [string index [lindex $Link 0 0] 0]]
+			if {$AddSubSections && $NewSubSection!=$SubSection} {
+				puts $f "\n\#### $NewSubSection\n"
+				set SubSection $NewSubSection }
+			puts $f "  * \[[lindex $Link 0 0]\]([GetLink [lindex $Link end]])$NsText"
 		}
 	}
 

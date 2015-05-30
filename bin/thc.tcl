@@ -777,6 +777,8 @@ exec tclsh "$0" ${1+"$@"}
 		} Err]} {
 			error "DefineJob, $Err"
 		}
+
+		# Check if a job is a permanent job (repeat==0 -> repeat interval is empty)
 		set IsPermanentJob [expr {$Options(-repeat)!="" && $Options(-repeat_smpl)==""}]
 		
 		# Option validity checks
@@ -905,7 +907,7 @@ exec tclsh "$0" ${1+"$@"}
 		set line ""
 		if {$WithPermanentJobs} {
 			foreach Job $::PermanentJobList {
-				append line [format "%3s:%-8s " 0 [lindex $Job 0]]
+				append line [format "%3s:%-8s " 0s [lindex $Job 0]]
 			}
 		}
 		
