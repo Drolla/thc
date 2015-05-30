@@ -251,6 +251,90 @@ Get_TagReader = function(NI) {
 	return "";
 };
 
+/****************************************************\
+  Function: TagReader_LearnLastCode
+     Learn the tag reader the last entered code. The tag reader will afterwards 
+	  accept the new code as a valid one.
+	  
+	  The following code learning sequence should be applied :
+	  * Using the 'Home' or 'Away' button, enter a new code or use a new 
+	    unknown RFID tag.
+	  * Run the TagReader_LearnLastCode command. Provide a new UserId (=code
+	    storage location).
+	  * Wakeup the tag reader. This can happen by entering a valid or invalid 
+	    code. The tag reader will receive from the controller the command to 
+		 learn the new code.
+	  * Try now using the new code or the new RFID tag. The tag reader will 
+	    recognize it as valid.
+ 
+  Parameters:
+     NI - Device identifier
+	  UserId - User identifier (code storage location)
+
+  Returns:
+     Information string if the code learning was successful or not
+     
+  Examples:
+     > http://192.168.1.21:8083/JS/Run/TagReader_LearnLastCode(22, 2)
+     > -> OK, registered code 52,52,52,52,52,52,0,0,0,0
+     
+  See also:
+     <Configure_TagReader>, <TagReader_ResetCode>
+\****************************************************/
+
+// See: http://forum.z-wave.me/viewtopic.php?f=3419&t=20551
+
+TagReader_LearnLastCode = function(NI, UserId) {
+	if (typeof UserId=="undefined")
+		return "Call: TagReader_LearnLastCode(NI, UserId)";
+	var IndexArray=Get_IndexArray(NI);
+	var uc = zway.devices[ IndexArray[0] ].UserCode;
+	if (uc.data[0] && uc.data[0].hasCode.value) {
+		var code = uc.data[0].code.value;
+		if (typeof code === "string") {
+			uc.Set(UserId, code, 1);
+		} else {
+			uc.SetRaw(UserId, code, 1); }
+		return "OK, registered code "+code;
+	} else {
+		return "No code could be registered";
+	}
+}
+
+
+/****************************************************\
+  Function: TagReader_ResetCode
+     Reset one or all codes a tag reader knows. If no UserId is defined all
+	  codes are reset, otherwise only the code assigned to the UserId.
+	  After running this command the tag reader needs to be waked up to receive
+	  the command to perform the reset.
+ 
+  Parameters:
+     NI - Device identifier
+	  UserId - User identifier (code storage location, optional)
+
+  Returns:
+     -
+     
+  Examples:
+     > http://192.168.1.21:8083/JS/Run/TagReader_ResetCode(22) -> resets all codes
+     > http://192.168.1.21:8083/JS/Run/TagReader_ResetCode(22,3) -> resets the UserId specific code
+     
+  See also:
+     <Configure_TagReader>, <TagReader_LearnLastCode>
+\****************************************************/
+
+TagReader_ResetCode = function(NI, UserId) {
+	if (typeof NI=="undefined")
+		return "Call: TagReader_ResetCode(NI [, UserId])";
+	var IndexArray=Get_IndexArray(NI);
+	var uc = zway.devices[ IndexArray[0] ].UserCode;
+	if (typeof UserId=="undefined")
+		uc.Set(0,'',0); // Reset all codes
+	else
+		uc.Set(UserId,'',0); // Reset the UserId specific code
+}
+
 /* Get_Battery(NI)
    Usage: http://192.168.1.21:8083/JS/Run/Get_Battery(22)
           -> 67
