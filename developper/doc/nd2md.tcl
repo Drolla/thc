@@ -33,18 +33,37 @@ proc GetLink {LinkText {LinkFile ""}} {
 
 # Parse the NaturalDoc documentation in a file, and generate the corresponding
 # MarkDown file.
-proc nd2md {NdFile MdFile LinkFile} {
+proc nd2md {NdFile MdFile LinkFile Format} {
+	puts "nd2md $NdFile $MdFile $LinkFile $Format"
 	global nd2md_Link
+
+	# Define the comment pattern
+	switch $Format {
+		tcl {
+			set LineCommentPattern {\s*#\s*(.*)}
+			set MultiLineCommentStartPattern {}
+			set MultiLineCommentEndPattern {}
+		}
+		txt {
+			set LineCommentPattern {(.*)}
+			set MultiLineCommentStartPattern {}
+			set MultiLineCommentEndPattern {}
+		}
+		js {
+			set LineCommentPattern {\s*//\s*(.*)}
+			set MultiLineCommentStartPattern {^\s*/\*[\\*-=_]*\s*(.*?)$}
+			set MultiLineCommentEndPattern {^(.*?)[\\*-=_]*/\s*$}
+		}
+		default {
+			puts stdout "File format '$Format' is unknown!"
+			exit 1
+		}
+	}
+
 	# Read the Natural Docs file
 	set f [open $NdFile]
 	set Data [read $f]
 	close $f
-
-	# Define the comment pattern
-	set CommentPattern "\\s*\#\\s*(.*)"; # Tcl comments
-	if {[regexp {\.txt$} $NdFile]} {
-		set CommentPattern "(.*)"; # Txt file
-	}
 	
 	# Start parsing the file
 	set Mode ""
@@ -52,85 +71,104 @@ proc nd2md {NdFile MdFile LinkFile} {
 	set Section "^"; # Page begin
 	set MdFileContent ""
 	set LinkList {}
+	set ActiveCommentSection 0
 	foreach Line [split $Data "\n"] {
 		set MdLine ""
 		set AppendMdLine 0
 		set NewSection ""
+		
+		set DocText ""
+		set IsDocText 0
+		if {!$ActiveCommentSection} {
+			if {[regexp $LineCommentPattern $Line {} DocText]} {
+				set IsDocText 1
+			} elseif {$MultiLineCommentStartPattern!="" && [regexp $MultiLineCommentStartPattern $Line {} DocText]} {
+				set IsDocText 1
+				set ActiveCommentSection 1
+			}
+		} else { # $ActiveCommentSection
+			set IsDocText 1
+			if {[regexp $MultiLineCommentEndPattern $Line {} DocText]} {
+				set ActiveCommentSection 0
+			} else {
+				set DocText $Line
+			}
+		}
 
-		if {![regexp $CommentPattern $Line {} Comment]} {
+		if {!$IsDocText} {
 			set Mode ""
 			set SubMode ""
 		} else {
-			set Comment [string trim $Comment]
-			regsub -all {<} $Comment {\\<} Comment
-			if {$Comment=="" || [string trim $Comment "\#"]==""} {
+			set DocText [string trim $DocText]
+			regsub -all {<} $DocText {\\<} DocText
+			if {$DocText=="" || [string trim $DocText "\#"]==""} {
 				set NewSection ""
-			} elseif {[regexp {Title\s*:\s*(.+)} $Comment {} Title]} {
+			} elseif {[regexp {Title\s*:\s*(.+)} $DocText {} Title]} {
 				set MdLine "\# $Title"
 				set Mode Title
 				set NewSection Title
 				set nd2md_Link($Title) [list title $LinkFile $Title]
-			} elseif {[regexp {Group\s*:\s*(.+)} $Comment {} Group] |
-			          [regexp {Topics{0,1}\s*:\s*(.+)} $Comment {} Group]} {
+			} elseif {[regexp {Group\s*:\s*(.+)} $DocText {} Group] |
+			          [regexp {Topics{0,1}\s*:\s*(.+)} $DocText {} Group]} {
 				set MdLine "\#\# $Group"
 				set Mode Group
 				set NewSection Group
 				set nd2md_Link($Group) [list group $LinkFile $Group]
-			} elseif {[regexp {Proc\s*:\s*(.+)} $Comment {} Proc]} {
+			} elseif {[regexp {((Proc)|(Function))\s*:\s*(.+)} $DocText {} ProcOrFunc {} {} Proc]} {
 				set MdLine "***\n\#\#\# Proc: $Proc"
 				set Mode Proc
 				set NewSection Proc
 				set nd2md_Link($Proc) [list proc $LinkFile "proc-$Proc"]
-			} elseif {$Mode=="Proc" && $Section=="" && [regexp {(.*[^\s]):\s*$} $Comment {} SubMode]} {
+			} elseif {$Mode=="Proc" && $Section=="" && [regexp {(.*[^\s]):\s*$} $DocText {} SubMode]} {
 				set MdLine "\#\#\#\#\# $SubMode"
 				set NewSection ProcSectionTitle
 			} elseif {$Mode!=""} {
-				regsub -all {\|} $Comment {\\|} CommentT
+				regsub -all {\|} $DocText {\\|} DocTextT
 	
 				# Handle links
 				set LinkList2 {}
-				foreach {LinkInsertPos LinkPos} [lreverse [regexp -inline -indices -all {[^\w](\\<[^\s][^!?*<>|\"]*[^\s]>)[^\w]} " $Comment "]] {
-					set Link [string range $Comment [lindex $LinkPos 0]+2 [lindex $LinkPos 1]-3]
+				foreach {LinkInsertPos LinkPos} [lreverse [regexp -inline -indices -all {[^\w](\\<[^\s][^!?*<>|\"]*[^\s]>)[^\w]} " $DocText "]] {
+					set Link [string range $DocText [lindex $LinkPos 0]+2 [lindex $LinkPos 1]-3]
 					lappend LinkList2 $Link
-					set Comment [string replace $Comment [expr {[lindex $LinkPos 0]+0}] [expr {[lindex $LinkPos 1]-2}] "\[$Link\]"]
+					set DocText [string replace $DocText [expr {[lindex $LinkPos 0]+0}] [expr {[lindex $LinkPos 1]-2}] "\[$Link\]"]
 				}
 
 				# Handle images
-				foreach {PictFilePos PictInsertPos} [lreverse [regexp -inline -indices -all {\(see\s+([^\s\)]+)\)} $Comment]] {
-					set PictureFile [string range $Comment {*}$PictFilePos]
+				foreach {PictFilePos PictInsertPos} [lreverse [regexp -inline -indices -all {\(see\s+([^\s\)]+)\)} $DocText]] {
+					set PictureFile [string range $DocText {*}$PictFilePos]
 					if {[regexp {\.(gif)|(png)|(jpg)$} $PictureFile]} {
-						set Comment [string replace $Comment {*}$PictInsertPos "!\[\]($PictureFile)"]
+						set DocText [string replace $DocText {*}$PictInsertPos "!\[\]($PictureFile)"]
 					}
 				}
 				
-				if {[regexp {^[>:|](.*)$} $Comment {} Code]} {
+				if {[regexp {^[>:|](.*)$} $DocText {} Code]} {
 					set NewSection Code
 					set MdLine $Code
-				} elseif {[regexp {^([-+*][\s].*)$} $Comment {} List]} {
+				} elseif {[regexp {^([-+*][\s].*)$} $DocText {} List]} {
 					set NewSection List
 					set MdLine $List
 					lappend LinkList {*}$LinkList2
 				} elseif {$Section=="List"} { # Paragraph extension of a list
-					set MdLine $CommentT
+					set MdLine $DocTextT
 					set AppendMdLine 1; # Append the new line to the previous one
 					set NewSection List
 					lappend LinkList {*}$LinkList2
-				} elseif {[regexp {^(.+) - (.+)$} $CommentT {} Col0 Col1]} { # Definition list: Will be transformed in a table
+				} elseif {[regexp {^(.+) - (.+)$} $DocTextT {} Col0 Col1]} { # Definition list: Will be transformed in a table
 					if {$Section!="DefList"} {
 						set MdLine "|$SubMode|Description\n|--:|---\n"
 					}
 					set NewSection DefList
 					append MdLine "|$Col0|$Col1"
 				} elseif {$Section=="DefList"} { # Paragraph extension of a definition list
-					set MdLine $CommentT
+					set MdLine $DocTextT
 					set AppendMdLine 1; # Append the new line to the previous one
 					set NewSection DefList
-				} elseif {$Section=="" && [regexp {^([^\s].*[^\s]):\s*$} $Comment {} Heading]} { # Heading, only valid if the previous line is empty
+				} elseif {$Section=="" && [regexp {^([^\s].*[^\s]):\s*$} $DocText {} Heading]} { # Heading, only valid if the previous line is empty
 					set MdLine "\#\#\#\#\# $Heading"
 					set NewSection Heading
 				} else {
-					regsub -all {^-$} $Comment {\-} Comment
-					set MdLine $Comment
+					regsub -all {^-$} $DocText {\-} DocText
+					set MdLine $DocText
 					set NewSection "Paragraph"
 					lappend LinkList {*}$LinkList2
 				}
@@ -232,6 +270,7 @@ proc LoadConfigAndIndex {} {
 
 # Store the index
 proc StoreIndex {} {
+	puts StoreIndex
 	global nd2md_Link
 	set f [open _nd2md.index w]
 	
@@ -247,31 +286,70 @@ proc StoreIndex {} {
 # Load the settings
 LoadConfigAndIndex
 
+# Parse the arguments
+# nd2md.tcl 
+#    [-d <Destination Directory>]
+#    [-o <OutputMdFile>]
+#    [-f <InputFormat>]
+#    [-x]                          - Generate new index MD file
+#    [-n]                          - Don't create reference indexes
+#    NdFile1 [NdFile2, ...]
+set GenIndex 0
+set DestDir $nd2md_DestDir
+set OutFile ""
+set Format ""
+set NdFileList {}
+set CreateReferenceIndexes 1
+for {set a 0} {$a<[llength $argv]} {incr a} {
+	switch -exact [lindex $argv $a] {
+		-d {set DestDir [lindex $argv [incr a]]}
+		-o {set OutFile [lindex $argv [incr a]]}
+		-f {set Format [lindex $argv [incr a]]}
+		-x {set GenIndex 1}
+		-n {set CreateReferenceIndexes 0}
+		default {lappend NdFileList [lindex $argv $a]}
+	}
+}
+
+if {$OutFile!="" && [llength $NdFileList]!=1} {
+	puts stderr "Exact one NdFile has to be provided if the option -o is defined"
+	exit 1
+}
+
 # Create the destination directory if not yet existing
-file mkdir $nd2md_DestDir
+file mkdir $DestDir
 
 # Extract from all provided files the NaturalDocs documentation and generate 
 # the corresponding MarkDown file.
-# If no file has been provided generate the index file.
-if {$argv!={}} {
-	foreach NdFile $argv {
+foreach NdFile $NdFileList {
+	if {$OutFile!=""} {
+		set MdFile $OutFile
+	} else {
 		regsub {\.\w*$} [file tail $NdFile] {.md} MdFile
 		if {[regexp {/modules/} $NdFile]} {set MdFile "Module-$MdFile"}
 		if {[regexp {/targets/} $NdFile]} {set MdFile "Target-$MdFile"}
 		catch {set MdFile $nd2md_nd2md($NdFile)}
-		set MdFile $nd2md_DestDir/$MdFile
-	
-		set LinkFile [file tail $MdFile]
-		regsub {\.md$} $LinkFile {} LinkFile
-		
-		#if {[file exists $MdFile] && [file mtime $NdFile]<[file mtime $MdFile]} continue
-		
-		nd2md $NdFile $MdFile $LinkFile
+		set MdFile $DestDir/$MdFile
 	}
 	
-	StoreIndex
-} else {
-	GenIndexFile $nd2md_DestDir/THC-Index.md
-}
+	set LinkFile [file tail $MdFile]
+	regsub {\.md$} $LinkFile {} LinkFile
 	
+	set FileFormat $Format
+	if {$FileFormat==""} {
+		regexp {\.(\w*)$} [file tail $NdFile] {} FileFormat
+	}
+	set FileFormat [string tolower $FileFormat]
+		
+	#if {[file exists $MdFile] && [file mtime $NdFile]<[file mtime $MdFile]} continue
+		
+	nd2md $NdFile $MdFile $LinkFile $FileFormat
+}
+
+if {$CreateReferenceIndexes && [llength $NdFileList]} StoreIndex
+
+if {$GenIndex} {
+	GenIndexFile $DestDir/THC-Index.md
+}
+
 exit

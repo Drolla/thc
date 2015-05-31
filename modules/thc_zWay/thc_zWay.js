@@ -1,7 +1,7 @@
 /*************************************************************************
 * THC - Tight Home Control
 **************************************************************************
-* thc_zWay.tcl - z-Way extension for THC
+* thc_zWay.js - z-Way extension for THC
 * 
 * Copyright (C) 2014 Andreas Drollinger
 **************************************************************************
@@ -14,8 +14,7 @@
 // the z-Way server that are used by THC. The defined functions are accessible 
 // via the z-Way HTTP interface.
 //
-// This file is automatically loaded to the z-Way server by the THC module 
-// thc_zWay.
+// This file is automatically loaded to the z-Way server by the thc_zWay module.
 
 var InvalidTimespan={Battery:21600, Multilevel:1800};
 var zWayRevision=zway.controller.data.softwareRevisionVersion.value;

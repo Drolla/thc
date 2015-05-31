@@ -48,9 +48,10 @@ tclsh nd2md.tcl ^
 :: Other documentation
 tclsh nd2md.tcl ../../targets/Raspberry/Raspberry-installation.txt
 tclsh nd2md.tcl ../../modules/thc_Web/thc_Web_API.tcl
+tclsh nd2md.tcl -n ../../modules/thc_zWay/thc_zWay.js
 
 :: Generate the index file
-tclsh nd2md.tcl
+tclsh nd2md.tcl -x
 
 :: Copy the used images to the destination
 copy thc_Web.gif ..\..\..\thc.wiki
