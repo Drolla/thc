@@ -35,7 +35,7 @@ proc GetLink {LinkText {LinkFile ""}} {
 # MarkDown file.
 proc nd2md {NdFile MdFile LinkFile Format} {
 	puts "nd2md $NdFile $MdFile $LinkFile $Format"
-	global nd2md_Link
+	global nd2md_Link CreateReferenceIndexes
 
 	# Define the comment pattern
 	switch $Format {
@@ -113,12 +113,16 @@ proc nd2md {NdFile MdFile LinkFile Format} {
 				set MdLine "\#\# $Group"
 				set Mode Group
 				set NewSection Group
-				set nd2md_Link($Group) [list group $LinkFile $Group]
+				if {$CreateReferenceIndexes} {
+					set nd2md_Link($Group) [list group $LinkFile $Group]
+				}
 			} elseif {[regexp {((Proc)|(Function))\s*:\s*(.+)} $DocText {} ProcOrFunc {} {} Proc]} {
-				set MdLine "***\n\#\#\# Proc: $Proc"
+				set MdLine "***\n\#\#\# $ProcOrFunc: $Proc"
 				set Mode Proc
 				set NewSection Proc
-				set nd2md_Link($Proc) [list proc $LinkFile "proc-$Proc"]
+				if {$CreateReferenceIndexes} {
+					set nd2md_Link($Proc) [list proc $LinkFile "proc-$Proc"]
+				}
 			} elseif {$Mode=="Proc" && $Section=="" && [regexp {(.*[^\s]):\s*$} $DocText {} SubMode]} {
 				set MdLine "\#\#\#\#\# $SubMode"
 				set NewSection ProcSectionTitle
@@ -292,7 +296,7 @@ LoadConfigAndIndex
 #    [-o <OutputMdFile>]
 #    [-f <InputFormat>]
 #    [-x]                          - Generate new index MD file
-#    [-n]                          - Don't create reference indexes
+#    [-n]                          - Don't create reference indexes for the file content
 #    NdFile1 [NdFile2, ...]
 set GenIndex 0
 set DestDir $nd2md_DestDir
@@ -346,7 +350,7 @@ foreach NdFile $NdFileList {
 	nd2md $NdFile $MdFile $LinkFile $FileFormat
 }
 
-if {$CreateReferenceIndexes && [llength $NdFileList]} StoreIndex
+if {[llength $NdFileList]} StoreIndex
 
 if {$GenIndex} {
 	GenIndexFile $DestDir/THC-Index.md

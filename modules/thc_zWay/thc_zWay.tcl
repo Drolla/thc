@@ -25,8 +25,8 @@
 #    - The z-Way server needs to be installed and running on the target system.
 #    - The Z-Wave devices need to be included into the Z-Wave network controlled 
 #      by the z-Way server.
-#    - The THC-z-Way interface script (thc_zWay.js) needs to be stored in the z-Way
-#      automation directory.
+#    - The THC-z-Way interface script (thc_zWay.js, see <z-Way extension for THC>) 
+#      needs to be stored in the z-Way automation directory.
 #
 # *THC server setup*
 #   - The THC server needs to be installed and running on the target system.
