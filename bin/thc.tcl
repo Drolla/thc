@@ -170,9 +170,9 @@ exec tclsh "$0" ${1+"$@"}
 	#    [-update <UpdateInterval>] - Update interval, same syntax as for 
 	#                                 <DefineJob>, default: 0 (continuous update)
 	#    [-sticky 0|1] - Defines sticky behaviour, default: 0
-	#    [-range <ValidValueRange>] - Valid range specification. This is a list 
-	#                                 of a min and of a max value. Data outside 
-	#                                 of the specified range will be set to unknown ("").
+	#    [-range <Range>]   - Valid range specification. This is a list 
+	#                         of a min and of a max value. Data outside 
+	#                         of the specified range will be set to unknown ("").
 	#    [-inverse 0|1]     - Performs logic state inversion, '' is defined if state 
 	#                         is not numerical.
 	#    [-gexpr <GetExpr>] - Performs an expression evaluation with the 
@@ -192,7 +192,12 @@ exec tclsh "$0" ${1+"$@"}
 	#    > 
 	#    > DefineDevice Sirene,state \
 	#    >       -get {thc_zWay "SwitchBinary 16.0"} \
-	#    >       -set {thc_zWay "SwitchBinary 16.0"}
+	#    >       -set {thc_zWay "SwitchBinary 16.0"} \
+	#    >       -type switch
+	#    > DefineDevice Dimmer,state \
+	#    >       -get {thc_zWay "SwitchMultilevel 16.0"} \
+	#    >       -set {thc_zWay "SwitchMultilevel 16.0"} \
+	#    >       -type level -range {0 100}
 	#    > DefineDevice Sirene,battery -range {0 100} -update 1h \
 	#    >       -get {thc_zWay "Battery 16.0"} -gexpr {$Value-0.3}
 	#    > 
@@ -231,6 +236,7 @@ exec tclsh "$0" ${1+"$@"}
 		set DeviceAttributes($Device,name) $Device
 		set DeviceAttributes($Device,group) ""
 		set DeviceAttributes($Device,type) ""
+		set DeviceAttributes($Device,range) ""
 		set DeviceAttributes($Device,format) "%s"
 		set DeviceAttributes($Device,data) {}
 		regexp {(.*),(.*)} $Device {} DeviceAttributes($Device,name) DeviceAttributes($Device,group)
@@ -246,13 +252,12 @@ exec tclsh "$0" ${1+"$@"}
 					set Update $Value}
 				-sticky {
 					set Sticky [expr {$Value!="0"}]}
-				-range {
-					set DeviceAttributes($Device,ValidValueRange) $Value}
 				-inverse {
 					set DeviceAttributes($Device,InverseValue) $Value}
 				-gexpr {
 					set DeviceAttributes($Device,GetExpression) $Value}
 				-type -
+				-range -
 				-group -
 				-format -
 				-data -
@@ -337,10 +342,10 @@ exec tclsh "$0" ${1+"$@"}
 		foreach Module [array names ModuleGetCmdList] {
 			set StateList [${Module}::Get $ModuleGetCmdList($Module)]
 			foreach Device $ModuleDeviceList($Module) Stat $StateList {
-				if {[info exists DeviceAttributes($Device,ValidValueRange)]} {
+				if {$DeviceAttributes($Device,range)!=""} {
 					if {![string is double $Stat] ||
-					    $Stat<[lindex $DeviceAttributes($Device,ValidValueRange) 0] ||
-						 $Stat>[lindex $DeviceAttributes($Device,ValidValueRange) 1]} {
+					    $Stat<[lindex $DeviceAttributes($Device,range) 0] ||
+						 $Stat>[lindex $DeviceAttributes($Device,range) 1]} {
 						set Stat ""
 					}
 				}
@@ -790,7 +795,7 @@ exec tclsh "$0" ${1+"$@"}
 		# Create the job procedure
 		set Tag $Options(-tag)
 		set JobProc "proc Job($Tag) \{\} \{\n"
-		append JobProc "  uplevel \#0 \{\n"
+		append JobProc "  uplevel \#0 \{\n"; # "
 		if {$Options(-condition)!="" && $Options(-condition)!=1} {
 			append JobProc "    if \{!($Options(-condition))\} return\n" }
 		if {$Options(-min_intervall)!="" && $Options(-min_intervall)!=1} {
