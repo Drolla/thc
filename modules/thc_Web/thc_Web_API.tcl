@@ -85,11 +85,11 @@ namespace eval thc_Web::API {
 	#    > http://localhost:8080/api/GetDeviceInfo
 	#    > -> {
 	#    >    "Light1stFloor_state":
-	#    >      {"name":"Light1stFloor","type":"switch","group":"Light","format":"%s"},
+	#    >      {"name":"Light1stFloor","type":"switch","range":"","group":"Light","format":"%s"},
 	#    >    "Temperature1stFloor_state":
-  	#    >      {"name":"Temperature1stFloor","type":"level","group":"Environment","format":"%sC"},
+  	#    >      {"name":"Temperature1stFloor","type":"level","range":"","group":"Environment","format":"%sC"},
 	#    >    "Humidity1stFloor_state":
-  	#    >      {"name":"Humidity1stFloor","type":"level","group":"Environment","format":"%s%%"}
+  	#    >      {"name":"Humidity1stFloor","type":"level","range":"","group":"Environment","format":"%s%%"}
 	#    >    }
 	##########################
 
@@ -102,6 +102,7 @@ namespace eval thc_Web::API {
 			foreach {AttrName} {name type group data} {
 				append DeviceInfoJSON "\"$AttrName\":\"$DeviceAttributes($Device,$AttrName)\","
 			}
+			append DeviceInfoJSON "\"range\":\[[join $DeviceAttributes($Device,range) ,]\],"
 			append DeviceInfoJSON "\},\n"
 		}
 

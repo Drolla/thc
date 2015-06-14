@@ -11,36 +11,17 @@
 
 var DevicesInfo={};
 var DeviceStates={};
-var DeviceType="Classic";
+var DisplayType="Classic";
 var ColorMode=0;
 
-function Switch(DeviceId) {
-	if (DeviceStates[DeviceId]!="0" && DeviceStates[DeviceId]!="false" ) {
-		$.get("/api/SetDeviceState "+DeviceId+" 0");
-	} else {
-		$.get("/api/SetDeviceState "+DeviceId+" 1");
-	}
-	UpdateNow();
-}
+var DeviceGui={};
 
 function UpdateStates(NewDeviceStates) {
 	DeviceStates=NewDeviceStates;
 	$.each(NewDeviceStates, function(DeviceId, DeviceValue) {
 		var ChildId = DeviceId.replace(/[.,]/g,"_");
-		if (DevicesInfo[DeviceId]["type"]=="switch") {
-			if (DeviceValue=="1" || DeviceValue=="true" ) {
-				$("#"+ChildId+"_Pos").css("float","right");
-				$("#"+ChildId).text("On");
-			} else if (DeviceValue=="0" || DeviceValue=="false" ) {
-				$("#"+ChildId+"_Pos").css("float","left");
-				$("#"+ChildId).text("Off");
-			} else {
-				$("#"+ChildId+"_Pos").css("float","left");
-				$("#"+ChildId).text("?");
-			}
-		} else {
-			$("#"+ChildId).text(DeviceValue);
-		}
+		var DeviceType = DevicesInfo[DeviceId]["type"];
+		DeviceGui[ DeviceType ].Update(ChildId,DeviceId,DeviceValue);
 	});
 }
 
@@ -60,11 +41,11 @@ function UpdateNow() {
 }
 
 function ViewSwitch() {
-	if (DeviceType=="Mobile") {
-		DeviceType="Classic";
+	if (DisplayType=="Mobile") {
+		DisplayType="Classic";
 		$('link[href="thc_Web_mobile.css"]').attr({href : "thc_Web.css"});
 	} else {
-		DeviceType="Mobile";
+		DisplayType="Mobile";
 		$('link[href="thc_Web.css"]').attr({href : "thc_Web_mobile.css"});
 	}
 	ResizeGui();
@@ -119,7 +100,8 @@ function BuildGui() {
 			}
 			
 			var ChildId = DeviceId.replace(/[.,]/g,"_");
-			BuildDeviceGui[DeviceInfo["type"]]($("#group-body-"+GroupNbr), ChildId, DeviceId, DeviceInfo);
+			var DeviceType = DeviceInfo["type"];
+			DeviceGui[DeviceType].Create($("#group-body-"+GroupNbr), ChildId, DeviceId, DeviceInfo);
 		});
 	});
 	ResizeGui();
@@ -127,15 +109,15 @@ function BuildGui() {
 
 function ResizeGui() {
 	var width=$(window).width();
-	var MinWidth=(DeviceType=="Mobile" ? 700 : 250);
+	var MinWidth=(DisplayType=="Mobile" ? 700 : 250);
 	if (width<2*MinWidth) {
-		$(".widget-outsidecontainer").css({'width':'100%'});
+		$(".item-outsidecontainer").css({'width':'100%'});
 	} else if (width<3*MinWidth) {
-		$(".widget-outsidecontainer").css({'width':'50%'});
+		$(".item-outsidecontainer").css({'width':'50%'});
 	} else if (width<4*MinWidth) {
-		$(".widget-outsidecontainer").css({'width':'33.333%'});
+		$(".item-outsidecontainer").css({'width':'33.333%'});
 	} else {
-		$(".widget-outsidecontainer").css({'width':'25%'});
+		$(".item-outsidecontainer").css({'width':'25%'});
 	}
 }
 
@@ -160,7 +142,7 @@ $(document).ready(function(){
 	//$("#DisplayInfo").html("<p>Window: Width=" + $(window).height() + ", Height=" + $(window).width() + ", PPI=" + getPPI() + "</p>");
 	
 	if ( /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase()) ) {
-		DeviceType="Mobile";
+		DisplayType="Mobile";
 		$('link[href="thc_Web.css"]').attr({href : "thc_Web_mobile.css"});
 	}
 
@@ -177,115 +159,190 @@ $(window).resize(function() {
 
 /******************************** Device GUIs **************************/
 
-var BuildDeviceGui={};
 
 /**** Default ****/
 
-BuildDeviceGui[""] = function(Parent, ChildId, DeviceId, DeviceInfo) {
-	$(Parent).append('\
-		<div class="widget-outsidecontainer">\
-		  <div class="widget-insidecontainer">\
-		    <div class="widget-left">\
-		      <p class="widget-text">' + DeviceInfo["name"] + '</p>\
-		    </div>\
-		    <div class="widget-right">\
-		      <div class="widget-right-dv" id="' + ChildId + '_Pos"></div>\
-		      <p class="widget-text" id="' + ChildId + '">?</p>\
-		    </div>\
-		  </div>\
-		</div>\
-	');
-}
-
+	DeviceGui[""]={};
+	
+	DeviceGui[""].Update = function(ChildId, DeviceId, Value) {
+		$("#"+ChildId).text(Value);
+	}
+	
+	DeviceGui[""].Create = function(Parent, ChildId, DeviceId, DeviceInfo) {
+		$(Parent).append('\
+			<div class="item-outsidecontainer">\
+			  <div class="item-insidecontainer">\
+			    <div class="item-left">\
+			      <p class="item-text">' + DeviceInfo["name"] + '</p>\
+			    </div>\
+			    <div class="item-right">\
+			      <div class="item-right-dv" id="' + ChildId + '_Pos"></div>\
+			      <p class="item-text" id="' + ChildId + '">?</p>\
+			    </div>\
+			  </div>\
+			</div>\
+		');
+	}
+	
 /**** Link ****/
 
-BuildDeviceGui["link"] = function(Parent, ChildId, DeviceId, DeviceInfo) {
-	$(Parent).append('\
-		<div class="widget-outsidecontainer">\
-		  <div class="widget-insidecontainer widget-link" id="' + ChildId + '_Cnt">\
-		    <div class="widget-left">\
-		      <p class="widget-text">' + DeviceInfo["name"] + '</p>\
-		    </div>\
-		  </div>\
-		</div>\
-	');
+	DeviceGui["link"]={};
 
-	$("#"+ChildId + "_Cnt").click(function() {
-		window.open(DeviceInfo["data"], '_blank');
-	});
-}
-
+	DeviceGui["link"].Create = function(Parent, ChildId, DeviceId, DeviceInfo) {
+		$(Parent).append('\
+			<div class="item-outsidecontainer">\
+			  <div class="item-insidecontainer cursor-pointer" id="' + ChildId + '_Cnt">\
+			    <div class="item-left">\
+			      <p class="item-text">' + DeviceInfo["name"] + '</p>\
+			    </div>\
+			  </div>\
+			</div>\
+		');
+	
+		$("#"+ChildId + "_Cnt").click(function() {
+			window.open(DeviceInfo["data"], '_blank');
+		});
+	}
+	
 /**** Module ****/
 
-BuildDeviceGui["module"] = function(Parent, ChildId, DeviceId, DeviceInfo) {
-	$(Parent).append('\
-		<div class="widget-outsidecontainer">\
-		  <div class="widget-insidecontainer widget-link" id="' + ChildId + '_Cnt">\
-		    <div class="widget-left">\
-		      <p class="widget-text">' + DeviceInfo["name"] + '</p>\
-		    </div>\
-		  </div>\
-		</div>\
-	');
+	DeviceGui["module"]={};
 
-	$("#"+ChildId + "_Cnt").click(function() {
-		var ChildWin = window.open('module/'+DeviceInfo["data"]+'/index.html', '_blank');
-	});
-}
-
-function GetActiveStyleSheets() {
-	return [
-		"../../"+(DeviceType=="Mobile" ? "thc_Web_mobile.css" : "thc_Web.css"),
-		"../../"+(ColorMode%2 ? "thc_Web_ColorBlue.css" : "thc_Web_ColorDarkGray.css") ];
-}
+	DeviceGui["module"].Create = function(Parent, ChildId, DeviceId, DeviceInfo) {
+		$(Parent).append('\
+			<div class="item-outsidecontainer">\
+			  <div class="item-insidecontainer cursor-pointer" id="' + ChildId + '_Cnt">\
+			    <div class="item-left">\
+			      <p class="item-text">' + DeviceInfo["name"] + '</p>\
+			    </div>\
+			  </div>\
+			</div>\
+		');
+	
+		$("#"+ChildId + "_Cnt").click(function() {
+			var ChildWin = window.open('module/'+DeviceInfo["data"]+'/index.html', '_blank');
+		});
+	}
+	
+	function GetActiveStyleSheets() {
+		return [
+			"../../"+(DisplayType=="Mobile" ? "thc_Web_mobile.css" : "thc_Web.css"),
+			"../../"+(ColorMode%2 ? "thc_Web_ColorBlue.css" : "thc_Web_ColorDarkGray.css") ];
+	}
 
 
 /**** Image ****/
 
-function ShowHideImage(HtmlDeviceId,ImagePath) {
-	if (!$(HtmlDeviceId).children('img').is(":hidden")) {
-		$(HtmlDeviceId).children('img').hide(500)
-	} else {
-		$(HtmlDeviceId).children('img').attr("src", ImagePath);
-		$(HtmlDeviceId).children('img').show(500);
+	DeviceGui["image"]={};
+
+	DeviceGui["image"].ShowHideImage = function (HtmlDeviceId,ImagePath) {
+		if (!$(HtmlDeviceId).children('img').is(":hidden")) {
+			$(HtmlDeviceId).children('img').hide(500)
+		} else {
+			$(HtmlDeviceId).children('img').attr("src", ImagePath);
+			$(HtmlDeviceId).children('img').show(500);
+		}
 	}
-}
-
-BuildDeviceGui["image"] = function(Parent, ChildId, DeviceId, DeviceInfo) {
-	$(Parent).append('\
-		<div class="widget-outsidecontainer-image">\
-		  <div class="widget-insidecontainer widget-insidecontainer-image" id="' + ChildId + '_Cnt">\
-		    <div class="widget-left">\
-		      <p class="widget-image-text">' + DeviceInfo["name"] + '</p>\
-		    </div>\
-			 <img style="display:none"/>\
-		  </div>\
-		</div>\
-	');
-
-	$("#"+ChildId + "_Cnt").click(function() {
-		ShowHideImage("#"+ChildId + "_Cnt","/api/GetDeviceData "+DeviceId);
-	});
-}
+	
+	DeviceGui["image"].Create = function(Parent, ChildId, DeviceId, DeviceInfo) {
+		$(Parent).append('\
+			<div class="item-outsidecontainer-image">\
+			  <div class="item-insidecontainer item-insidecontainer-image" id="' + ChildId + '_Cnt">\
+			    <div class="item-left">\
+			      <p class="item-image-text">' + DeviceInfo["name"] + '</p>\
+			    </div>\
+				 <img style="display:none"/>\
+			  </div>\
+			</div>\
+		');
+	
+		$("#"+ChildId + "_Cnt").click(function() {
+			DeviceGui["image"].ShowHideImage("#"+ChildId + "_Cnt","/api/GetDeviceData "+DeviceId);
+		});
+	}
 
 /**** Switch ****/
 
-BuildDeviceGui["switch"] = function(Parent, ChildId, DeviceId, DeviceInfo) {
-	$(Parent).append('\
-		<div class="widget-outsidecontainer">\
-		  <div class="widget-insidecontainer">\
-		    <div class="widget-left">\
-		      <p class="widget-text">' + DeviceInfo["name"] + '</p>\
-		    </div>\
-		    <div class="widget-right-switch" id="' + ChildId + '_Cnt">\
-		      <div class="switch-position" id="' + ChildId + '_Pos"></div>\
-		      <p class="switch-text" id="' + ChildId + '">?</p>\
-		    </div>\
-		  </div>\
-		</div>\
-	');
+	DeviceGui["switch"]={};
 
-	$("#"+ChildId + "_Cnt").click(function() {
-		Switch(DeviceId);
-	});
-}
+	DeviceGui["switch"].Update=function(ChildId, DeviceId, Value) {
+		if (Value=="1" || Value=="true" ) {
+			$("#"+ChildId+"_Pos").css("float","right");
+			$("#"+ChildId).text("On");
+		} else if (Value=="0" || Value=="false" ) {
+			$("#"+ChildId+"_Pos").css("float","left");
+			$("#"+ChildId).text("Off");
+		} else {
+			$("#"+ChildId+"_Pos").css("float","left");
+			$("#"+ChildId).text("?");
+		}
+	}
+	
+	DeviceGui["switch"].ChangeState=function(ChildId,DeviceId) {
+		var NewValue=(DeviceStates[DeviceId]=="0" || DeviceStates[DeviceId]=="false" ? 1 : 0);
+		$.get("/api/SetDeviceState "+DeviceId+" "+NewValue);
+		this.Update(ChildId,DeviceId,NewValue);
+	}
+	
+	DeviceGui["switch"].Create = function(Parent, ChildId, DeviceId, DeviceInfo) {
+		$(Parent).append('\
+			<div class="item-outsidecontainer">\
+			  <div class="item-insidecontainer">\
+			    <div class="item-left">\
+			      <p class="item-text">' + DeviceInfo["name"] + '</p>\
+			    </div>\
+			    <div class="item-right-switch" id="' + ChildId + '_Cnt">\
+			      <div class="switch-position" id="' + ChildId + '_Pos"></div>\
+			      <p class="switch-text" id="' + ChildId + '">?</p>\
+			    </div>\
+			  </div>\
+			</div>\
+		');
+	
+		$("#"+ChildId + "_Cnt").click(function() {
+			DeviceGui["switch"].ChangeState(ChildId,DeviceId);
+		});
+	}
+
+/**** level ****/
+
+	DeviceGui["level"]={};
+
+	DeviceGui["level"].Update=function(ChildId, DeviceId, Value) {
+		var Range = (DevicesInfo[DeviceId]["range"].length==0 ? [0,1] : DevicesInfo[DeviceId]["range"]);
+		Value = (Value-Range[0])/(Range[1]-Range[0]);
+		$("#"+ChildId+"_Pos").offset({left:$("#"+ChildId+"_Cnt").offset().left+($("#"+ChildId+"_Cnt").width()-$("#"+ChildId+"_Pos").width())*Value});
+	}
+	
+	DeviceGui["level"].ChangeState=function(ChildId, DeviceId, Event) {
+		var Range = (DevicesInfo[DeviceId]["range"].length==0 ? [0,1] : DevicesInfo[DeviceId]["range"]);
+		var Value=(Event.pageX-$("#"+ChildId+"_Cnt").offset().left)/$("#"+ChildId+"_Cnt").width()
+		Value=Math.min(Math.max(Value,0),1);
+		Value=Range[0]+Value*(Range[1]-Range[0]);
+		$.get("/api/SetDeviceState "+DeviceId+" "+Value);
+		this.Update(ChildId,DeviceId,Value);
+	}
+	
+	DeviceGui["level"].Create = function(Parent, ChildId, DeviceId, DeviceInfo) {
+		$(Parent).append('\
+			<div class="item-outsidecontainer">\
+			  <div class="item-insidecontainer">\
+			    <div class="item-center" id="' + ChildId + '_Cnt">\
+			      <div class="level-position" id="' + ChildId + '_Pos"></div>\
+			      <div class="item-text-center" id="' + ChildId + '_Pos">\
+			      	<p display class="item-text-center">' + DeviceInfo["name"] + '</p>\
+					</div>\
+			    </div>\
+			  </div>\
+			</div>\
+		');
+	
+		$("#"+ChildId + "_Cnt").click(function(e) {
+				DeviceGui["level"].ChangeState(ChildId, DeviceId, e);
+		});
+		$("#"+ChildId + "_Cnt").on("mousemove",function(e) {
+			if (e.buttons==1) {
+				DeviceGui["level"].ChangeState(ChildId, DeviceId, e); }
+		});
+	}
+	
