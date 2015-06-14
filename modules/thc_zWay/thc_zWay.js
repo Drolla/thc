@@ -162,6 +162,30 @@ Get_SensorBinary = function(NI) {
 		return ""; }
 }
 
+/* Set_SwitchMultilevel(NI,I) 
+   Usage: http://192.168.1.21:8083/JS/Run/Set_SwitchMultilevel(7.1, 0)
+          -> 0
+*/
+Set_SwitchMultilevel = function(NI, state) {
+	var IndexArray=Get_IndexArray(NI);
+	try {
+		zway.devices[ IndexArray[0] ].instances[ IndexArray[1] ].SwitchMultilevel.Set( state==0?0:255 ); }
+	catch(err) {}
+	return Get_SwitchMultilevel(NI);
+}
+
+/* Get_SwitchMultilevel(NI)
+   Usage : http://192.168.1.21:8083/JS/Run/Get_SwitchMultilevel(2)
+           -> 1
+*/
+Get_SwitchMultilevel = function(NI) {
+	var IndexArray=Get_IndexArray(NI);
+	try {
+		return (zway.devices[ IndexArray[0] ].instances[0].SwitchMultilevel.data[1].level.value==0) ? 1 : 0; }
+	catch(err) {
+		return ""; }
+}
+
 /****************************************************\
   Function: Configure_TagReader
      Configures audible notification for tag reader.
@@ -430,6 +454,9 @@ Get = function(DeviceList) {
 				case "SensorMultilevel":
 					Value=Get_SensorMultilevel(Device[1]);
 					break;
+				case "SwitchMultilevel":
+					Value=Get_SwitchMultilevel(Device[1]);
+					break;
 				default:
 					break;
 			}
@@ -486,6 +513,9 @@ Set = function(DeviceList, State) {
 					break;
 				case "SwitchBinary":
 					Value=Set_SwitchBinary(Device[1], State);
+					break;
+				case "SwitchMultilevel":
+					Value=Set_SwitchMultilevel(Device[1], State);
 					break;
 				default:
 					break;

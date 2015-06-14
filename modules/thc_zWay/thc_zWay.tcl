@@ -56,6 +56,7 @@
 #    - SensorBinary
 #    - Battery
 #    - SensorMultilevel
+#    - SwitchMultilevel
 #
 # In addition to the standard Z-Wave command groups the thc_zWay interface
 # provides some convenience command groups:
@@ -69,7 +70,7 @@
 #                'unlock', 'tamper', 'wrongcode'. In case the event is 
 #                'wrongcode' the 3rd element corresponds to this wrong
 #                code.
-#    Control - Allows implementing on the z-Way server control states
+#    Control - Allows implementing control states (=variables) on the z-Way server.
 #    
 # Examples:
 #    > DefineDevice Surveillance,state -get {thc_zWay "Virtual DummyDevice_bn_5"} \
@@ -186,8 +187,7 @@ namespace eval thc_zWay {
 			"TagReader" {
 				# Install the bindings for the alarms
 				Log {thc_zWay::DeviceSetup $DeviceNbr -> Configure TagReader} 1
-				set Result [GetUrl "$UrlBase/JS/Run/Configure_TagReader($DeviceNbr)"]
-			}
+				set Result [GetUrl "$UrlBase/JS/Run/Configure_TagReader($DeviceNbr)"] }
 		}
 	}
 
@@ -246,7 +246,7 @@ namespace eval thc_zWay {
 		regsub -all {^\"(.+)\"$} $NewStateResult {\1} NewStateResult; # Remove surrounding quotes
 		regsub -all "\\\[" $NewStateResult "\{" NewStateResult
 		regsub -all "\\\]" $NewStateResult "\}" NewStateResult
-		regsub -all "\[,\"\]" $NewStateResult { } NewStateResult; # -> {0 0}
+		regsub -all "\[,\"\]" $NewStateResult { } NewStateResult; # -> {0 0} "
 		set NewStateResult [lindex $NewStateResult 0]; # -> 0 0
 		
 		return $NewStateResult
