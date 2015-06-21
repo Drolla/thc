@@ -182,7 +182,7 @@ namespace eval thc_Rrd {
 			# Add the missing devices to the Rrd database if necessary
 			if {$MissingRrdDeviceList!={}} {
 				::Log { -> Found new devices: $MissingRrdDeviceList} 3
-				::Log { -> Trying to extend current Rrd database} 3
+				::Log { -> Trying now to extend current Rrd database ...} 3
 				if {[catch {RrdAddDevices $RrdFile $MissingRrdDeviceList} ErrorMsg]} {
 					::Log { -> The new devices couldn't be added to the Rrd database, data logging is disabed} 3
 					set RrdFile ""
@@ -192,7 +192,7 @@ namespace eval thc_Rrd {
 				# The Rrd database extension was successful, add the new devices
 				# to the Rrd device list variable.
 				set RrdDeviceList [concat $CurrentRrdDeviceList $MissingRrdDeviceList]
-				::Log " -> New devices have been added. Original database has been backed." 3
+				::Log " -> New devices have been added. Backup of original database has been created." 3
 			} else {
 				set RrdDeviceList $CurrentRrdDeviceList; # Use the device order of the existing database
 				::Log { -> Use current Rrd database} 3
