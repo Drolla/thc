@@ -958,6 +958,7 @@ exec tclsh "$0" ${1+"$@"}
 	#
 	# Parameters:
 	#    <URL> - Uniform resource locator/web address
+	#    <SafeMode> - If set to 1 (default) no error is generated in case of a connection problem.
 	#
 	# Returns:
 	#    Data returned from the HTTP POST transaction
@@ -967,7 +968,7 @@ exec tclsh "$0" ${1+"$@"}
 	#    > -> 188.60.11.219
 	##########################
 	
-	proc GetUrl {Url} {
+	proc GetUrl {Url {SafeMode 1}} {
 		set CleanedUrl [CleanUrl $Url]
 		for {set trials 1} {$trials<=10} {incr trials} {
 			set value "?"
@@ -984,9 +985,15 @@ exec tclsh "$0" ${1+"$@"}
 			after 1000
 		}
 		if {$Error} {
-			Log {   Host coulnd't be reached ($Url)} 3
+			if {$SafeMode} {
+				Log {   Host coulnd't be reached ($Url)} 3
+			} else {
+				error "Host coulnd't be reached ($Url)" }
 		} elseif {$trials>10} {
-			Log {   Host hasn't responded, did $trials trials ($Url)} 3
+			if {$SafeMode} {
+				Log {   Host hasn't responded, did $trials trials ($Url)} 3
+			} else {
+				error "Host hasn't responded, did $trials trials ($Url)" }
 		} elseif {$trials>1} {
 			Log {   Host has responded after $trials trials ($Url} 3
 		}
