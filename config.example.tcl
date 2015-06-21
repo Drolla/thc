@@ -75,6 +75,10 @@
 				-name LightCellar -group Light -type switch \
 				-get {thc_zWay "SwitchBinary 9.2"} \
 				-set {thc_zWay "SwitchBinary 9.2"}
+	DefineDevice LightLiv2,state \
+				-name LightLiv2 -group Light -type level \
+				-get {thc_zWay "SwitchMultilevel 12.2"} \
+				-set {thc_zWay "SwitchMultilevel 12.2"}
 
 	# Register sirens
 	DefineDevice Sirene,state \

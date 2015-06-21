@@ -79,6 +79,10 @@
 #    > DefineDevice LightCave,state    -get {thc_zWay "SwitchBinary 20.1"} \
 #    >                                 -set {thc_zWay "SwitchBinary 20.1"}
 #    > 
+#    > DefineDevice LightLiv2,state    -type level \
+#    >                                 -get {thc_zWay "SwitchMultilevel 12.2"} \
+#    >                                 -set {thc_zWay "SwitchMultilevel 12.2"}
+#    > 
 #    > DefineDevice Sirene,state       -get {thc_zWay "SwitchBinary 16.0"} \
 #    >                                 -set {thc_zWay "SwitchBinary 16.0"}
 #    > DefineDevice Sirene,battery     -get {thc_zWay "Battery 16.0"} -update 1h
@@ -126,10 +130,8 @@ namespace eval thc_zWay {
 		# Wait until the z-Way server can be accessed
 		while {1} {
 			if {[catch {
-				set zWayRev [GetUrl "$Url/JS/Run/zway.controller.data.softwareRevisionVersion.value"]
+				set zWayRev [GetUrl "$Url/JS/Run/zway.controller.data.softwareRevisionVersion.value" 0]
 			}]} {
-				puts $::errorInfo
-				return
 				Log {  z-Way controller not accessible on $Url, try again in 30'} 3
 				after 30000
 			} else {
@@ -151,7 +153,7 @@ namespace eval thc_zWay {
 		# The THC extension is loaded with the executeFile command:
 		#    http://192.168.1.21:8083/JS/Run/executeFile("thc_zWay.js");
 		if {![catch {
-			set CheckRes [GetUrl "$Url/JS/Run/Get_IndexArray(257.1)"]; # -> [257,1,0]
+			set CheckRes [GetUrl "$Url/JS/Run/Get_IndexArray(257.1)" 0]; # -> [257,1,0]
 		}] && $CheckRes=={[257,1,0]}} {
 			Log {  z-Way THC extensions are available} 3
 			return
@@ -160,8 +162,8 @@ namespace eval thc_zWay {
 		# The THC extension seems not be loaded. Load it, and check again if
 		# it has been correctly loaded.
 		if {![catch {
-			set Status [GetUrl "$Url/JS/Run/executeFile(\"thc_zWay.js\");"]; # -> Null
-			set CheckRes [GetUrl "$Url/JS/Run/Get_IndexArray(257.1)"]; # -> [257,1,0]
+			set Status [GetUrl "$Url/JS/Run/executeFile(\"thc_zWay.js\");" 0]; # -> Null
+			set CheckRes [GetUrl "$Url/JS/Run/Get_IndexArray(257.1)" 0]; # -> [257,1,0]
 		}] && $CheckRes=={[257,1,0]}} {
 			Log {  Loaded z-Way THC extension} 3
 		} else {

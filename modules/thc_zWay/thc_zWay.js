@@ -162,26 +162,30 @@ Get_SensorBinary = function(NI) {
 		return ""; }
 }
 
-/* Set_SwitchMultilevel(NI,I) 
-   Usage: http://192.168.1.21:8083/JS/Run/Set_SwitchMultilevel(7.1, 0)
-          -> 0
+/* Set_SwitchMultilevel(NI,level)
+   Parameters:
+	   NI: Device identifyer
+	   level: Floating point level, between 0.0 and 1.0
+   Usage: http://192.168.1.21:8083/JS/Run/Set_SwitchMultilevel(12.0, 0.25)
+          -> 0.25
 */
-Set_SwitchMultilevel = function(NI, state) {
+Set_SwitchMultilevel = function(NI, level) {
 	var IndexArray=Get_IndexArray(NI);
 	try {
-		zway.devices[ IndexArray[0] ].instances[ IndexArray[1] ].SwitchMultilevel.Set( state==0?0:255 ); }
+		zway.devices[ IndexArray[0] ].instances[ IndexArray[1] ].SwitchMultilevel.Set(Math.round(99*level)); }
 	catch(err) {}
 	return Get_SwitchMultilevel(NI);
 }
 
 /* Get_SwitchMultilevel(NI)
-   Usage : http://192.168.1.21:8083/JS/Run/Get_SwitchMultilevel(2)
-           -> 1
+   Returns the level as floating point number (0.0 .. 1.0)
+   Usage : http://192.168.1.21:8083/JS/Run/Get_SwitchMultilevel(12.0)
+           -> 0.50
 */
 Get_SwitchMultilevel = function(NI) {
 	var IndexArray=Get_IndexArray(NI);
 	try {
-		return (zway.devices[ IndexArray[0] ].instances[0].SwitchMultilevel.data[1].level.value==0) ? 1 : 0; }
+		return Math.round(101.01*zway.devices[ IndexArray[0] ].instances[ IndexArray[1] ].SwitchMultilevel.data.level.value)/10000; }
 	catch(err) {
 		return ""; }
 }
