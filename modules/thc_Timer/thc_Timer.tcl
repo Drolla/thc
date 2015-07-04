@@ -58,9 +58,9 @@ namespace eval thc_Timer {
 	#    <thc_Timer::Delete>, <thc_Timer::List>
 	##########################
 	
-	proc Define {Time Device Command {Repeat ""} {Description ""} {DoUpdateRecoveryFile 1}} {
+	proc Define {Time Device Command {Repeat ""} {Description ""}} {
 		variable TimerCount
-		
+
 		# Option definitions
 		if {$Description==""} {
 			set Description "Timer $TimerCount: $Device $Command @ $Time, rep='$Repeat'"
@@ -77,9 +77,9 @@ namespace eval thc_Timer {
 		}
 		
 		incr TimerCount
-		if {$DoUpdateRecoveryFile} {
-			UpdateRecoveryFile
-		}
+		DefineRecoveryCommand thc_Timer,$JobTag "thc_Timer::Define \
+		       \{$Time\} \{$Device\} \{$Command\} \{$Repeat\} \{$Description\}"
+
 		return $JobTag
 	}
 
@@ -104,13 +104,15 @@ namespace eval thc_Timer {
 	##########################
 
 	proc Delete {args} {
-		set JobList  {}
-		foreach Job $args {
-			regsub {^(\d+)$} $Job {timer\1} Job; # add prefix 'timer' if not yet defined
-			lappend JobList $Job
+		foreach JobTag $args {
+			regsub {^(\d+)$} $JobTag {timer\1} JobTag; # add prefix 'timer' if not yet defined
+			
+			# Kill the job
+			KillJob $JobTag
+
+			# Remove the job from the recovery command (without providing a command the job will be deleted)
+			DefineRecoveryCommand thc_Timer,$JobTag
 		}
-		::KillJob {*}$JobList
-		UpdateRecoveryFile
 	}
 
 	
@@ -153,7 +155,7 @@ namespace eval thc_Timer {
 			# Timer task example: { timer2 {Tue Jan 06 09:30:00 CET 2015} Surveillance,state Off 3600 {Timer 2: Surveillance,state Off @ 2015-01-06 09:30, rep='1h'} }
 
 			# Skip jobs not related to this timer module
-			if {![regexp {^timer} [lindex $Job 1]]} continue
+			if {![regexp {^timer\d+$} [lindex $Job 1]]} continue
 
 			# Extract the timer task data
 			set Time [clock format [lindex $Job 0]]; # Create a human readable data/time string 
@@ -194,14 +196,4 @@ namespace eval thc_Timer {
 	}
 	
 	
-	proc UpdateRecoveryFile {} {
-		foreach TimerTask [List] {
-			set Command "thc_Timer::Define \
-								\{[lindex $TimerTask 1]\} \{[lindex $TimerTask 2]\} \
-								\{[lindex $TimerTask 3]\} \{[lindex $TimerTask 4]\} \{[lindex $TimerTask 5]\} 0"
-			DefineRecoveryCommand thc_Timer,[lindex $TimerTask 0] $Command
-		}
-	}
-	
-
 }; # end namespace thc_Timer

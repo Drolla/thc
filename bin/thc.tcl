@@ -1110,12 +1110,16 @@ exec tclsh "$0" ${1+"$@"}
 		# Ignore the data recovery if no recovery file is specified
 		if {![info exists RecoverFile]} return
 
+		# Do not update the recover file if DefineRecoveryCommand has been called 
+		# during the recovery phase itself
+		if {[info exists ::RecoverAllOngoing]} return
+
 		# Store the updated recovery commands in the recovery file
 		if {[catch {
 			set f [open $RecoverFile w]
 			puts $f "\# THC recovery commands - [clock format [clock seconds]]"
 			foreach {Id Command} [array get RecoveryCommands] {
-				puts $f "\ncatch \{\n  set RecoveryCommands($Id) \{$Command\}\n  eval \$RecoveryCommands($Id)\n\}"
+				puts $f "\ncatch \{\n  $Command\n\}"
 			}
 			close $f
 		}]} {
@@ -1179,8 +1183,14 @@ exec tclsh "$0" ${1+"$@"}
 
 	proc RecoverAll {} {
 		# Source the recovery file. Catch every failure (for example if the 
-		# recover file doesn't exists)
+		# recover file doesn't exists).
+		# The recovery file contains calls of the function 'DefineRecoveryCommand'
+		# that rewrites itself again the recovery file. To avoid rewriting the 
+		# recovery file during its proper execution the variable 'RecoverAllOngoing'
+		# is used that indicates when the recovery file is executed.
+		set ::RecoverAllOngoing 1
 		catch {uplevel #0 source $::RecoverFile}
+		unset ::RecoverAllOngoing
 	}
 
 
