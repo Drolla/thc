@@ -85,14 +85,14 @@ namespace eval thc_Web {
 	##########################
 	# Accept
 	#    This is the connection handler that is called if a new connection is
-	#    requested. It configures the channel and defines a communication 
+	#    requested. It configures the channel and defines the communication 
 	#    handler.
 	##########################
 	
-	proc Accept {Channel Host Port} {
-		Log {thc_Web: Accept $Channel $Host $Port} 1
-		fconfigure $Channel -blocking 0 -buffering none
-		fileevent $Channel readable "[namespace current]::Handle $Channel"
+	proc Accept {Socket Host Port} {
+		Log {thc_Web: Accept $Socket $Host $Port} 1
+		fconfigure $Socket -blocking 0
+		fileevent $Socket readable "[namespace current]::Handle $Socket"
 	}
 
 	##########################
@@ -121,151 +121,134 @@ namespace eval thc_Web {
 	
 	# Handler implementation
 
-	proc Handle {Channel} {
-		global ThcHomeDir
+	proc Handle {Socket} {
 		variable HttpdMimeType
 		
-		Log {Handle $Channel} 1
-		
+		Log {Handle $Socket} 1
+
 		# Check if the channel has data available
-		if {[eof $Channel]} {
+		if {[eof $Socket]} {
 			# Do nothing if no data is available
+			close $Socket
+			return
+		}
 
-		# Read the available data from the channel, and process them
-		} elseif {![catch {read $Channel} chunk]} {
-			Log {[regsub -all -- "\n" "Handle $Channel:\n$chunk\n" "\n   "]} 1
+		# Default request attributes, they are overwritten if explicitly 
+		# specified in the HTTP request
+		array set Attribute {
+			accept "text/plain"
+			accept-encoding ""
+		}
 
-			# Default request attributes, they are overwritten if explicitly 
-			# specified in the HTTP request
-			set ContentType "text/plain"
-			set AcceptEncoding ""
-			
-			# Extract form the HTTP request data the request line and eventually
-			# provided attributes
-			regexp -line {^(.*)$} $chunk {} RequestLine
-			regexp -line {^Accept:\s*([^\s,]+)} $chunk {} ContentType
-			regexp -line {^Accept-Encoding:\s*(.*)$} $chunk {} AcceptEncoding
-			
-			# Helper variables, default values
-			set Error 0; # Non-zero indicates an error
-			set Encoding ""; # Another value defines an encoding
-			set NoCache 0; # Default cache handling: No
-			set FilePath ""; # If non "" the file content will be returned
-			
-			# Process API command GET requests
-			if {[regexp {GET /api/(.*) HTTP/1.1} $RequestLine {} ApiCommand]} {
-				# Decode the command line and extract the command and arguments
-				set ApiCommand [DecodeHttp $ApiCommand]
-				set Args [lrange $ApiCommand 1 end]
-				set ApiCommand [lindex $ApiCommand 0]
+		# HTTP request parser setup
+		set State Connecting; # HTTP request section
+		set ErrorRecord {}; # Error code, list of HTTP error code and HTML error text
 
-				Log {    API Command: ${ApiCommand}($Args)} 1
-				
-				# Execute the command. Catch eventual errors
-				if {![catch {set ApiResult [thc_Web::API::$ApiCommand {*}$Args]} err]} {
-					# If the MIME type is 'file', register the file path (the file 
-					# will be handled later). Otherwise register the content type 
-					# and data.
-					if {[lindex $ApiResult 0]=="file"} {
-						set FilePath [lindex $ApiResult 1]
+		# Start reading the available data, line after line
+		while {[gets $Socket Line]>=0} {
+			# Decode the HTTP request line
+			if {$State=="Connecting"} {
+				if {[regexp {GET /(.*) HTTP/[\d\.]+} $Line {} GetArgs]} {
+					set State Header
+				} else {
+					set ErrorRecord {"400 bad request" "400 - Bad request"}
+					break
+				}
+			
+			# Read the header/attribute lines
+			} elseif {$State=="Header"} {
+				if {$Line!=""} {
+					if {[regexp {^\s*([^: ]+)\s*:\s*(.*)\s*$} $Line {} AttrName AttrValue]} {
+						set Attribute([string tolower $AttrName]) $AttrValue
 					} else {
-						set ContentType [lindex $ApiResult 0]
-						set ReturnContent [encoding convertto utf-8 [lindex $ApiResult 1]]
+						# Attribute not recognized, ignore it
 					}
-					set NoCache 1; # API data should be cached
 				} else {
-					# The command execution failed, return an error
-					set Error 1
+					set State RequestCompleted
 				}
-
-			# Process file GET requests
-			} elseif {[regexp {GET /(.*) HTTP/1.1} $RequestLine {} FilePath]} {
-				# Register the file. If the path is undefined the default main HTTP
-				# file will be returned. The provided file paths are relative to 
-				# the directory of this present file.
-				set FilePath [DecodeHttp $FilePath]
-				if {$FilePath==""} {
-					set FilePath "index.html"
-				}
-
-				set FilePath "$ThcHomeDir/../modules/thc_Web/$FilePath"
-
-				# From: $ThcHomeDir/../modules/thc_Web/www_simple/module/thc_Timer/index.html
-				# To:   $ThcHomeDir/../modules/thc_Timer/thc_Web/www_simple/index.html
-				regsub {thc_Web/([^/]+)/module/([^/]+)/} $FilePath {\2/thc_Web/\1/} FilePath
-
-			# All other requests are not supported
-			} else {
-				set Error 1
-			}
-				
-			# Handle files
-			if {$FilePath!=""} {
-				# Check if gzip encoding is accepted, and if the relevant gziped 
-				# file exists
-				if {[regexp {\mgzip\M} $AcceptEncoding] && [file exists $FilePath.gz]} {
-					set FilePath $FilePath.gz
-					set Encoding "gzip"
-				}
-
-				Log {    File: $FilePath} 1
-
-				# Read the file content as binary data. Catch errors due to 
-				# non existing files
-				if {[catch {set f [open $FilePath RDONLY]} err]} {
-					set Error 1
-				} else {
-					fconfigure $f -translation binary
-					set ReturnContent [read $f]
-					close $f
-				}
-
-				# Evaluate the MIME type. If the type is not recognized the default
-				# type is returned (plain text)
-				catch {set ContentType $HttpdMimeType([file extension $FilePath])}
-			}
-			
-			# Return the result. If a failure happened a 404-page not found 
-			# response will be provided. Catch failures due to broken channels
-			if {[catch {
-				
-				# A failure happened - return the 404-not found response
-				if {$Error} {
-					Log {    -> Failure $Channel} 1
-					puts $Channel "HTTP/1.0 404 Not Found"
-					puts $Channel "Content-Type: text/html"
-					puts $Channel ""
-					puts $Channel "<html><head><title><No such URL.></title></head>"
-					puts $Channel "<body><center>"
-					puts $Channel "The URL you requested does not exist."
-					puts $Channel "</center></body></html>"
-
-				# Return the data, together with eventual encoding and cache 
-				# attributes. Handle the data as binary, the content of some files
-				# is binary.
-				} else {
-					#Log {    -> Delivered $Channel} 1
-					puts $Channel "HTTP/1.0 200 OK"
-					puts $Channel "Content-Type: $ContentType"
-					if {$Encoding!=""} {
-						puts $Channel "Content-Encoding: $Encoding"
-					}
-					if {$NoCache!=""} {
-						puts $Channel "Cache-Control: no-cache, no-store, must-revalidate"
-					}
-					puts $Channel ""
-					fconfigure $Channel -translation binary
-					puts $Channel $ReturnContent
-				}
-
-			# The channel couldn't be written
-			}]} {
-				Log {    -> Error writing to $Channel, Request: $chunk} 1
 			}
 		}
-		catch {close $Channel}
+
+		# Evaluate the request if no error happened until this point. The command
+		# 'GetRequestResponseData' will provide the data by modifying the 
+		# variables 'Data', 'FilePath', 'ContentType' and 'ErrorRecord', 
+		# 'Encoding', 'NoCache'.
+
+		set Data ""; # Data to be returned
+		set FilePath ""; # This variable will be set to the file path if the 
+		                 # content of a file has to be returned. Has precedence over 'Data'.
+		set Encoding ""; # Indicates that a specific encoding has to be used
+		set NoCache 0; # Default cache handling: No
+		set ContentType $Attribute(accept); # Default content type
+
+		if {$ErrorRecord=={}} {
+			GetRequestResponseData [DecodeHttp $GetArgs]
+		}
+
+		# Read the file content if a file has to be provided
+		if {$ErrorRecord=={} && $FilePath!=""} {
+			# Check if gzip encoding is accepted, and if the relevant gziped 
+			# file exists
+			if {[regexp {\mgzip\M} $Attribute(accept-encoding)] && [file exists $FilePath.gz]} {
+				set FilePath $FilePath.gz
+				set Encoding "gzip"
+			}
+
+			Log {    File: $FilePath} 1
+
+			# Read the file content as binary data. Catch errors due to 
+			# non existing files
+			if {[catch {set f [open $FilePath RDONLY]} err]} {
+				set ErrorRecord [list "404 file not found" "404 - File not found" "File '$FilePath' not found"]
+			} else {
+				fconfigure $f -translation binary
+				set Data [read $f]
+				close $f
+			}
+
+			# Evaluate the MIME type. If the type is not recognized the default
+			# type is returned (plain text)
+			catch {
+				set ContentType $HttpdMimeType([file extension $FilePath])}
+		}
+
+		# Return an error code if an error happened
+		if {$ErrorRecord!={}} {
+			set Data "<html><h1>[lindex $ErrorRecord 1]</h1></html>"
+			if {[llength $ErrorRecord]>2} {
+				append Data "<pre>[lindex $ErrorRecord 2]</pre>"}
+			
+			puts $Socket "HTTP/1.0 [lindex $ErrorRecord 0]"
+			puts $Socket "Content-length: [string length $Data]"
+			puts $Socket "Connection: close"
+			puts $Socket ""
+			fconfigure $Socket -translation {auto binary}
+			puts $Socket $Data
+		
+		# ... otherwise return the requested data, together with eventual 
+		# encoding and cache attributes. Handle the data as binary, the content
+		#  of some files is binary (and to match also the length attribute).
+		} else {
+			fconfigure $Socket -translation {auto crlf}; # HTTP headers need to have crlf line breaks
+			puts $Socket "HTTP/1.0 200 OK"
+			if {$ContentType!=""} {
+				puts $Socket "Content-Type: $ContentType"}
+			if {$Encoding!=""} {
+				puts $Socket "Content-Encoding: $Encoding"}
+			if {$NoCache!=""} {
+				puts $Socket "Cache-Control: no-cache, no-store, must-revalidate"}
+			puts $Socket "Content-length: [string length $Data]"
+			puts $Socket "Connection: close"
+			puts $Socket ""
+			fconfigure $Socket -translation {auto binary}; # Binary data to match the content length attribute
+			puts $Socket $Data
+		}
+
+		# Close the socket ('connection: close')
+		close $Socket
+		Log {thc_HttpDServer: $Socket closed} 1
 	}
-	
+
 	##########################
 	# DecodeHttp
 	#    Decode the hexadecimal encoding contained in HTTP requests (e.g. %2F).
@@ -279,6 +262,65 @@ namespace eval thc_Web {
 			set line [string replace $line {*}$Pos $Char]
 		}
 		return $line
+	}
+
+	##########################
+	# GetRequestResponseData
+	#    Evaluates the GET request string and returns the result by modifying
+	#    inside the calling procedure the variables 'Data', 'FilePath', 
+	#    'ErrorRecord', 'ContentType', 'Encoding', 'NoCache'
+	##########################
+
+	proc GetRequestResponseData {GetRequestString} {
+		global ThcHomeDir
+		upvar 1 Data Data
+		upvar 1 FilePath FilePath
+		upvar 1 ContentType ContentType
+		upvar 1 ErrorRecord ErrorRecord
+		upvar 1 Encoding Encoding
+		upvar 1 NoCache ErrorRecord
+		
+		# Process API command GET requests
+		if {[regexp {^api/(.*)$} $GetRequestString {} ApiCommand]} {
+			# Extract the command and arguments
+			set Args [lrange $ApiCommand 1 end]
+			set ApiCommand [lindex $ApiCommand 0]
+
+			Log {    API Command: ${ApiCommand}($Args)} 1
+			
+			# Execute the command. Catch eventual errors
+			if {![catch {set ApiResult [thc_Web::API::$ApiCommand {*}$Args]} err]} {
+				# If the MIME type is 'file', register the file path (the file 
+				# will be handled later). Otherwise register the content type 
+				# and data.
+				if {[lindex $ApiResult 0]=="file"} {
+					set FilePath [lindex $ApiResult 1]
+				} else {
+					set ContentType [lindex $ApiResult 0]
+					set Data [encoding convertto utf-8 [lindex $ApiResult 1]]
+				}
+				set NoCache 1; # API data shouldn't be cached
+			} else {
+				# The command execution failed, return an error
+				set ErrorRecord [list "404 incorrect command" "404 - Incorrect command" $GetRequestString]
+			}
+
+		# Process file GET requests
+		} else {
+			# Register the file. If the path is undefined the default main HTTP
+			# file will be returned. The provided file paths are relative to 
+			# the directory of this present file.
+			set FilePath $GetRequestString
+			if {$FilePath==""} {
+				set FilePath "index.html"
+			}
+
+			set FilePath "$ThcHomeDir/../modules/thc_Web/$FilePath"
+
+			# From: $ThcHomeDir/../modules/thc_Web/www_simple/module/thc_Timer/index.html
+			# To:   $ThcHomeDir/../modules/thc_Timer/thc_Web/www_simple/index.html
+			regsub {thc_Web/([^/]+)/module/([^/]+)/} $FilePath {\2/thc_Web/\1/} FilePath
+		}
 	}
 
 }; # end namespace thc_Web
