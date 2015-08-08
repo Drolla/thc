@@ -75,7 +75,7 @@ exec tclsh "$0" ${1+"$@"}
 	# Parameters:
 	#    <LogFile> - Log file name. If the provided log file 'LogFile' is an 
 	#                empty string ('') or 'stdout', the log stream is routed 
-	#                to stdout
+	#                to stdout.
 	#    [<LogLevel>] - Log level, default: 2
 	#
 	# Returns:
@@ -938,59 +938,122 @@ exec tclsh "$0" ${1+"$@"}
 
 # Group: HTTP communication
 
-	package require http
+	# Apply patch for Tcl bug '6ca52aec14e0b33543d3cd9895f060b852ac4dbc', Memory 
+	# leak if client requests "Connection: close" but server responses with "Connection: keep-alive"
 	
-	proc CleanUrl {Url} {
-		regsub -all "\\\[" $Url {%5B} Url
-		regsub -all "\\\]" $Url {%5D} Url
-		regsub -all "\\(" $Url {%28} Url
-		regsub -all "\\)" $Url {%29} Url
-		regsub -all "\\\"" $Url {%22} Url
-		regsub -all "\\ " $Url {%20} Url
-		return $Url
+	set HttpPackageRevision [package require http]
+	
+	if { ([string range $HttpPackageRevision 0 2]=="2.7" && [package vcompare $HttpPackageRevision 2.7.13]<=0)
+	  || ([string range $HttpPackageRevision 0 2]!="2.7" && [package vcompare $HttpPackageRevision 2.8.9]<=0)} {
+	
+		Log {Http package is version $HttpPackageRevision. Apply patch for Tcl bug '6ca52aec14e0b33543d3cd9895f060b852ac4dbc'} 3
+		
+		proc http::Finish {token {errormsg ""} {skipCB 0}} {
+			variable $token
+			upvar 0 $token state
+			global errorInfo errorCode
+			if {$errormsg ne ""} {
+				set state(error) [list $errormsg $errorInfo $errorCode]
+				set state(status) "error"
+			}
+			if { ($state(status) eq "timeout") 
+				 || ($state(status) eq "error")
+				 || ([info exists state(-keepalive)] && !$state(-keepalive))
+				 || ([info exists state(connection)] && ($state(connection) eq "close"))
+			} {
+				CloseSocket $state(sock) $token
+			}
+			if {[info exists state(after)]} {
+				after cancel $state(after)
+			}
+			if {[info exists state(-command)] && !$skipCB
+					&& ![info exists state(done-command-cb)]} {
+				set state(done-command-cb) yes
+				if {[catch {eval $state(-command) {$token}} err] && $errormsg eq ""} {
+					set state(error) [list $err $errorInfo $errorCode]
+					set state(status) error
+				}
+			}
+		}
+
+	}
+	unset HttpPackageRevision
+	
+	##########################
+	# EncodeUrl
+	#    Encodes an URL string. Special characters are replaced by the 
+	#    hexadecimal representation '%xx%.
+	##########################
+
+	set UrlEncodingMap {}
+	foreach Char {"[" "]" "(" ")" "\"" " "} {
+		lappend UrlEncodingMap $Char [format %%%2X [scan $Char %c]]
+	}
+	
+	proc EncodeUrl {Url} {
+		variable UrlEncodingMap
+		return [string map $UrlEncodingMap $Url]
 	}
 	
 	##########################
 	# Proc: GetUrl
-	#    Performs a HTTP POST transaction. GetUrl performs multiple trials 
-	#    if a transaction has a timeout. Special URL characters are correctly 
-	#    encoded.
+	#    Performs HTTP transactions. This command performs HTTP transactions 
+	#    using the http::geturl command that is extended by following features:
+	#    * The URL query string is URL encoded
+	#    * Multiple trials are performed in case of timeouts (10 trials per default)
+	#    * Errors can optionally be caught
+	#
+	#    GetUrl performs by default non-persistent HTTP 1.1 GET requests using a 
+	#    timeout time of 5s, but these settings can be changed via the options.
 	#
 	# Parameters:
 	#    <URL> - Uniform resource locator/web address
-	#    <SafeMode> - If set to 1 (default) no error is generated in case of a connection problem.
+	#    [-noerror 0|1] - If set to 1 (default) no error is generated in case of a connection error.
+	#    [-nbrtrials <NbrTrials>] - Defines the number of trials in case of connection timeouts. Default is 10.
+	#    [-timeout <TimeoutMS>] - Option forwarded to http::geturl. Default is 5000. Allows defining the timeout in milliseconds.
+	#
+	#    All other options defined with key-value pairs are forwarded to the http::geturl command.
 	#
 	# Returns:
-	#    Data returned from the HTTP POST transaction
+	#    Data returned from the HTTP transaction
 	#    
 	# Examples:
 	#    > GetUrl "http://ipecho.net/plain"
 	#    > -> 188.60.11.219
 	##########################
 	
-	proc GetUrl {Url {SafeMode 1}} {
-		set CleanedUrl [CleanUrl $Url]
-		for {set trials 1} {$trials<=10} {incr trials} {
+	proc GetUrl {Url args} {
+		# Geturl argument handling
+		array set GetUrlArgs {-noerror 1 -nbrtrials 10 -timeout 5000}
+		array set GetUrlArgs $args
+		set NoError $GetUrlArgs(-noerror)
+		set NbrTrials $GetUrlArgs(-nbrtrials)
+		unset GetUrlArgs(-noerror)
+		unset GetUrlArgs(-nbrtrials)
+		
+		# Encode the URL
+		set EncodedUrl [EncodeUrl $Url]
+		for {set trials 0} {$trials<$NbrTrials} {incr trials} {
 			set value "?"
 			set HttpStatus "?"
 			set Error [catch {
-				set h [::http::geturl $CleanedUrl -query {} -timeout 5000]
+				set h [::http::geturl $EncodedUrl {*}[array get GetUrlArgs]]
 				set HttpStatus [::http::status $h]
 				set value [http::data $h]
 				regexp "^\"(.*)\"$" $value {} value
 				::http::cleanup $h
 			}]
 			if {$HttpStatus!="timeout"} break
-			Log {Timeout executing GetUrl $Url, HTTP status: $HttpStatus (trial $trials)} 1
+			Log {Timeout executing GetUrl $Url, HTTP status: $HttpStatus (trial [expr {$trials+1}])} 1
 			after 1000
 		}
 		if {$Error} {
-			if {$SafeMode} {
+			if {$NoError} {
 				Log {   Host coulnd't be reached ($Url)} 3
 			} else {
 				error "Host coulnd't be reached ($Url)" }
-		} elseif {$trials>10} {
-			if {$SafeMode} {
+		} elseif {$trials>=$NbrTrials} {
+			if {$NoError} {
 				Log {   Host hasn't responded, did $trials trials ($Url)} 3
 			} else {
 				error "Host hasn't responded, did $trials trials ($Url)" }
