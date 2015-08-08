@@ -589,9 +589,9 @@ namespace eval thc_Rrd {
 		variable RrdDeviceList
 		variable RrdDevice2Device
 		foreach RrdDevice $RrdDeviceList {
-			set Device $RrdDevice2Device($RrdDevice)
 			set Value "U"
 			catch {
+				set Device $RrdDevice2Device($RrdDevice)
 				set Value [expr $State($Device)]
 				set Value [expr $StickyState($Device)]; # Use the sticky state if existing
 			}
