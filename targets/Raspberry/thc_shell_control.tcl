@@ -41,12 +41,13 @@ while {1} {
 		set Command $argv
 	}
 	if {[catch {
+		set CommandArgString [join [lrange $Command 1 end] " "]
 		switch -- [lindex $Command 0] {
 			h {Help}
 			zl {
-				exec sh -c "tail -n 40 [lrange $Command 1 end] /var/log/z-way-server.log" >&@ stdout}
+				exec sh -c "tail -n 40 $CommandArgString /var/log/z-way-server.log" >&@ stdout}
 			rl {
-				exec sh -c "tail -n 40 [lrange $Command 1 end] /var/thc/thc_server.log" >&@ stdout}
+				exec sh -c "tail -n 40 $CommandArgString /var/thc/thc_server.log" >&@ stdout}
 			s {
 				set Status [exec sh -c {wget -q -O - 'localhost:8083/JS/Run/Get_Control(["Surveillance","Alarm","AllLights"])'}]
 				set Status [split [string trim $Status {[]}] ","]
@@ -63,7 +64,7 @@ while {1} {
 			zo {exec sudo /etc/init.d/thc.sh stop >&@ stdout
 			    exec sudo /etc/init.d/z-way-server stop >&@ stdout}
 			e {
-				set Status [exec sh -c "wget -q -O - 'http://localhost:8085/eval [string range $Command 2 end]'"]
+				set Status [exec sh -c "wget -q -O - 'http://localhost:8085/eval $CommandArgString'"]
 				puts "-> $Status"
 			}
 			q -
