@@ -210,16 +210,15 @@ namespace eval thc_zWay {
 		regsub -all "\\\] \\\[" $JsonFormatedArgs "\],\[" JsonFormatedArgs
 		regsub -all { } $JsonFormatedArgs "\",\"" JsonFormatedArgs; # -> ["SensorBinary","12"],["SensorBinary","5"],["SwitchBinary","7.2"]
 		set JsonFormatedArgs "\[$JsonFormatedArgs\]"; # -> [["SensorBinary","12"],["SensorBinary","5"],["SwitchBinary","7.2"]]
-		#puts "GetUrl $UrlBase/JS/Run/Get($JsonFormatedArgs)"
 		
-		set NewStateResult [GetUrl "$UrlBase/JS/Run/Get($JsonFormatedArgs)" -method POST]; # -> [0,0,1,[1407694169,"unlock"],33,17.7]
-		#Log "$JsonFormatedArgs -> $NewStateResult"
+		set NewStateResult [GetUrl "$UrlBase/JS/Run/Get($JsonFormatedArgs)" -method POST]; # -> [0,"",1,[1407694169,"unlock"],\"\",17.7]
 
+		regsub -all {\\"} $NewStateResult {"} NewStateResult; # -> [0,"",1,[1407694169,"unlock"],"",17.7]. This regsub is required starting with z-way 2.0.1 (not necessary for 2.0.1-rc6)
 		regsub -all {^\"(.+)\"$} $NewStateResult {\1} NewStateResult; # Remove surrounding quotes
 		regsub -all "\\\[" $NewStateResult "\{" NewStateResult
 		regsub -all "\\\]" $NewStateResult "\}" NewStateResult
-		regsub -all "," $NewStateResult { } NewStateResult; # -> {0 0 1 {1407694169  unlock } 33 17.7}
-		regsub -all {\"(\w+)\"} $NewStateResult {\1} NewStateResult; # -> {0 0 1 {1407694169  unlock } 33 17.7}
+		regsub -all "," $NewStateResult { } NewStateResult; # -> {0 "" 1 {1407694169  "unlock"} \"\" 17.7}
+		regsub -all {\\{0,3}\"(\w+)\\{0,3}\"} $NewStateResult {\1} NewStateResult; # -> {0 "" 1 {1407694169  unlock } "" 17.7}
 		set NewStateResult [lindex $NewStateResult 0]; # -> 0 0 1 {1407694169  unlock } 33 17.7
 		
 		return $NewStateResult
