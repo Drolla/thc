@@ -213,7 +213,7 @@ namespace eval thc_zWay {
 		
 		set NewStateResult [GetUrl "$UrlBase/JS/Run/Get($JsonFormatedArgs)" -method POST]; # -> [0,"",1,[1407694169,"unlock"],\"\",17.7]
 
-		regsub -all {\\"} $NewStateResult {"} NewStateResult; # -> [0,"",1,[1407694169,"unlock"],"",17.7]. This regsub is required starting with z-way 2.0.1 (not necessary for 2.0.1-rc6)
+		regsub -all {\\"} $NewStateResult {"} NewStateResult; # -> [0,"",1,[1407694169,"unlock"],"",17.7]. This substitution is required starting with z-way 2.0.1 (not necessary for 2.0.1-rc6)
 		regsub -all {^\"(.+)\"$} $NewStateResult {\1} NewStateResult; # Remove surrounding quotes
 		regsub -all "\\\[" $NewStateResult "\{" NewStateResult
 		regsub -all "\\\]" $NewStateResult "\}" NewStateResult
