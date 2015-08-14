@@ -55,7 +55,8 @@ namespace eval thc_RandomLight {
 		
 		array set Options {-min_intervall 0.50 -probability_on 0.5 -default 0}
 		array set Options $args
-		Assert [info exists Options(-time)] "Define: The option -time is mandatory!"
+		Assert [info exists Options(-time)] "thc_RandomLight::Define: The option -time is mandatory!"
+		Assert [info exists ::DeviceAttributes($Device,name)] "thc_RandomLight::Define: Device $Device is not defined - ignore it"
 		
 		set Settings($Device) [list $Options(-time) $Options(-min_intervall) $Options(-probability_on) $Options(-default)]
 		if {$Options(-default)} {
