@@ -130,7 +130,7 @@ namespace eval thc_zWay {
 		# Wait until the z-Way server can be accessed
 		while {1} {
 			if {[catch {
-				set zWayRev [GetUrl "$Url/JS/Run/zway.controller.data.softwareRevisionVersion.value" -noerror 0]
+				set zWayRev [GetUrl "$Url/JS/Run/zway.controller.data.softwareRevisionVersion.value" -method POST -noerror 0]
 			}]} {
 				Log {  z-Way controller not accessible on $Url, try again in 30'} 3
 				after 30000
@@ -153,7 +153,7 @@ namespace eval thc_zWay {
 		# The THC extension is loaded with the executeFile command:
 		#    http://192.168.1.21:8083/JS/Run/executeFile("thc_zWay.js");
 		if {![catch {
-			set CheckRes [GetUrl "$Url/JS/Run/Get_IndexArray(257.1)" -noerror 0]; # -> [257,1,0]
+			set CheckRes [GetUrl "$Url/JS/Run/Get_IndexArray(257.1)" -method POST -noerror 0]; # -> [257,1,0]
 		}] && $CheckRes=={[257,1,0]}} {
 			Log {  z-Way THC extensions are available} 3
 			return
@@ -162,8 +162,8 @@ namespace eval thc_zWay {
 		# The THC extension seems not be loaded. Load it, and check again if
 		# it has been correctly loaded.
 		if {![catch {
-			set Status [GetUrl "$Url/JS/Run/executeFile(\"thc_zWay.js\");" -noerror 0]; # -> Null
-			set CheckRes [GetUrl "$Url/JS/Run/Get_IndexArray(257.1)" -noerror 0]; # -> [257,1,0]
+			set Status [GetUrl "$Url/JS/Run/executeFile(\"thc_zWay.js\");" -method POST -noerror 0]; # -> Null
+			set CheckRes [GetUrl "$Url/JS/Run/Get_IndexArray(257.1)" -method POST -noerror 0]; # -> [257,1,0]
 		}] && $CheckRes=={[257,1,0]}} {
 			Log {  Loaded z-Way THC extension} 3
 		} else {
@@ -189,7 +189,7 @@ namespace eval thc_zWay {
 			"TagReader" {
 				# Install the bindings for the alarms
 				Log {thc_zWay::DeviceSetup $DeviceNbr -> Configure TagReader} 1
-				set Result [GetUrl "$UrlBase/JS/Run/Configure_TagReader($DeviceNbr)"] }
+				set Result [GetUrl "$UrlBase/JS/Run/Configure_TagReader($DeviceNbr)" -method POST] }
 		}
 	}
 
@@ -212,7 +212,7 @@ namespace eval thc_zWay {
 		set JsonFormatedArgs "\[$JsonFormatedArgs\]"; # -> [["SensorBinary","12"],["SensorBinary","5"],["SwitchBinary","7.2"]]
 		#puts "GetUrl $UrlBase/JS/Run/Get($JsonFormatedArgs)"
 		
-		set NewStateResult [GetUrl "$UrlBase/JS/Run/Get($JsonFormatedArgs)"]; # -> [0,0,1,[1407694169,"unlock"],33,17.7]
+		set NewStateResult [GetUrl "$UrlBase/JS/Run/Get($JsonFormatedArgs)" -method POST]; # -> [0,0,1,[1407694169,"unlock"],33,17.7]
 		#Log "$JsonFormatedArgs -> $NewStateResult"
 
 		regsub -all {^\"(.+)\"$} $NewStateResult {\1} NewStateResult; # Remove surrounding quotes
@@ -243,7 +243,7 @@ namespace eval thc_zWay {
 		set JsonFormatedArgs "\[$JsonFormatedArgs\]"; # -> [["Control","Surveillance"],["SwitchBinary","20.1"]]
 		#puts "GetUrl $UrlBase/JS/Run/Set($JsonFormatedArgs,$NewState)"
 		
-		set NewStateResult [GetUrl "$UrlBase/JS/Run/Set($JsonFormatedArgs,$NewState)"]
+		set NewStateResult [GetUrl "$UrlBase/JS/Run/Set($JsonFormatedArgs,$NewState)" -method POST]
 
 		regsub -all {^\"(.+)\"$} $NewStateResult {\1} NewStateResult; # Remove surrounding quotes
 		regsub -all "\\\[" $NewStateResult "\{" NewStateResult
@@ -264,7 +264,7 @@ namespace eval thc_zWay {
 		foreach Element $ElementList {
 			lappend ElementIdList $DeviceId($Element)
 		}
-		GetUrl $UrlBase/JS/Run/Sleep(\[$ElementIdList\])
+		GetUrl $UrlBase/JS/Run/Sleep(\[$ElementIdList\]) -method POST
 	}
 
 }; # end namespace thc_zWay
