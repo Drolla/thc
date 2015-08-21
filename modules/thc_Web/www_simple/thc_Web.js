@@ -11,6 +11,7 @@
 
 var DevicesInfo={};
 var DeviceStates={};
+var StallDeviceUpdates={};
 var DisplayType="Classic";
 var ColorMode=0;
 
@@ -21,7 +22,9 @@ function UpdateStates(NewDeviceStates) {
 	$.each(NewDeviceStates, function(DeviceId, DeviceValue) {
 		var ChildId = DeviceId.replace(/[.,]/g,"_");
 		var DeviceType = DevicesInfo[DeviceId]["type"];
-		DeviceGui[ DeviceType ].Update(ChildId,DeviceId,DeviceValue);
+		if (!StallDeviceUpdates[DeviceId]) {
+			DeviceGui[ DeviceType ].Update(ChildId,DeviceId,DeviceValue); }
+		StallDeviceUpdates[DeviceId]=false;
 	});
 }
 
@@ -71,6 +74,7 @@ function BuildGui() {
 	$.each(DevicesInfo, function(DeviceId, DeviceInfo) {
 		if (Groups.indexOf(DeviceInfo["group"])==-1) {
 			Groups[Groups.length]=DeviceInfo["group"]; }
+		StallDeviceUpdates[DeviceId]=false;
 	});
 
 	$("body").append('\
@@ -280,8 +284,10 @@ $(window).resize(function() {
 	
 	DeviceGui["switch"].ChangeState=function(ChildId,DeviceId) {
 		var NewValue=(DeviceStates[DeviceId]=="0" || DeviceStates[DeviceId]=="false" ? 1 : 0);
-		$.get("/api/SetDeviceState "+DeviceId+" "+NewValue);
 		this.Update(ChildId,DeviceId,NewValue);
+		DeviceStates[DeviceId]=NewValue;
+		StallDeviceUpdates[DeviceId]=true;
+		$.get("/api/SetDeviceState "+DeviceId+" "+NewValue);
 	}
 	
 	DeviceGui["switch"].Create = function(Parent, ChildId, DeviceId, DeviceInfo) {
@@ -319,8 +325,10 @@ $(window).resize(function() {
 		var Value=(Event.pageX-$("#"+ChildId+"_Cnt").offset().left)/$("#"+ChildId+"_Cnt").width()
 		Value=Math.min(Math.max(Value,0),1);
 		Value=Range[0]+Value*(Range[1]-Range[0]);
-		$.get("/api/SetDeviceState "+DeviceId+" "+Value);
 		this.Update(ChildId,DeviceId,Value);
+		DeviceStates[DeviceId]=Value;
+		StallDeviceUpdates[DeviceId]=true;
+		$.get("/api/SetDeviceState "+DeviceId+" "+Value);
 	}
 	
 	DeviceGui["level"].Create = function(Parent, ChildId, DeviceId, DeviceInfo) {
