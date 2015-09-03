@@ -1,7 +1,7 @@
 /*************************************************************************
 * THC - Tight Home Control
 **************************************************************************
-* thc_Web.js - THC client side web framework
+* thc_Web.js - THC client side web framework based on jQuery
 *
 * Copyright (C) 2015 Andreas Drollinger
 **************************************************************************
@@ -310,7 +310,7 @@ $(window).resize(function() {
 		});
 	}
 
-/**** level ****/
+/**** Level ****/
 
 	DeviceGui["level"]={};
 

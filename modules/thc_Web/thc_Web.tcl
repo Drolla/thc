@@ -148,9 +148,8 @@ namespace eval thc_Web {
 		while {[gets $Socket Line]>=0} {
 			# Decode the HTTP request line
 			if {$State=="Connecting"} {
-				if {[regexp {GET /(.*) HTTP/[\d\.]+} $Line {} GetArgs]} {
-					set State Header
-				} else {
+				set State Header
+				if {![regexp {GET /(.*) HTTP/[\d\.]+} $Line {} GetArgs]} {
 					set ErrorRecord {"400 bad request" "400 - Bad request"}
 					break
 				}
@@ -167,6 +166,11 @@ namespace eval thc_Web {
 					set State RequestCompleted
 				}
 			}
+		}
+		
+		# Return a 'bad request response in case no valid line hasn't been received
+		if {$State=="Connecting"} {
+			set ErrorRecord {"400 bad request" "400 - Bad request"}
 		}
 
 		# Evaluate the request if no error happened until this point. The command
