@@ -311,19 +311,18 @@ namespace eval thc_Web {
 
 		# Process file GET requests
 		} else {
-			# Register the file. If the path is undefined the default main HTTP
-			# file will be returned. The provided file paths are relative to 
-			# the directory of this present file.
+			# Register the file. The provided file paths are relative to the 
+			# directory of this present file.
 			set FilePath $GetRequestString
-			if {$FilePath==""} {
-				set FilePath "index.html"
-			}
-
 			set FilePath "$ThcHomeDir/../modules/thc_Web/$FilePath"
 
 			# From: $ThcHomeDir/../modules/thc_Web/www_simple/module/thc_Timer/index.html
 			# To:   $ThcHomeDir/../modules/thc_Timer/thc_Web/www_simple/index.html
 			regsub {thc_Web/([^/]+)/module/([^/]+)/} $FilePath {\2/thc_Web/\1/} FilePath
+
+			# If the path corresponds to a directory add 'index.html'.
+			if {[file isdirectory $FilePath]} {
+				set FilePath [file join $FilePath index.html] }
 		}
 	}
 
