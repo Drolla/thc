@@ -144,9 +144,9 @@ exec tclsh "$0" ${1+"$@"}
 	#    <Set>, which call the commands specified respectively with the *-get* 
 	#    and *-set* command definition parameters.
 	#
-	#    A command definition is a list containing as first element the target  
-	#    module that supports the device, and as second element detailed device 
-	#    information whose format depends on the target module.
+	#    A command definition is a list with a first element that specifies the 
+	#    target module and with one or multiple additional elements that specify
+	#    the device details.
 	#
 	#    The state of a registered device is by default updated automatically 
 	#    each heartbeat. A slower update rate can be selected via the option 
@@ -200,6 +200,13 @@ exec tclsh "$0" ${1+"$@"}
 	#    >       -type level -range {0 100}
 	#    > DefineDevice Sirene,battery -range {0 100} -update 1h \
 	#    >       -get {thc_zWay "Battery 16.0"} -gexpr {$Value-0.3}
+	#    > 
+	#    > ### Device that acts on multiple physical targets ###
+	#    > 
+	#    > DefineDevice DoubleSwitch,state \
+	#    >       -get {thc_zWay "SwitchBinary 8.0"} \
+	#    >       -set {thc_zWay "SwitchBinary 8.0" "SwitchBinary 8.1" "SwitchBinary 8.2"} \
+	#    >       -type switch
 	#    > 
 	#    > ### Virtual device, stores a scenario ###
 	#    > 
@@ -389,13 +396,13 @@ exec tclsh "$0" ${1+"$@"}
 
 	proc Set {DeviceList NewState} {
 		global NextState DeviceAttributes
-		array set ModuleGetCmdList {}
+		array set ModuleSetCmdList {}
 		foreach Device $DeviceList {
-			lappend ModuleGetCmdList([lindex $DeviceAttributes($Device,GetCommand) 0]) [lindex $DeviceAttributes($Device,GetCommand) 1]
-			lappend ModuleDeviceList([lindex $DeviceAttributes($Device,GetCommand) 0]) $Device
+			lappend ModuleSetCmdList([lindex $DeviceAttributes($Device,SetCommand) 0]) {*}[lrange $DeviceAttributes($Device,SetCommand) 1 end]
+			lappend ModuleDeviceList([lindex $DeviceAttributes($Device,SetCommand) 0]) $Device
 		}
-		foreach Module [array names ModuleGetCmdList] {
-			set StateList [${Module}::Set $ModuleGetCmdList($Module) $NewState]
+		foreach Module [array names ModuleSetCmdList] {
+			set StateList [${Module}::Set $ModuleSetCmdList($Module) $NewState]
 			foreach Device $ModuleDeviceList($Module) Stat $StateList {
 				set NextState($Device) $Stat
 			}
