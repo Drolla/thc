@@ -546,12 +546,13 @@ namespace eval thc_Rrd {
 		if {$RrdToolAvailable} {
 			if {![catch {
 				::Log {Rrd file creation: $CmdArgs} 1
-				eval [list Rrd::create $RrdFile {*}$CmdArgs]
+				exec rrdtool create $RrdFile {*}$CmdArgs]
 			}]} return
 		}
 		
 		error "The database couldn't be created: $::errorInfo"
 	}
+
 
 	##########################
 	# Proc: thc_Rrd::Log
