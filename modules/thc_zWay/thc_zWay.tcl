@@ -33,7 +33,7 @@
 #
 # *THC configuration (config.tcl)*
 #   - Initialize the interface with the <thc_zWay::Init> command. For z-Way 
-#     revision 2.0.2 and above you need to provide the name and password of 
+#     revision 2.1.1 and above you need to provide the name and password of 
 #     a user registered by the z-Way server.
 #   - Declare the Z-Wave devices with <DefineDevice>, see <z-Way device definitions>
 #
@@ -112,7 +112,7 @@ namespace eval thc_zWay {
 	#    z-Way server is accessible, and loads then the THC extension to the z-Way
 	#    JavaScript interpreter.
 	#
-	#    z-Way 2.0.2 and above requires authentication. The user name and password 
+	#    z-Way 2.1.1 and above requires authentication. The user name and password 
 	#    of a user registered by the z-Way server needs to be provided.
 	#
 	#    Init needs to be called before any z-Way devices are declared.
@@ -121,8 +121,8 @@ namespace eval thc_zWay {
 	#    URL - Full qualified URL to access the z-Way server. The provided URL 
 	#          needs to be composed by the 'http://' prefix, the IP address as 
 	#          well as the port.
-	#    [-user <UserName>] - User name for authentication (z-Way 2.0.2 or above)
-	#    [-password <UserName>] - Password for authentication (z-Way 2.0.2 or above)
+	#    [-user <UserName>] - User name for authentication (z-Way 2.1.1 or above)
+	#    [-password <UserName>] - Password for authentication (z-Way 2.1.1 or above)
 	#
 	# Returns:
 	#    -
