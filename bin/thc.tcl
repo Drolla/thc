@@ -40,6 +40,10 @@ exec tclsh "$0" ${1+"$@"}
 	unset Indx
 
 
+######## Library/package source paths ########
+
+	lappend auto_path [file normalize $ThcHomeDir/../libs]
+
 ######## Log ########
 
 # Group: Log
