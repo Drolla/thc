@@ -714,6 +714,7 @@
 		set RequestProtocol ""
 		set RequestHeader [dict create connection "close" accept "text/plain" accept-encoding ""]
 		set RequestBody ""
+		set RequestAcceptGZip 0; # Indicates that the request accepts a gzipped response
 		
 		# Default response data, they are overwritten by the responder command data
 		set ResponseStatus "OK"
@@ -762,6 +763,10 @@
 			if {$RequestBody!=""} {
 				Log {$RequestBody} input 3 }
 		}
+		
+		# Determine if the response can be gzipped
+		if {[regexp {\mgzip\M} [dict get $RequestHeader accept-encoding]]} {
+			set RequestAcceptGZip 1 }
 
 		# Evaluate the request if no error happened until this point.
 
@@ -811,11 +816,13 @@
 					dict set ResponseHeader Content-Type [GetMimeType $FilePath] }
 			}
 
-			# Check if gzip encoding is accepted, and if the relevant gziped 
-			# file exists
-			if {[regexp {\mgzip\M} [dict get $RequestHeader accept-encoding]] && [file exists $FilePath.gz]} {
+			# Try to provide a gzipped file if gzip encoding is accepted and if 
+			# the gzipped file already exists
+			
+			if {[file exists $FilePath.gz] && $RequestAcceptGZip} {
 				set FilePath $FilePath.gz
 				dict set ResponseHeader Content-Encoding "gzip"
+				set RequestAcceptGZip 0; # Don't gzip the zipped file another time
 			}
 
 			Log {    File: $FilePath} 2
@@ -843,6 +850,18 @@
 		if {$ResponseStatus!="200 OK"} {
 			if {$ResponseBody==""} {
 				set ResponseBody $ResponseStatus }
+		}
+
+		# Compress the data if this is accepted by the client, 
+		# supported by Tcl, and if the response is sufficient long (>100)
+		if {$RequestAcceptGZip && $::tcl_version>=8.6 && [string length $ResponseBody]>100} {
+			if {$FilePath!=""} {
+				set ResponseBody [zlib gzip $ResponseBody \
+									-header [dict create filename [file tail $FilePath]]]
+			} else {
+				set ResponseBody [zlib gzip $ResponseBody]
+			}
+			dict set ResponseHeader Content-Encoding "gzip"
 		}
 
 		# If the content type hasn't bee specified, use the default one
