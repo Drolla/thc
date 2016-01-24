@@ -50,6 +50,10 @@
 
 package require t2ws
 
+proc t2ws::WriteLog {Message Tag} {
+	::Log "t2ws: $Message" 3
+}
+
 namespace eval thc_HttpDServer {
 	namespace export Start Stop
 

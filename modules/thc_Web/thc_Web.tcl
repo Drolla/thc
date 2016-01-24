@@ -26,6 +26,10 @@
 
 package require t2ws
 
+proc t2ws::WriteLog {Message Tag} {
+	::Log "t2ws: $Message" 3
+}
+
 # Group: Commands
 
 namespace eval thc_Web {
