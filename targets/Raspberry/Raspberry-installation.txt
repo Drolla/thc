@@ -52,10 +52,9 @@ Topic: zWay/Razberry installation
 To download the latest Z-Way version for your RaZberry, execute the following 
 line:
   > wget -q -O - razberry.z-wave.me/install | sudo bash 
-Performance issues have been observed with z-Way version 1.7. A version that 
-performs well is version 1.5.1-rc3. Execute the following line to install 
-explicitly this z-Way version:
-  > wget -q -O - http://razberry.z-wave.me/install/v1.5.0-rc3 | sudo bash
+Avoid using z-Way version 1.7; performance issues have been observed with 
+this version. THC has been successfully tested with z-Way v1.5.0, 1.5.1, 2.0.1,
+2.1.1.
 
   
 Topic: Others
