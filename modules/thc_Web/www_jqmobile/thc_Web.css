@@ -1,0 +1,15 @@
+/**** JQuery Mobile default overriding ****/
+
+.ui-block-a, .ui-block-b, .ui-block-c, .ui-block-d, .ui-block-e {
+	padding: 3px;
+}
+
+.label-value {
+	font-weight: 700;
+}
+
+.device_container {
+/*	background-color: red; */
+	border: 2pt solid; // #38f;
+	border-radius: 0.4em;
+}
