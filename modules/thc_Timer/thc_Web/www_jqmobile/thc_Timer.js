@@ -91,7 +91,22 @@ function Select_PageMain() {
 	} );
 }
 
+function SelectTheme() {
+	var Theme=opener.GetTheme();
+	$("*[data-theme]").attr("data-theme",Theme);
+	$("*[data-content-theme]").attr("data-content-theme",Theme);
+	$("*[data-divider-theme]").attr("data-divider-theme",Theme);
+}
+
 $(document).ready(function(){
+	// Load the default style sheets
+	var DefaultStyleSheets=opener.GetStyleSheets();
+	for (var i=0; i<DefaultStyleSheets.length; i++) {
+		$('head').append('<link rel="stylesheet" href="../../'+DefaultStyleSheets[i]+'" type="text/css" />');
+	}
+	// Select the style theme used by the parent
+	SelectTheme();
+
 	// Initialize the date/time picker widget
 	$('#DateTime').datetimepicker();
 
