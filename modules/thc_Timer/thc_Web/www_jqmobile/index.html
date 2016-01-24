@@ -4,13 +4,12 @@
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Tight Home Control</title>
-	 <script type="text/javascript" src="../../jquery-1.11.1.min.js"></script>
-	 <link rel="stylesheet" href="../../jquery.mobile-1.4.5.min.css" />
-	 <script type="text/javascript" src="jquery.datetimepicker.js"></script>
+    <link rel="shortcut icon" href="../../favicon.ico">
+    <script type="text/javascript" src="../../jquery-1.11.1.min.js"></script>
+    <script type="text/javascript" src="../../jquery.mobile-1.4.5.min.js"></script>
+    <script type="text/javascript" src="jquery.datetimepicker.js"></script>
     <script type="text/javascript" src="thc_Timer.js"></script>
     <link rel="stylesheet" type="text/css" href="jquery.datetimepicker.css"/ >
-	 <link rel="shortcut icon" href="../../favicon.ico">
-	 <script type="text/javascript" src="../../jquery.mobile-1.4.5.min.js"></script>
   </head>
   <body id="page_body">
     <div data-role="page" id="page_0">
@@ -20,16 +19,14 @@
     </div>
 
     <div data-role="page" id="page_main" data-theme="a" data-cache="false">
-      <div data-role="header">
+      <div data-role="header" data-position="fixed">
+        <a data-role="button" onclick="Select_PageNewTimer()">Add</a>
         <h1>Tight Home Control</h1>
-      </div>
-      <div data-role="content">
-        <a data-role="button" data-inline="true" onclick="Select_PageNewTimer()">Add</a> 
-        <a data-role="button" data-inline="true" onclick="window.close()">Close</a>
+        <a data-role="button" onclick="window.close()">Close</a>
       </div>
       <div data-role="content" id="page_main_content">
       </div>
-      <div data-role="footer">
+      <div data-role="footer" data-position="fixed">
         <h1>Tight Home Control</h1>
       </div>
     </div>
@@ -43,13 +40,12 @@
         <a data-role="button" data-inline="true" onclick="AddDefinedCancel()">Cancel</a>
       </div>
       <div data-role="content" id="page_newtimer_content">
-
         <ul data-role="listview" data-inset="true" data-divider-theme="a">
           <li data-role="list-divider">Date and time
             <p>Format: YYYY/MM/DD HH:MM</p>
             <input type="text" id="DateTime" class="entry_field"/>
           </li>
-			 <li data-role="list-divider">Repeat
+          <li data-role="list-divider">Repeat
             <p>Format: {YY}Y{MM}M{WW}W{DD}D{hh}h{mm}m{ss}s, comment: keep empty if no repetition is required</p>
             <select id="RepeatTime" class="entry_field">
               <option value="">no repeat</option>
@@ -62,20 +58,20 @@
               <option value="1Y">1Y</option>
             </select>
           </li>
-			 <li data-role="list-divider">Device
-			 	<p>Select the device</p>
+          <li data-role="list-divider">Device
+            <p>Select the device</p>
             <select id="DeviceSelection" class="entry_field"></select>
-         </li>
-			<li data-role="list-divider">State
-			 	<p>Select the state</p>
+          </li>
+          <li data-role="list-divider">State
+            <p>Select the state</p>
             <select id="DeviceState" class="entry_field">
               <option value="On">On</option>
               <option value="Off">Off</option>
               <option value="Switch">Switch</option>
               <option value="Switch">Value</option>
             </select>
-         </li>
-       </ul>
+          </li>
+        </ul>
       </div>
       <div data-role="content">
         <a data-role="button" data-inline="true" onclick="AddDefinedAdd()">Add</a> 
