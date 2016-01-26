@@ -288,11 +288,10 @@
 
 		$('#page_body').append(
 			'<div data-role="page" id="page_' + ChildId + '" data-theme="'+Theme+'" data-content-theme="'+Theme+'">' +
-
-				'<div data-role="header">' +
+				'<div data-role="header" data-position="fixed">' +
 					'<h1>Tight Home Control</h1>' +
+					'<a href="#page_main">Back</a>' +
 				'</div>' +
-				'<a href="#page_main">Back</a>' +
 				'<div style="overflow: auto">' +
 					'<img style="display:none" id="img_' + ChildId + '"/>' +
 				'</div>' +
