@@ -104,7 +104,7 @@
 namespace eval thc_zWay {
 
 	variable UrlBase ""; # URL used to access the z-Way server
-	variable AuthHeader {}; # Optional HTTP headers used for the authentication (cookies)
+	variable GetUrlArgs {}; # Optional GetUrl headers (e.g. used for authentication (cookies))
 
 	##########################
 	# Proc: thc_zWay::Init
@@ -135,15 +135,24 @@ namespace eval thc_zWay {
 	##########################
 
 	proc Init {Url args} {
-		variable UrlBase $Url
-		variable AuthHeader {}
+		variable UrlBase ""
+		variable GetUrlArgs {}
+
+		# Avoid bug with http 2.8.9 and Tcl8.6(.4) related to the deflate 
+		# compression (http://core.tcl.tk/tcl/info/b9d0434667d94e5f)
+		if {[package vsatisfies [package provide Tcl] 8.6-8.6.5] && 
+		    [package vsatisfies [package provide http] 2.8-2.8.10]} {
+			set GetUrlArgs [list -headers [list Accept-Encoding "gzip"]]
+		}
+		
+
 		array set InitArgs $args
 		Log {Open z-Way connection on $Url} 3
 
 		# Wait until the z-Way server can be accessed, access the base path
 		while {1} {
 			if {![catch {
-				set zWayRev [GetUrl "$Url" -method HEAD -validate 1 -noerror 0]
+				GetUrl "$Url" -method HEAD -validate 1 -noerror 0 -nbrtrials 1 {*}$GetUrlArgs
 			}]} {
 				break
 			}
@@ -153,41 +162,54 @@ namespace eval thc_zWay {
 		}
 
 		# Check if authentication is required
-		set zWayRev [GetUrl "$Url/JS/Run/zway.controller.data.softwareRevisionVersion.value" -method POST -noerror 0]
-		if {[regexp {Permission denied} $zWayRev] || ![regexp {^[\d\.]+$} $zWayRev]} {
-			Log {  Unexpected z-Way server response, try using authentication} 3
+		set zWayRevResponse [GetUrl "$Url/JS/Run/zway.controller.data.softwareRevisionVersion.value" -method POST -noerror 0 {*}$GetUrlArgs]
+		if {[lindex $zWayRevResponse 0]>=400 && [lindex $zWayRevResponse 0]<500} { # 4xx error
+			Log {  Unexpected z-Way server response ($zWayRevResponse), try using authentication} 3
 			if {![info exists InitArgs(-user)] || ![info exists InitArgs(-password)]} {
 				Log {  No user name/password defined! Call: thc_zWay::Init -user <User> -password <PW>} 3
-				set UrlBase ""
-				return }
+				return
+			}
 
 			# Login with the user name and password
 			set tok [http::geturl "$Url/ZAutomation/api/v1/login" -method POST \
-			            -type application/json \
-			            -headers [list Accept application/json] \
+			            -type application/json {*}$GetUrlArgs \
 			            -query "\{\"form\": true, \"login\": \"$InitArgs(-user)\", \"password\": \"$InitArgs(-password)\", \"keepme\": false, \"default_ui\": 1\}" ]
+			set StatusCode [http::ncode $tok]
+			set Status [http::code $tok]
+			set Meta [http::meta $tok]
+			http::cleanup $tok
 
+			if {$StatusCode!=200} {
+				Log {  Authentication failed, z-Way interface will be disabled ($Status)} 3
+				return
+			}
+			
 			# Get the cookie, raise an error if no cookie has been provided
-			foreach {n v} [set ${tok}(meta)] {
+			foreach {n v} $Meta {
 				if {$n=="Set-Cookie"} {
 					lappend Cookies [lindex [split $v {;}] 0] }
 			}
-			http::cleanup $tok
 			if {![info exists Cookies]} {
-				Log {  z-Way THC extensions are available} 3
-				set UrlBase ""
-				return }
+				Log {  Unable to login, no authentication cookie provided. z-Way interface will be disabled!} 3
+				return
+			}
 			
-			# Build the authentication header line
-			set AuthHeader [list -headers [list Cookie [join $Cookies {;}]]]
+			# Add the authentication info (cookie) to the header line 
+			set GetUrlArgs [list -headers [concat [lindex $GetUrlArgs 1] Cookie [join $Cookies {;}]]]
+			
+			# Try again to read the z-Way revision
+			set zWayRevResponse [GetUrl "$Url/JS/Run/zway.controller.data.softwareRevisionVersion.value" -method POST -noerror 0 {*}$GetUrlArgs]
+			if {[lindex $zWayRevResponse 0]!=200} {
+				Log {  Unable to communicate with the z-Way server response ($zWayRevResponse), z-Way interface will be disabled!} 3
+				return
+			}
 		}
-		set zWayRev [GetUrl "$Url/JS/Run/zway.controller.data.softwareRevisionVersion.value" -method POST {*}$AuthHeader -noerror 0]
-		Log {  z-Way software revision is: $zWayRev} 2
+		Log {  z-Way software revision is: [lindex $zWayRevResponse 2]} 2
 
 		
 		# Assure that the THC extension has been loaded to the z-Way server. The
 		# command 'Get_IndexArray' will be executed:
-		#    http://192.168.1.21:8083/JS/Run/Get_IndexArray(8.1);
+		#    http://<Url>/JS/Run/Get_IndexArray(8.1);
 		# If the THC extension is correctly loaded the following result will be
 		# returned:
 		#    -> [8,1,0]
@@ -196,24 +218,25 @@ namespace eval thc_zWay {
 		#    z-Way 1.x: Error 500: Internal Server Error
 		#    z-Way 2.x: ReferenceError: Get_IndexArray is not defined
 		# The THC extension is loaded with the executeFile command:
-		#    http://192.168.1.21:8083/JS/Run/executeFile("thc_zWay.js");
+		#    http://<Url>/JS/Run/executeFile("thc_zWay.js");
 		if {![catch {
-			set CheckRes [GetUrl "$Url/JS/Run/Get_IndexArray(257.1)" -method POST {*}$AuthHeader -noerror 0]; # -> [257,1,0]
-		}] && $CheckRes=={[257,1,0]}} {
+			set CheckResResponse [GetUrl "$Url/JS/Run/Get_IndexArray(257.1)" -method POST {*}$GetUrlArgs -noerror 0]; # -> [257,1,0]
+		}] && [lindex $CheckResResponse 2]=={[257,1,0]}} {
 			Log {  z-Way THC extensions are available} 3
+			set UrlBase $Url
 			return
 		}
 
 		# The THC extension seems not be loaded. Load it, and check again if
 		# it has been correctly loaded.
 		if {![catch {
-			set Status [GetUrl "$Url/JS/Run/executeFile(\"thc_zWay.js\");" -method POST {*}$AuthHeader -noerror 0]; # -> Null
-			set CheckRes [GetUrl "$Url/JS/Run/Get_IndexArray(257.1)" -method POST {*}$AuthHeader -noerror 0]; # -> [257,1,0]
-		}] && $CheckRes=={[257,1,0]}} {
+			set StatusResponse [GetUrl "$Url/JS/Run/executeFile(\"thc_zWay.js\");" -method POST {*}$GetUrlArgs -noerror 0]; # -> Null
+			set CheckResResponse [GetUrl "$Url/JS/Run/Get_IndexArray(257.1)" -method POST {*}$GetUrlArgs -noerror 0]; # -> [257,1,0]
+		}] && [lindex $CheckResResponse 2]=={[257,1,0]}} {
 			Log {  Loaded z-Way THC extension} 3
+			set UrlBase $Url
 		} else {
 			Log {  Cannot load z-Way THC extension! Is it placed inside the automation folder? z-Way module is disabled.} 3
-			set UrlBase ""
 		}
 	}
 	
@@ -224,7 +247,7 @@ namespace eval thc_zWay {
 
 	proc DeviceSetup {GetCmd} {
 		variable UrlBase
-		variable AuthHeader
+		variable GetUrlArgs
 		
 		# Ignore the device definition if the z-Way server is not accessible:
 		if {$UrlBase==""} return
@@ -235,21 +258,18 @@ namespace eval thc_zWay {
 			"TagReader" {
 				# Install the bindings for the alarms
 				Log {thc_zWay::DeviceSetup $DeviceNbr -> Configure TagReader} 1
-				set Result [GetUrl "$UrlBase/JS/Run/Configure_TagReader($DeviceNbr)" -method POST {*}$AuthHeader] }
+				set Response [GetUrl "$UrlBase/JS/Run/Configure_TagReader($DeviceNbr)" -method POST {*}$GetUrlArgs] }
 		}
 	}
 
 	proc Get {GetCmdList} {
 		variable UrlBase
-		variable AuthHeader
+		variable GetUrlArgs
 		set NbrDevices [llength $GetCmdList]
-		#Log "    thc_zWay::Get $GetCmdList -> OK"
-		#puts "thc_zWay::Get \{$GetCmdList\}"
 		
 		# Return empty states if the z-Way server is not accessible:
 		if {$UrlBase==""} {
-			return [split [string repeat "x" [expr {$NbrDevices-1}]] "x"]; # -> {"" "" "" ...}
-		}
+			return [lrepeat $NbrDevices ""] }; # -> {"" "" "" ...}
 
 		set JsonFormatedArgs $GetCmdList; # -> {SensorBinary 12} {SensorBinary 5} {SwitchBinary 7.2}
 		regsub -all "\\\{" $JsonFormatedArgs "\[\"" JsonFormatedArgs
@@ -258,7 +278,11 @@ namespace eval thc_zWay {
 		regsub -all { } $JsonFormatedArgs "\",\"" JsonFormatedArgs; # -> ["SensorBinary","12"],["SensorBinary","5"],["SwitchBinary","7.2"]
 		set JsonFormatedArgs "\[$JsonFormatedArgs\]"; # -> [["SensorBinary","12"],["SensorBinary","5"],["SwitchBinary","7.2"]]
 		
-		set NewStateResult [GetUrl "$UrlBase/JS/Run/Get($JsonFormatedArgs)" -method POST {*}$AuthHeader]; # -> [0,"",1,[1407694169,"unlock"],\"\",17.7]
+		set NewStateResponse [GetUrl "$UrlBase/JS/Run/Get($JsonFormatedArgs)" -method POST {*}$GetUrlArgs]; # -> [0,"",1,[1407694169,"unlock"],\"\",17.7]
+		# Return empty states if the z-Way server response isn't OK (200)
+		if {[lindex $NewStateResponse 0]!=200} {
+			return [lrepeat $NbrDevices ""] }
+		set NewStateResult [lindex $NewStateResponse 2]
 
 		regsub -all {\\"} $NewStateResult {"} NewStateResult; # -> [0,"",1,[1407694169,"unlock"],"",17.7]. This substitution is required starting with z-way 2.0.1 (not necessary for 2.0.1-rc6)
 		regsub -all {^\"(.+)\"$} $NewStateResult {\1} NewStateResult; # Remove surrounding quotes
@@ -273,14 +297,12 @@ namespace eval thc_zWay {
 
 	proc Set {SetCmdList NewState} {
 		variable UrlBase
-		variable AuthHeader
-		#Log "    thc_zWay::Set \{$SetCmdList\} $NewState -> OK"
-		#puts "thc_zWay::Set \{$SetCmdList\} $NewState"
+		variable GetUrlArgs
+		set NbrDevices [llength $SetCmdList]
 		
 		# Return empty states if the z-Way server is not accessible:
 		if {$UrlBase==""} {
-			return [split [string repeat "x" [expr [llength $GetCmdList]-1]] "x"]; # -> {"" "" "" ...}
-		}
+			return [lrepeat $NbrDevices ""] }; # -> {"" "" "" ...}
 
 		set JsonFormatedArgs $SetCmdList; # -> {Control Surveillance} {SwitchBinary 20.1}
 		regsub -all "\\\{" $JsonFormatedArgs "\[\"" JsonFormatedArgs
@@ -288,9 +310,12 @@ namespace eval thc_zWay {
 		regsub -all "\\\] \\\[" $JsonFormatedArgs "\],\[" JsonFormatedArgs
 		regsub -all { } $JsonFormatedArgs "\",\"" JsonFormatedArgs; # -> ["Control","Surveillance"],["SwitchBinary","20.1"]
 		set JsonFormatedArgs "\[$JsonFormatedArgs\]"; # -> [["Control","Surveillance"],["SwitchBinary","20.1"]]
-		#puts "GetUrl $UrlBase/JS/Run/Set($JsonFormatedArgs,$NewState)"
 		
-		set NewStateResult [GetUrl "$UrlBase/JS/Run/Set($JsonFormatedArgs,$NewState)" -method POST {*}$AuthHeader]
+		set NewStateResponse [GetUrl "$UrlBase/JS/Run/Set($JsonFormatedArgs,$NewState)" -method POST {*}$GetUrlArgs]
+		# Return empty states if the z-Way server response isn't OK (200)
+		if {[lindex $NewStateResponse 0]!=200} {
+			return [lrepeat $NbrDevices ""] }
+		set NewStateResult [lindex $NewStateResponse 2]
 
 		regsub -all {^\"(.+)\"$} $NewStateResult {\1} NewStateResult; # Remove surrounding quotes
 		regsub -all "\\\[" $NewStateResult "\{" NewStateResult
@@ -303,7 +328,7 @@ namespace eval thc_zWay {
 
 	proc Sleep {ElementList} {
 		variable UrlBase
-		variable AuthHeader
+		variable GetUrlArgs
 		global DeviceId
 		
 		# Ignore this command if the z-Way URL isn't defined
@@ -312,7 +337,7 @@ namespace eval thc_zWay {
 		foreach Element $ElementList {
 			lappend ElementIdList $DeviceId($Element)
 		}
-		GetUrl $UrlBase/JS/Run/Sleep(\[$ElementIdList\]) -method POST {*}$AuthHeader
+		GetUrl $UrlBase/JS/Run/Sleep(\[$ElementIdList\]) -method POST {*}$GetUrlArgs
 	}
 
 }; # end namespace thc_zWay
