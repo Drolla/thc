@@ -1026,11 +1026,17 @@ exec tclsh "$0" ${1+"$@"}
 	#    All other options defined with key-value pairs are forwarded to the http::geturl command.
 	#
 	# Returns:
-	#    Data returned from the HTTP transaction
+	#    List of the following 3 elements :
+	#      Status code - HTTP status code (e.g. 200, 400, ...)
+	#      Status text - HTTP status text (e.g. OK, Bad Request, ...)
+	#      Response body - HTTP response body
 	#    
 	# Examples:
 	#    > GetUrl "http://ipecho.net/plain"
-	#    > -> 188.60.11.219
+	#    > -> {200 OK 188.60.11.219}
+	#    >
+	#    > GetUrl "http://www.google.com/hello"
+	#    > -> {404 {Not Found} {<html><body><h1>404 Not Found</h1></body></html>}}
 	##########################
 	
 	proc GetUrl {Url args} {
@@ -1045,13 +1051,17 @@ exec tclsh "$0" ${1+"$@"}
 		# Encode the URL
 		set EncodedUrl [EncodeUrl $Url]
 		for {set trials 0} {$trials<$NbrTrials} {incr trials} {
-			set value "?"
+			set Body "?"
+			set StatusCode "?"
+			set StatusText "?"
 			set HttpStatus "?"
 			set Error [catch {
 				set h [::http::geturl $EncodedUrl {*}[array get GetUrlArgs]]
-				set HttpStatus [::http::status $h]
-				set value [http::data $h]
-				regexp "^\"(.*)\"$" $value {} value
+				upvar #0 $h HttpState
+				set HttpStatus $HttpState(status); # [::http::status $h]
+				set Body $HttpState(body); # [http::data $h]
+				#regexp "^\"(.*)\"$" $Body {} Body
+				regexp {([0-9]{3})\s+(.*)$} $HttpState(http) {} StatusCode StatusText; # [http::code $h]
 				::http::cleanup $h
 			}]
 			if {$HttpStatus!="timeout"} break
@@ -1062,7 +1072,7 @@ exec tclsh "$0" ${1+"$@"}
 			if {$NoError} {
 				Log {   Host coulnd't be reached ($Url)} 3
 			} else {
-				error "Host coulnd't be reached ($Url)" }
+				error "Host couldn't be reached ($Url)" }
 		} elseif {$trials>=$NbrTrials} {
 			if {$NoError} {
 				Log {   Host hasn't responded, did $trials trials ($Url)} 3
@@ -1071,7 +1081,7 @@ exec tclsh "$0" ${1+"$@"}
 		} elseif {$trials>1} {
 			Log {   Host has responded after $trials trials ($Url} 3
 		}
-		return $value
+		return [list $StatusCode $StatusText $Body]
 	}
 
 ######## Utilities ########
