@@ -31,8 +31,11 @@ Check with the command 'mail' that the mail settings are correct
   > mail <MailDestinationAddress> ...
 
 Install THC:
-Copy the full THC package into /opt and make it executable :
-  > sudo cp -r <CurrentThcDirectory> /opt
+Download a fresh THC package copy from GitHub, unzip and copy it into /opt/thc 
+and make the main THC program file executable :
+  > wget -q -O thc-master.zip https://github.com/Drolla/thc/archive/master.zip
+  > sudo unzip -d /opt thc-master.zip
+  > sudo mv /opt/thc-master /opt/thc
   > sudo chmod 775 /opt/thc/bin/thc.tcl
 
 Edit the configuration file in the THC home directory (config.tcl). Create the 
@@ -54,7 +57,7 @@ line:
   > wget -q -O - razberry.z-wave.me/install | sudo bash 
 Avoid using z-Way version 1.7; performance issues have been observed with 
 this version. THC has been successfully tested with z-Way v1.5.0, 1.5.1, 2.0.1,
-2.1.1.
+2.1.1, 2.2.0.
 
   
 Topic: Others
