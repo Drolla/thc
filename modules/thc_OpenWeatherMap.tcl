@@ -58,7 +58,8 @@ namespace eval thc_OpenWeatherMap {
 		# data the requested parameters related to the location
 		foreach Location [array names Parameters] {
 			# Get the current weather data for the location
-			set LocationData [GetUrl "http://api.openweathermap.org/data/2.5/weather?q=$Location"]
+			set LocationResponse [GetUrl "http://api.openweathermap.org/data/2.5/weather?q=$Location"]
+			set LocationData [lindex $LocationResponse 2]
 			
 			# The returned data has the following format:
 			#   {

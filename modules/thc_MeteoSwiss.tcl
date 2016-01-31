@@ -62,7 +62,8 @@ namespace eval thc_MeteoSwiss {
 		# Fetch the current weather data
 		# Get the current weather data for the location
 		catch {
-			set LocationData [GetUrl "http://data.geo.admin.ch.s3.amazonaws.com/ch.meteoschweiz.swissmetnet/VQHA69.txt"]
+			set LocationResponse [GetUrl "http://data.geo.admin.ch.s3.amazonaws.com/ch.meteoschweiz.swissmetnet/VQHA69.txt"]
+			set LocationData [lindex $LocationResponse 2]
 		}
 			
 		# The returned data has the following format:
@@ -81,7 +82,7 @@ namespace eval thc_MeteoSwiss {
 			set Fields [split [regexp -inline -line {^.*\ystn\y.*$} $LocationData] "|"]
 		}
 		
-	 	#  Extract from the data the requested parameters for the different 
+	 	# Extract from the data the requested parameters for the different 
 	 	# locations
 		foreach GetCmd $GetCmdList {
 			set Res ""
