@@ -367,7 +367,10 @@ exec tclsh "$0" ${1+"$@"}
 				}
 				if {[info exists DeviceAttributes($Device,GetExpression)]} {
 					set Value $Stat; # The expression will use the variable 'Value'
-					if {[catch {set Stat [expr $DeviceAttributes($Device,GetExpression)]}]} {
+					if {[catch {
+						set Stat [expr $DeviceAttributes($Device,GetExpression)]
+						set Stat [format %.12g $Stat]; # Avoid rounding problems (expr 17.4-1.5 -> 15.899999999)
+					}]} {
 						set Stat ""
 					}
 				}
