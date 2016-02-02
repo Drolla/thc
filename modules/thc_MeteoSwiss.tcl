@@ -62,7 +62,7 @@ namespace eval thc_MeteoSwiss {
 		# Fetch the current weather data
 		# Get the current weather data for the location
 		catch {
-			set LocationResponse [GetUrl "http://data.geo.admin.ch.s3.amazonaws.com/ch.meteoschweiz.swissmetnet/VQHA69.txt"]
+			set LocationResponse [GetUrl "http://data.geo.admin.ch.s3.amazonaws.com/ch.meteoschweiz.swissmetnet/VQHA69.csv"]
 			set LocationData [lindex $LocationResponse 2]
 		}
 			
