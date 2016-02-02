@@ -63,16 +63,13 @@ this version. THC has been successfully tested with z-Way v1.5.0, 1.5.1, 2.0.1,
 Topic: Others
 
 Configure static IP address:
-See http://www.raspberryshake.com/raspberry-pistatic-ip-address
-Change in file /etc/network/interfaces the single line
-  > iface eth0 inet dhcp
-into the following lines
-  > iface eth0 inet static
-  > address <IpAddress>           (f.e: 192.168.1.21)
-  > netmask <NetMask>             (f.e: 255.255.255.0
-  > network <Network>             (f.e: 192.168.1.0
-  > broadcast <BroadcastAddress>  (f.e: 192.168.1.255
-  > gateway <GateWayAddress>      (f.e: 192.168.1.1
+Dhcpcd based configuration (Raspbian Wheezy 2015-05-05 and further, Raspbian Jessie 2015-09-24 and further).
+See http://raspberrypi.stackexchange.com/questions/37920/how-do-i-set-up-networking-wifi-static-ip
+Add to the end of the file /etc/dhcpcd.conf the following lines
+  > interface eth0
+  > static ip_address=<IpAddress>/24                (f.e: 192.168.1.21)
+  > static routers=<RouterAddress>                  (f.e: 192.168.1.1)
+  > static domain_name_servers=<DnsServerAddress>   (f.e: 192.168.1.1)
 
 Disable TV output (HDMI):
 Execute the following command
