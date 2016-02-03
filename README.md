@@ -15,6 +15,7 @@ A web interface provides an optimal experience on desktop and mobile devices.
 
 While the users can perform control operations via the web interface the setup of THC is made via a configuration file that is based on Tcl syntax.  THC is in fact entirely programmed in Tcl.  Having some basic knowledge of this scripting language is an advantage for the creation of the configuration file.
 
+
 ### Useful links
 
 * [THC - Getting started](https://github.com/Drolla/thc/wiki/THC-Getting-started) provides instructions for the installation and configuration of THC on your own computer.
