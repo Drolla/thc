@@ -20,9 +20,11 @@
 
     <div data-role="page" id="page_main" data-theme="a" data-cache="false">
       <div data-role="header" data-position="fixed">
-        <a data-role="button" onclick="Select_PageNewTimer()">Add</a>
+        <div data-type="horizontal" class="ui-btn-left">  
+          <a data-role="button" onclick="window.close()">Back</a>
+          <a data-role="button" onclick="Select_PageNewTimer()">Add</a>
+        </div>
         <h1>Tight Home Control</h1>
-        <a data-role="button" onclick="window.close()">Close</a>
       </div>
       <div data-role="content" id="page_main_content">
       </div>
@@ -33,11 +35,11 @@
 
    <div data-role="page" id="page_newtimer" data-theme="a">
       <div data-role="header">
+        <div data-type="horizontal" class="ui-btn-left">  
+          <a data-role="button" data-inline="true" onclick="AddDefinedAdd()">Add</a> 
+          <a data-role="button" data-inline="true" onclick="AddDefinedCancel()">Cancel</a>
+        </div>
         <h1>THC - Add new timer</h1>
-      </div>
-      <div data-role="content">
-        <a data-role="button" data-inline="true" onclick="AddDefinedAdd()">Add</a> 
-        <a data-role="button" data-inline="true" onclick="AddDefinedCancel()">Cancel</a>
       </div>
       <div data-role="content" id="page_newtimer_content">
         <ul data-role="listview" data-inset="true" data-divider-theme="a">
@@ -73,11 +75,11 @@
           </li>
         </ul>
       </div>
-      <div data-role="content">
-        <a data-role="button" data-inline="true" onclick="AddDefinedAdd()">Add</a> 
-        <a data-role="button" data-inline="true" onclick="AddDefinedCancel()">Cancel</a>
-      </div>
       <div data-role="footer">
+        <div data-type="horizontal" class="ui-btn-left">  
+          <a data-role="button" data-inline="true" onclick="AddDefinedAdd()">Add</a> 
+          <a data-role="button" data-inline="true" onclick="AddDefinedCancel()">Cancel</a>
+        </div>
         <h1>THC - Add new timer</h1>
       </div>
     </div>
