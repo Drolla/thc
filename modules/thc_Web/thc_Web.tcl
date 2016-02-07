@@ -99,7 +99,7 @@ namespace eval thc_Web {
 		Log {GetRequestResponseData $GetRequestString} 1
 		
 		# Process API command GET requests
-		if {[regexp {^api/(.*)$} $GetRequestString {} ApiCommand]} {
+		if {[regexp {^/api/(.*)$} $GetRequestString {} ApiCommand]} {
 			# Extract the command and arguments
 			set Args [lrange $ApiCommand 1 end]
 			set ApiCommand [lindex $ApiCommand 0]
@@ -126,7 +126,7 @@ namespace eval thc_Web {
 		} else {
 			# Register the file. The provided file paths are relative to the 
 			# directory of this present file.
-			set FilePath "$ThcHomeDir/../modules/thc_Web/$GetRequestString"
+			set FilePath "$ThcHomeDir/../modules/thc_Web${GetRequestString}"
 
 			# From: $ThcHomeDir/../modules/thc_Web/www_simple/module/thc_Timer/index.html
 			# To:   $ThcHomeDir/../modules/thc_Timer/thc_Web/www_simple/index.html

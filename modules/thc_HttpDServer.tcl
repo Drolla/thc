@@ -114,7 +114,7 @@ namespace eval thc_HttpDServer {
 	proc GetRequestResponseData {Request} {
 		set GetRequestString [dict get $Request URI]
 
-		regexp {^([^\s]*)\s*(.*)$} $GetRequestString {} FirstWord RemainingLine
+		regexp {^/([^\s]*)\s*(.*)$} $GetRequestString {} FirstWord RemainingLine
 		switch -exact -- $FirstWord {
 			"eval" {
 				if {[catch {set Data [uplevel #0 $RemainingLine]}]} {

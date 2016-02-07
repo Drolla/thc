@@ -156,7 +156,7 @@
 		if ( /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase()) ) {
 			DisplayType="Mobile";
 		}
-	
+
 		$.getJSON('/api/GetDeviceInfo', function(data) {
 			DevicesInfo=data;
 			BuildGui();
