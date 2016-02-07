@@ -44,7 +44,7 @@
 #    > }
 #
 # The web server will accept the commands _eval_ and _file_ and return an error 
-# (404 - unknown command) for other requests :
+# for other requests :
 #
 #    > http://localhost:8085/eval glob *.tcl
 #    > -> pkgIndex.tcl t2ws.tcl
