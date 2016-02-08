@@ -22,15 +22,12 @@ functions:
    Init <args> - Optional, allows initializing the target. This command is not
 	          automatically called, but needs to be called from the 
 				 configuration file.
-
    DeviceSetup <GetCmd> - Optional, is called when a new device is registered 
              by <DefineDevice>. The 'get' command specification of the device
 				 is provided as argument to 'DeviceSetup'.
-
    Get <GetCmdList> - Has to return the states of a list of devices. The 'get'
              commands for the device list is provided as argument. If a device 
 				 state is not available 'Get' has to return an empty string ("").
-
    Set <SetCmdList> <NewState> - Hast to set the states of a list of devices.
              the 'set' commands for the device list, as well as the new common
 				 state for all devices, are provided as arguments.
