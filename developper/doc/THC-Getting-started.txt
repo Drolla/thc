@@ -80,7 +80,7 @@ Please refer to the documentation of the different extension modules to get info
 
 Topics: Start THC
 
-Make sure the THC main program is executable (on Unix like systems). If the Tcl interpreter executable is named 'tclsh' THC can be directly launched with the following command :
+Before you run THC make sure that the THC main program is executable (on Unix like systems) and that the log directory exists (e.g. /var/thc). If the Tcl interpreter executable is named 'tclsh' THC can be directly launched with the following command :
     > <THC_ROOT_DIR>/bin/thc.tcl [Options]
 
 Otherwise mention in the command line explicitly the Tcl interpreter command :

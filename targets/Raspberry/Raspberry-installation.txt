@@ -38,8 +38,11 @@ and make the main THC program file executable :
   > sudo mv /opt/thc-master /opt/thc
   > sudo chmod 775 /opt/thc/bin/thc.tcl
 
-Edit the configuration file in the THC home directory (config.tcl). Create the 
-log directory if necessary (e.g. /var/thc).
+Edit the configuration file _config.tcl_ in the THC home directory. See <Configuring THC>.
+  > nano /opt/thc/config.tcl
+
+Create the log directory if necessary (default log directory is /var/thc).
+  > sudo mkdir /var/thc
 
 Setup THC as a service:
  Copy the THC service start/stop script from the Razberry target into /etc/init.d, 
