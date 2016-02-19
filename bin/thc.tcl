@@ -708,19 +708,19 @@ exec tclsh "$0" ${1+"$@"}
 	#
 	# Interval update arithmetic:
 	#    Interval updates are performed by respecting if necessary months lengths 
-	#    and daylight saving time changes. The updates follow the following rules:
+	#    and daylight saving time changes. The updates follow the following rules :
 	#
-	#       * *[<h>h][<m>m][<s>s]*: An interval defined in *hours*, *minutes* and 
+	#       [<h>h][<m>m][<s>s] - An interval defined in *hours*, *minutes* and 
 	#            *seconds* is an absolute interval; the next occurrence happens 
 	#            exactly the specified interval later. 
 	#            A 24 hour interval (e.g. '24h') may therefore lead to different 
 	#            day time if a daylight saving time adjustment is happening.
-	#       * *[<Y>Y][<M>M][<W>W][<D>D]*: For interval definitions in *years*, 
+	#       [<Y>Y][<M>M][<W>W][<D>D] - For interval definitions in *years*, 
 	#            *months*, *weeks* and *days* it is assured that each occurrence 
 	#            falls on the same day time as the original occurrence. If 
 	#            necessary the interval is extended or reduced by 1 hour to take 
 	#            into account daylight saving time changes.
-	#       * *[<Y>Y][<M>M]*: For interval definitions in *years* or *months* 
+	#       [<Y>Y][<M>M] - For interval definitions in *years* or *months* 
 	#            each occurrence falls respectively on the same day and same month 
 	#            day as the original occurrence. 
 	#            If a day doesn't exist (e.g. Feb 31) the last existing day is 
