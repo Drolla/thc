@@ -1,0 +1,14 @@
+array set nd2md_config {
+	index_file       "Index.md"
+	index_file_title "Index"
+	deflist_mapping  "table"
+}
+
+set nd2md_DestDir "md_docs"
+
+set nd2md_regsub {}
+
+array set nd2md_nd2md {
+}
+
+array set nd2md_Link {}

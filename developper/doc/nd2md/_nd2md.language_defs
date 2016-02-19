@@ -1,0 +1,21 @@
+# Tcl
+	array set LanguageDefs {
+		tcl,LineCommentPattern {\s*#\s*(.*)}
+		tcl,MultiLineCommentStartPattern {}
+		tcl,MultiLineCommentEndPattern {}
+	}
+	
+# Txt
+	array set LanguageDefs {
+		txt,LineCommentPattern {(.*)}
+		txt,MultiLineCommentStartPattern {}
+		txt,MultiLineCommentEndPattern {}
+	}
+
+# JS (JavaScript)
+	array set LanguageDefs {
+		js,LineCommentPattern {\s*//\s*(.*)}
+		js,MultiLineCommentStartPattern {^\s*/\*[\\*-=_]*\s*(.*?)$}
+		js,MultiLineCommentEndPattern {^(.*?)[\\*-=_]*/\s*$}
+	}
+

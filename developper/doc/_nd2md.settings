@@ -1,5 +1,12 @@
 set nd2md_DestDir "../../../thc.wiki"
+
 array set nd2md_nd2md {
   ../../bin/thc.tcl {THC-Core-functions.md}
   ../../modules/thc_zWay/thc_zWay.js {zWay-JS-Extension.md}
+}
+
+array set nd2md_config {
+	index_file       "THC-Index.md"
+	index_file_title "THC - Index"
+	deflist_mapping "table"
 }
