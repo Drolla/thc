@@ -102,7 +102,10 @@ $(document).ready(function(){
 	// Load the default style sheets
 	var DefaultStyleSheets=opener.GetStyleSheets();
 	for (var i=0; i<DefaultStyleSheets.length; i++) {
-		$('head').append('<link rel="stylesheet" href="../../'+DefaultStyleSheets[i]+'" type="text/css" />');
+		if (/^(?:[a-z]+:)?\/\//i.test(DefaultStyleSheets[i]))
+			$('head').append('<link rel="stylesheet" href="'+DefaultStyleSheets[i]+'" type="text/css" />');
+		else
+			$('head').append('<link rel="stylesheet" href="../../'+DefaultStyleSheets[i]+'" type="text/css" />');
 	}
 	// Select the style theme used by the parent
 	SelectTheme();
