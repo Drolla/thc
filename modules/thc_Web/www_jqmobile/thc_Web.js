@@ -182,10 +182,13 @@
 	function SelectorExists(Selector) {
 	    for (var SsIdx = 0; SsIdx < document.styleSheets.length; SsIdx++) {
 			var styleSheet = document.styleSheets[SsIdx];
-			var cssRules = styleSheet.rules ? styleSheet.rules : styleSheet.cssRules;
-			for (var RIdx = 0; RIdx < cssRules.length; ++RIdx) {
-				if(cssRules[RIdx].selectorText == Selector) return true;
+			try {
+				var cssRules = styleSheet.rules ? styleSheet.rules : styleSheet.cssRules;
+				for (var RIdx = 0; RIdx < cssRules.length; ++RIdx) {
+					if(cssRules[RIdx].selectorText == Selector) return true;
+				}
 			}
+			catch(err) {}
 		}
 		return false;
 	}
