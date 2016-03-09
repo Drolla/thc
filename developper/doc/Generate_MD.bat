@@ -22,17 +22,17 @@
 ::::::::::::::::::::::::::::::::::
 
 :: General documentation
-tclsh nd2md.tcl ^
+tclsh nd2md\nd2md.tcl ^
    "THC-Introduction.txt" ^
    "THC-Getting-started.txt" ^
    "THC-Basics.txt" ^
    "THC-Developers.txt"
 
 :: Core function documentation
-tclsh nd2md.tcl ../../bin/thc.tcl
+tclsh nd2md\nd2md.tcl ../../bin/thc.tcl
 
 :: Module documentation
-tclsh nd2md.tcl ^
+tclsh nd2md\nd2md.tcl ^
    ../../modules/thc_MailAlert.tcl ^
    ../../modules/thc_HttpDServer.tcl ^
    ../../modules/thc_MeteoSwiss.tcl ^
@@ -46,12 +46,12 @@ tclsh nd2md.tcl ^
    ../../modules/thc_zWay/thc_zWay.tcl
 
 :: Other documentation
-tclsh nd2md.tcl ../../targets/Raspberry/Raspberry-installation.txt
-tclsh nd2md.tcl ../../modules/thc_Web/thc_Web_API.tcl
-tclsh nd2md.tcl -n ../../modules/thc_zWay/thc_zWay.js
+tclsh nd2md\nd2md.tcl ../../targets/Raspberry/Raspberry-installation.txt
+tclsh nd2md\nd2md.tcl ../../modules/thc_Web/thc_Web_API.tcl
+tclsh nd2md\nd2md.tcl -n ../../modules/thc_zWay/thc_zWay.js
 
 :: Generate the index file
-tclsh nd2md.tcl -x
+tclsh nd2md\nd2md.tcl -x
 
 :: Copy the used images to the destination
 copy thc_Web.gif ..\..\..\thc.wiki

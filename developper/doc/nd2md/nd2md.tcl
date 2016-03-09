@@ -15,49 +15,7 @@ exec tclsh "$0" ${1+"$@"}
 ##########################################################################
 
 # Title: nd2md - NaturalDocs to MarkDown translator
-#
-# 
-#
-#    > package require t2ws
-#    > t2ws::Start 8085 ::MyResponder
-#
-# The T2WS web server requires an application specific responder command that
-# provides the adequate responses to the HTTP requests. The HTTP request data
-# are provided to the responder command in form of a dictionary, and the T2WS
-# web server expects to get back from the responder command the response also
-# in form of a dictionary. The following lines implements a responder command
-# example that allows either executing Tcl commands or that lets the T2WS 
-# server returning file contents.
-#
-#    > proc MyResponder {Request} {
-#    >    regexp {^/(\w*)\s*(.*)$} [dict get $Request URI] {} Command Arguments
-#    >    switch -exact -- $Command {
-#    >       "eval" {
-#    >          if {[catch {set Data [uplevel #0 $Arguments]}]} {
-#    >             return [dict create Status "405" Body "405 - Incorrect Tcl command: $Arguments"] }
-#    >          return [dict create Body $Data ContentType "text/plain"]
-#    >       }
-#    >       "file" {
-#    >          return [dict create File $Arguments]
-#    >       }
-#    >    }
-#    >    return [dict create Status "404" Body "404 - Unknown command: $Command"]
-#    > }
-#
-# The web server will accept the commands _eval_ and _file_ and return an error 
-# for other requests :
-#
-#    > http://localhost:8085/eval glob *.tcl
-#    > -> pkgIndex.tcl t2ws.tcl
-#    > http://localhost:8085/file pkgIndex.tcl
-#    > -> if {![package vsatisfies [package provide Tcl] 8.5]} {return} ...
-#    > http://localhost:8085/exec cmd.exe
-#    > -> 404 - Unknown command: exec
-#
-# More information about starting and stopping T2WS servers and assigning 
-# responder commands are provided in section <Main API commands>. Details about
-# the way the responder commands are working are provided in section 
-# <The responder command>.
+
 
 
 # Build and return from a link text the MD link.
@@ -79,7 +37,6 @@ proc GetLink {LinkText {LinkFile ""}} {
 # Parse the NaturalDoc documentation in a file, and generate the corresponding
 # MarkDown file.
 proc nd2md {NdFile MdFile LinkFile Format} {
-	puts "nd2md $NdFile $MdFile $LinkFile $Format"
 	global LanguageDefs nd2md_Link nd2md_config CreateReferenceIndexes
 
 	# Check the language definitions
@@ -302,7 +259,6 @@ proc GenIndexFile {MdIndexFile} {
 # Load the settings and index cache
 proc LoadConfigAndIndex {} {
 	uplevel {
-		puts "info script: [info script]"
 		# Load the language definitions. Load first the global and then the local
 		# definitions
 		source [file join [file dirname [info script]] "_nd2md.language_defs"]
@@ -320,7 +276,6 @@ proc LoadConfigAndIndex {} {
 
 # Store the index
 proc StoreIndex {} {
-	puts StoreIndex
 	global nd2md_Link
 	set f [open _nd2md.index w]
 	
