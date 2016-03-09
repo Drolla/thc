@@ -185,13 +185,32 @@
 		} elseif {[regexp {[^\\][*?]} $URI]} { # First * or ? location without preceding bs
 			set URITailPos [lindex [regexp -inline -indices {[^\\][*?]} $URI] 0 1]
 		} else {
-			set URITailPos end+1; # No place holder -> the URL has no variable part
+			set URITailPos [string length $URI]; # No place holder -> the URL has no variable part
 		}
 
 		# Add the new responder command to the list of the related port, and sort 
 		# it afterwards.
 		dict lappend Responder $Port [list [string toupper $Method] $URI $URITailPos $ResponderCommand]
-		dict set Responder $Port [lsort -index 1 -unique -decreasing [dict get $Responder $Port]]
+		dict set Responder $Port [lsort -unique -command ResponderCompare -decreasing [dict get $Responder $Port]]
+	}
+	
+	##########################
+	# t2ws::ResponderCompare
+	#    Compares 2 responder command definitions and returns 0 if they are 
+	#    equally weighted or -1 or 1 if they have a precedence. The URL 
+	#    definition is compared first, and if it is equal the method is compared.
+	#    This function is used by the responder command definition sort of 
+	#    t2ws::DefineRoute.
+	##########################
+	
+	proc t2ws::ResponderCompare {r0 r1} {
+		set Url0 [string range [lindex $r0 1] 0 [lindex $r0 2]-1]
+		set Url1 [string range [lindex $r1 1] 0 [lindex $r1 2]-1]
+		set UrlDiff [string compare $Url0 $Url1]
+		if {$UrlDiff} {
+			return $UrlDiff }
+		set MethodDiff [string compare [lindex $r0 0] [lindex $r1 0]]
+		return $MethodDiff
 	}
 
 
@@ -737,6 +756,7 @@
 		
 		# Default response data, they are overwritten by the responder command data
 		set ResponseStatus "OK"
+		set ResponseError 0
 		set ResponseBody ""
 		set ResponseHeader [dict create {*}{
 			Connection "close"
@@ -774,7 +794,9 @@
 
 		# Return a 'bad request response in case no valid line was received
 		if {$State=="Connecting"} {
-			set ResponseStatus "Bad request" }
+			set ResponseStatus "Bad request"
+			set ResponseError 1
+		}
 
 		# Read the Body (if the header section was read successfully)
 		if {$State=="Body"} {
@@ -789,11 +811,11 @@
 
 		# Evaluate the request if no error happened until this point.
 
-		if {$ResponseStatus=="OK"} {
+		if {!$ResponseError} {
 			variable Responder
 			# Create the response dictionary
 			set RequestMethod [string toupper $RequestMethod]
-			set RequestURI [DecodeHttp $RequestURI]
+			set RequestURI [UrlDecode $RequestURI]
 
 			# Call the relevant responder command
 			foreach ResponderDef [dict get $Responder $Port] {
@@ -825,11 +847,12 @@
 					set FilePath [dict get $Response File] }
 			} else {
 				set ResponseStatus 500; # There was a failure
+				set ResponseError 1
 			}
 		}
 
 		# If a file has to be provided, read the file content
-		if {$ResponseStatus=="OK" && $FilePath!=""} {
+		if {!$ResponseError && $FilePath!=""} {
 			# Evaluate the MIME type. If the type is not recognized the default
 			# type is used (plain text)
 			if {![dict exists $ResponseHeader Content-Type]} {
@@ -852,6 +875,7 @@
 			# existing files
 			if {[catch {set f [open $FilePath RDONLY]} err]} {
 				set ResponseStatus "Not Found"
+				set ResponseError 1
 				set ResponseBody "File '$FilePath' not found"
 			} else {
 				fconfigure $f -translation binary
@@ -914,9 +938,31 @@
 		Log {t2ws: $Socket closed} info 2
 	}
 	
+
+	# URL encoding/decoding: See http://wiki.tcl.tk/14144
+
+	##########################
+	# t2ws::UrlCodecInit
+	#    Initializes the string mapping array used by the URL encoder and 
+	#    decoder
+	##########################
+	
+	proc t2ws::UrlCodecInit {} {
+		variable UrlCodeMap
+		for {set i 0} {$i <= 256} {incr i} { 
+			set c [format %c $i]
+			if {![string match \[a-zA-Z0-9\] $c]} {
+				set UrlCodeMap($c) %[format %.2x $i]
+			}
+		}
+		# These are handled specially
+		array set UrlCodeMap {\n %0d%0a }; # Orig: " " + 
+	}
+	t2ws::UrlCodecInit
+
 	
 	##########################
-	# DecodeHttp
+	# t2ws::UrlEncode
 	#    Decode the hexadecimal encoding contained in HTTP requests (e.g. %2F).
 	#
 	# Parameters:
@@ -927,19 +973,54 @@
 	#
 	# Examples:
 	#    
-	#    > DecodeHttp {http://localhost:8080/name="t2ws client"}
+	#    > UrlEncode {http://localhost:8080/name="t2ws client"}
 	#    > -> http://localhost:8080/name=%22t2ws%20client%22
 	##########################
 
-	proc t2ws::DecodeHttp {Text} {
-		# Identify hex encoded sequences (%XY), and replace these sequences by 
-		# corresponding ASCII characters.
-		while {[regexp -indices {%[[:xdigit:]][[:xdigit:]]} $Text Pos]} {
-			set Char [format %c [scan [string range $Text [lindex $Pos 0]+1 [lindex $Pos 1]] %x]]
-			set Text [string replace $Text {*}$Pos $Char]
-		}
-		return $Text
+	proc t2ws::UrlEncode {Text} {
+		variable UrlCodeMap
+	
+		# The spec says: "non-alphanumeric characters are replaced by '%HH'"
+		# 1 leave alphanumerics characters alone
+		# 2 Convert every other character to an array lookup
+		# 3 Escape constructs that are "special" to the tcl parser
+		# 4 "subst" the result, doing all the array substitutions
+	
+		regsub -all \[^a-zA-Z0-9\] $Text {$UrlCodeMap(&)} Text
+		# This quotes cases like $UrlCodeMap([) or $UrlCodeMap($) => $UrlCodeMap(\[) ...
+		regsub -all {[][{})\\]\)} $Text {\\&} Text
+		return [subst -nocommand $Text]
 	}
+
+	
+	##########################
+	# t2ws::UrlDecode
+	#    Decode the hexadecimal encoding contained in HTTP requests (e.g. %2F).
+	#
+	# Parameters:
+	#    <Text> - HTTP encoded text
+	#
+	# Returns:
+	#    HTTP decoded text
+	#
+	# Examples:
+	#    
+	#    > UrlDecode {http://localhost:8080/name=%22t2ws%20client%22}
+	#    > -> http://localhost:8080/name="t2ws client"
+	##########################
+
+	proc t2ws::UrlDecode {Text} {
+		# rewrite "+" back to space
+		# protect \ from quoting another '\'
+		set Text [string map [list + { } "\\" "\\\\"] $Text]
+	
+		# prepare to process all %-escapes
+		regsub -all -- {%([A-Fa-f0-9][A-Fa-f0-9])} $Text {\\u00\1} Text
+	
+		# process \u unicode mapped chars
+		return [subst -novar -nocommand $Text]
+	}
+		
 	
 	
 	##########################

@@ -68,7 +68,7 @@ for a specific request method and URI. Additional responder commands
 for other request methods and/or URIs can be specified later with
 [t2ws::DefineRoute].
 
-##### Parameters
+#### Parameters
 
 |Parameters|Description
 |--:|---
@@ -77,17 +77,17 @@ for other request methods and/or URIs can be specified later with
 |[Method]|HTTP request method glob matching pattern, default="*"
 |[URI]|HTTP request URI glob matching pattern, default="*"
 
-##### Returns
+#### Returns
 
 HTTP port (used as T<sup>2</sup>WS server identifier)
 
-##### Examples
+#### Examples
 
 ```
  set MyServ [t2ws::Start $Port ::Responder_GetGeneral GET]
 ```
 
-##### See also
+#### See also
 
 [t2ws::DefineRoute], [t2ws::Stop]
 
@@ -98,23 +98,23 @@ Stops one or multiple T<sup>2</sup>WS servers. If no port is provided all runnin
 T<sup>2</sup>WS servers are stopped, otherwise only the one specified by the
 provided port.
 
-##### Parameters
+#### Parameters
 
 |Parameters|Description
 |--:|---
 |[Ports]|HTTP ports of the T<sup>2</sup>WS server that have to be stopped
 
-##### Returns
+#### Returns
 
 \-
 
-##### Examples
+#### Examples
 
 ```
  t2ws::Stop $MyServ
 ```
 
-##### See also
+#### See also
 
 [t2ws::Start]
 
@@ -125,7 +125,7 @@ Defines a responder command. The arguments 'Method' and 'URI' allow
 applying the specified responder command for a specific HTTP request
 method (GET, POST, ...) and for specific request URIs.
 
-##### Parameters
+#### Parameters
 
 |Parameters|Description
 |--:|---
@@ -134,17 +134,17 @@ method (GET, POST, ...) and for specific request URIs.
 |[Method]|HTTP request method glob matching pattern, default="*"
 |[URI]|HTTP request URI glob matching pattern, default="*"
 
-##### Returns
+#### Returns
 
 \-
 
-##### Examples
+#### Examples
 
 ```
  t2ws::DefineRoute $MyServ ::Responder_GetApi GET api/*
 ```
 
-##### See also
+#### See also
 
 [t2ws::Start]
 
@@ -156,7 +156,7 @@ entire HTTP request data in form of a dictionary, and it has to provide
 back to the server the HTTP response data again in form of another
 dictionary.
 
-##### Responder command setup
+#### Responder command setup
 
 [t2ws::Start] in combination with [t2ws::DefineRoute] allow specifying
 different responder commands for different HTTP request methods and URIs.
@@ -174,7 +174,7 @@ The following line contain some responder command definition examples :
  t2ws::DefineRoute $MyServ ::Responder_GetFile GET /file/*
 ```
 
-##### Request data dictionary
+#### Request data dictionary
 
 The responder command receives all HTTP request data in form of a
 dictionary that contains the following elements :
@@ -187,7 +187,7 @@ dictionary that contains the following elements :
 |Header|Request header data, formed itself as dictionary using as keys the header field names in lower case
 |Body|Request body, binary data
 
-##### Response data dictionary
+#### Response data dictionary
 
 The responder command returns the response data to the server in form of
 a dictionary. All elements of this dictionary are optional. The main
@@ -196,7 +196,7 @@ elements are :
 ||Description
 |--:|---
 |Status|Either a known HTTP status code (e.g. '404'), a known HTTP status message (e.g. 'Not Found') or a custom status string (e.g. '404 File Not Found'). The default status value is '200 OK'. See \<t2ws::DefineStatusCode> and \<t2ws::GetStatusCode> for the HTTP status code and message definitions.
-|Body  |HTTP response body, binary encoded. The default body data is an empty string.
+|Body|HTTP response body, binary encoded. The default body data is an empty string.
 |Header|Custom HTTP response headers fields, case sensitive (!). The header element is itself a dictionary that can specify multiple header fields.
 
 The following auxiliary elements of the response dictionary are
@@ -205,10 +205,10 @@ recognized by the T<sup>2</sup>WS server :
 ||Description
 |--:|---
 |Content-Type|For convenience reasons the content type can directly be specified with this element instead of the corresponding header field.
-|File        |If this element is defined the content of the file is read by the T<sup>2</sup>WS web server and sent as HTTP response body to the client.
-|NoCache     |If the value of this element is true (e.g. 1) the HTTP client is informed that the data is volatile (by sending the header field: Cache-Control: no-cache, no-store, must-revalidate).
+|File|If this element is defined the content of the file is read by the T<sup>2</sup>WS web server and sent as HTTP response body to the client.
+|NoCache|If the value of this element is true (e.g. 1) the HTTP client is informed that the data is volatile (by sending the header field: Cache-Control: no-cache, no-store, must-revalidate).
 
-##### Examples of responder commands
+#### Examples of responder commands
 
 The following responder command returns simply the HTTP status 404. It can
 be defined to respond to invalid requests.
@@ -302,19 +302,19 @@ The following options are supported :
 |-default_Content-Type|Default content type if it is not explicitly specified by the responder command or if it cannot be derived from the file extension
 |-log_level|Log level, 0: no log, 1 (default): T<sup>2</sup>WS server start/stop logged, 2: transaction starts are logged, 3: full HTTP transfer is logged.
 
-##### Parameters
+#### Parameters
 
 |Parameters|Description
 |--:|---
 |[Option1]|Configuration option 1
-|[Value1] |Configuration value 1
-|...      |Additional option/value pairs can follow
+|[Value1]|Configuration value 1
+|...|Additional option/value pairs can follow
 
-##### Returns
+#### Returns
 
 Configuration options (if the command is called in way 1 or 2)
 
-##### Examples
+#### Examples
 
 ```
  t2ws::Configure
@@ -335,25 +335,25 @@ already defined for a file type it will be replaced by the new one.
 The Mime types for the following file extensions are pre-defined :
 .txt .htm .html .css .gif .jpg .png .xbm .js .json .xml
 
-##### Parameters
+#### Parameters
 
 |Parameters|Description
 |--:|---
 |\<File>|File extension or full qualified file name
 |\<MimeType>|Mime type
 
-##### Returns
+#### Returns
 
 \-
 
-##### Examples
+#### Examples
 
 ```
  t2ws::DefineMimeType .html text/html
  t2ws::DefineMimeType c:/readme.txt text/plain
 ```
 
-##### See also
+#### See also
 
 [t2ws::GetMimeType]
 
@@ -364,17 +364,17 @@ Returns Mime type. This command returns the Mime type defined for a
 given file. If no file is provided it returns the Mime type definition
 dictionary.
 
-##### Parameters
+#### Parameters
 
 |Parameters|Description
 |--:|---
 |[File]|File extension or full qualified file name
 
-##### Returns
+#### Returns
 
 Mime type, or Mime type definition dictionary
 
-##### Examples
+#### Examples
 
 ```
  t2ws::GetMimeType index.htm
@@ -383,7 +383,7 @@ Mime type, or Mime type definition dictionary
  -> {} text/plain .txt text/plain .htm text/html .html text/html ...
 ```
 
-##### See also
+#### See also
 
 [t2ws::DefineMimeType]
 
@@ -401,25 +401,25 @@ The following HTTP status codes are pre-defined :
 * 400 401 402 403 404 405 406 407 408 409 410 411 412 413 414 415 416 417
 * 500 501 502 503 504 505 511
 
-##### Parameters
+#### Parameters
 
 |Parameters|Description
 |--:|---
 |\<Code>|HTTP status code
 |\<Message>|HTTP status message
 
-##### Returns
+#### Returns
 
 \-
 
-##### Examples
+#### Examples
 
 ```
  t2ws::DefineStatusCode 200 "OK"
  t2ws::DefineStatusCode 404 "Not Found"
 ```
 
-##### See also
+#### See also
 
 [t2ws::GetStatusCode]
 
@@ -430,17 +430,17 @@ Provides HTTP status code and message. This command provides for a
 given HTTP code or message the concatenated code and message. If no
 argument is provided it returns a dictionary of all defined HTTP codes.
 
-##### Parameters
+#### Parameters
 
 |Parameters|Description
 |--:|---
 |[CodeOrMessage]|HTTP code or message
 
-##### Returns
+#### Returns
 
 Status code, or status code dictionary
 
-##### Examples
+#### Examples
 
 ```
  t2ws::GetStatusCode 404
@@ -451,7 +451,7 @@ Status code, or status code dictionary
  -> 100 {100 Continue} 101 {101 Switching Protocols} 103 {103 Checkpoint} ...
 ```
 
-##### See also
+#### See also
 
 [t2ws::DefineStatusCode]
 
@@ -471,18 +471,18 @@ default implementation of this command just writes the text to stdout :
 The implementation of this command can be changed to adapt it to the
 need of a specific application.
 
-##### Parameters
+#### Parameters
 
 |Parameters|Description
 |--:|---
 |\<Message>|Message/text to log
 |\<Tag>|Message tag, used tags: 'info', 'input', 'output'
 
-##### Returns
+#### Returns
 
 \-
 
-##### See also
+#### See also
 
 [t2ws::Configure]
 
