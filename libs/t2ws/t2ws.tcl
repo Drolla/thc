@@ -13,6 +13,8 @@
 
 # Title: T2WS - Tiny Tcl Web Server
 #
+# Group: Introduction
+#
 # T2WS is a small HTTP server that is easily deployable and embeddable in a 
 # Tcl application. To add a T2WS web server to a Tcl application, load the T2WS 
 # package and start the HTTP server for the desired port (e.g. 8085) :
@@ -20,13 +22,13 @@
 #    > package require t2ws
 #    > t2ws::Start 8085 ::MyResponder
 #
-# The T2WS web server requires an application specific responder command that
-# provides the adequate responses to the HTTP requests. The HTTP request data
-# are provided to the responder command in form of a dictionary, and the T2WS
-# web server expects to get back from the responder command the response also
-# in form of a dictionary. The following lines implements a responder command
-# example that allows either executing Tcl commands or that lets the T2WS 
-# server returning file contents.
+# The <t2ws::Start> command requires as argument an application specific 
+# responder command that provides for each HTTP request the adequate response.
+# The HTTP request data are provided to the responder command in form of a 
+# dictionary, and the T2WS web server expects to get back from the responder 
+# command the response also in form of a dictionary.  The following lines 
+# implements a responder command example that allows either executing Tcl 
+# commands or that lets the T2WS server returning file contents.
 #
 #    > proc MyResponder {Request} {
 #    >    regexp {^/(\w*)\s*(.*)$} [dict get $Request URI] {} Command Arguments
@@ -34,7 +36,7 @@
 #    >       "eval" {
 #    >          if {[catch {set Data [uplevel #0 $Arguments]}]} {
 #    >             return [dict create Status "405" Body "405 - Incorrect Tcl command: $Arguments"] }
-#    >          return [dict create Body $Data ContentType "text/plain"]
+#    >          return [dict create Body $Data Content-Type "text/plain"]
 #    >       }
 #    >       "file" {
 #    >          return [dict create File $Arguments]
@@ -43,8 +45,8 @@
 #    >    return [dict create Status "404" Body "404 - Unknown command: $Command"]
 #    > }
 #
-# The web server will accept the commands _eval_ and _file_ and return an error 
-# for other requests :
+# With this responder command the web server will accept the commands _eval_ 
+# and _file_ and return an error for other requests :
 #
 #    > http://localhost:8085/eval glob *.tcl
 #    > -> pkgIndex.tcl t2ws.tcl
@@ -67,8 +69,7 @@
 
 
 # Group: Main API commands
-#    The following group of commands is usually sufficient to deploy a web
-#    server.
+# The following group of commands is usually sufficient to deploy a web server.
 	
 	##########################
 	# Proc: t2ws::Start
@@ -167,7 +168,7 @@
 	#    
 	# Examples:
 	#    > t2ws::DefineRoute $MyServ ::Responder_GetApi GET api/*
-	#    
+	# 
 	# See also:
 	#    <t2ws::Start>
 	##########################
@@ -215,83 +216,94 @@
 
 
 # Group: The responder command
-#    The T2WS web server calls each HTTP request a responder command that has 
-#    to be provided by the application. This responder command receives the 
-#    entire HTTP request data in form of a dictionary, and it has to provide 
-#    back to the server the HTTP response data again in form of another 
-#    dictionary.
+# The T2WS web server calls each HTTP request a responder command that has to 
+# be provided by the user application. This responder command receives all HTTP 
+# request data in form of a dictionary, and it has to provide back to the 
+# server the HTTP response data again in form of another dictionary. 
+# Alternatively, the responder command can also build the response via a set of 
+# dedicated commands (see <Response manipulation>).
 #
-# Responder command setup:
+# Topic: Responder command setup
 #
-#    <t2ws::Start> in combination with <t2ws::DefineRoute> allow specifying 
-#    different responder commands for different HTTP request methods and URIs. 
-#    The T2WS web server selects the target responder command by trying to 
-#    match the HTTP request method and URI with the method and URI patterns 
-#    that have been defined together with the responder commands. Complexer 
-#    method and URI patterns are tried to be matched first and simpler patterns 
-#    later. The responder command definition order is therefore irrelevant.
-#    The following line contain some responder command definition examples :
+# <t2ws::Start> and <t2ws::DefineRoute> allow specifying different responder 
+# commands for different HTTP request methods and URIs. The T2WS web server 
+# selects the target responder command by trying to match the HTTP request 
+# method and URI with the method and URI patterns that have been defined 
+# together with the responder commands. More complex method and URI patterns 
+# are tried to be matched first and simpler patterns later. The responder 
+# command definition order is therefore irrelevant.
+# The following line contain some responder command definition examples :
 #
 #    > set MyServ [t2ws::Start $Port ::Responder_General * *]
 #    > t2ws::DefineRoute $MyServ ::Responder_GetApi GET /api/*
 #    > t2ws::DefineRoute $MyServ ::Responder_GetApiPriv GET /api/privat/*
 #    > t2ws::DefineRoute $MyServ ::Responder_GetFile GET /file/*
 #
-# Request data dictionary:
+# Topic: Request data dictionary
 #
-#    The responder command receives all HTTP request data in form of a 
-#    dictionary that contains the following elements :
+# The responder command receives all HTTP request data in form of a dictionary 
+# that contains the following elements :
 #
-#       Method - Request method in upper case (e.g. GET, POST, ...)
-#       URI - Request URI, including leading '/'
-#       URITail - Request URI starting at the first place holder location
-#       Header - Request header data, formed itself as dictionary using as keys 
-#                the header field names in lower case
-#       Body - Request body, binary data
+#    Method  - Request method in upper case (e.g. GET, POST, ...)
+#    URI     - Request URI, including leading '/'
+#    URITail - Request URI starting after the first place holder location
+#    Header  - Request header data, formed itself as dictionary using as keys 
+#              the header field names in lower case
+#    Body    - Request body, binary data
 #
-# Response data dictionary:
+# Topic: Response data dictionary
 #
-#    The responder command returns the response data to the server in form of 
-#    a dictionary. All elements of this dictionary are optional. The main 
-#    elements are :
+# The responder command has to return the response data to the server in form 
+# of a dictionary. All elements of this dictionary are optional. The main 
+# elements are :
 #
-#        Status - Either a known HTTP status code (e.g. '404'), a known HTTP 
-#                 status message (e.g. 'Not Found') or a custom status string 
-#                 (e.g. '404 File Not Found'). The default status value is 
-#                 '200 OK'. See <t2ws::DefineStatusCode> and 
-#                 <t2ws::GetStatusCode> for the HTTP status code and message 
-#                 definitions.
-#        Body   - HTTP response body, binary encoded. The default body data is 
-#                 an empty string.
-#        Header - Custom HTTP response headers fields, case sensitive (!). The 
-#                 header element is itself a dictionary that can specify 
-#                 multiple header fields.
+#     Status - Either a known HTTP status code (e.g. '404'), a known HTTP 
+#              status message (e.g. 'Not Found') or a custom status string 
+#              (e.g. '404 File Not Found'). The default status value is 
+#              '200 OK'. See <t2ws::DefineStatusCode> and 
+#              <t2ws::GetStatusCode> for the HTTP status code and message 
+#              definitions.
+#     Body   - HTTP response body, binary encoded. The default body data is 
+#              an empty string.
+#     Header - Custom HTTP response headers fields, case sensitive (!). The 
+#              header element is itself a dictionary that can specify multiple
+#              header fields.
 #
-#    The following auxiliary elements of the response dictionary are 
-#    recognized by the T2WS server :
-#     
-#        Content-Type - For convenience reasons the content type can directly 
-#                       be specified with this element instead of the 
-#                       corresponding header field.
-#        File         - If this element is defined the content of the file is 
-#                       read by the T2WS web server and sent as HTTP response 
-#                       body to the client.
-#        NoCache      - If the value of this element is true (e.g. 1) the HTTP 
-#                       client is informed that the data is volatile (by 
-#                       sending the header field: Cache-Control: no-cache, 
-#                       no-store, must-revalidate).
+# The following auxiliary elements of the response dictionary are recognized 
+# and processed by the T2WS server :
+#  
+#     Content-Type - For convenience reasons the content type can directly be 
+#                    specified with this element instead of the corresponding 
+#                    header field.
+#     File         - If this element is defined the content of the file is read 
+#                    by the T2WS web server and sent as HTTP response body to 
+#                    the client.
+#     NoCache      - If the value of this element is true (e.g. 1) the HTTP 
+#                    client is informed that the data is volatile (by sending 
+#                    the header field: Cache-Control: no-cache, no-store, 
+#                    must-revalidate).
+#
+# Specific fields are used by the HTTP server to register errors. This error 
+# information is especially used by plugins (see <Plugin/Extension API>), but 
+# also responder commands can make use of them. 
+#  
+#     ErrorStatus  - If defined an error has been encountered and this field 
+#                    provides the error status. The 'normal' fields Status and 
+#                    Body are ignored by the T2WS server.
+#     ErrorBody    - Provides optionally the HTTP body for the case ErrorStatus 
+#                    is defined.
 #
 # Examples of responder commands:
 #
-#    The following responder command returns simply the HTTP status 404. It can 
-#    be defined to respond to invalid requests.
+# The following responder command simply returns the HTTP status 404. It can be 
+# defined to respond to invalid requests.
 #
 #    > proc Responder_General {Request} {
 #    >    return [dict create Status "404"]
 #    > }
 #
-#    The next responder command extracts from the request URI a Tcl command. 
-#    This one will be executed and the result returned in the respond body.
+# The next responder command extracts from the request URI a Tcl command. This 
+# one will be executed and the result returned in the respond body.
 #
 #    > proc Responder_GetApi {Request} {
 #    >    set TclScript [dict get $Request URITail]
@@ -300,21 +312,20 @@
 #    >    return [dict create Body $Result]
 #    > }
 #
-#    The next responder command extracts from the request URI a File name, that 
-#    will be returned to the T2WS web server. The file server will return to 
-#    the client the file content.
+# The next responder command extracts from the request URI a File name, that 
+# will be returned to the T2WS web server. The file server will return to the 
+# client the file content.
 #
 #    > proc Responder_GetFile {Request} {
 #    >    set File [dict get $Request URITail]
 #    >    return [dict create File $File]
 #    > }
 #
-#    Rather than creating multiple responder commands for different targets it 
-#    is also possible to create a single one that handles all the different 
-#    requests.
+# Rather than creating multiple responder commands for different targets it is 
+# also possible to create a single one that handles all the different requests.
 #
 #    > proc Responder_General {Request} {
-#    >    regexp {^/([^\s]*)\s*(.*)$} [dict get $Request URI] {} Target ReqLine
+#    >    regexp {^/(\w*)(?:[/ ](.*))?$} [dict get $Request URI] {} Target ReqLine
 #    >    switch -exact -- $Target {
 #    >       "" -
 #    >       "help" {
@@ -323,7 +334,7 @@
 #    >                    eval <TclCommand>: Evaluate a Tcl command and returns the result<br>\n\
 #    >                    file/show <File>: Get file content<br>\n\
 #    >                    download <File>: Get file content (force download in a browser)"
-#    >          return [dict create Body $Data ContentType .html]
+#    >          return [dict create Body $Data Content-Type .html]
 #    >       }
 #    >       "eval" {
 #    >          if {[catch {set Data [uplevel #0 $ReqLine]}]} {
@@ -331,21 +342,165 @@
 #    >          return [dict create Body $Data]
 #    >       }
 #    >       "file" - "show" {
-#    >          return [dict create File $ReqLine ContentType "text/plain"]
+#    >          return [dict create File $ReqLine Content-Type "text/plain"]
 #    >       }
 #    >       "download" {
-#    >          return [dict create File $ReqLine ContentType "" Header [dict create Content-Disposition "attachment; filename=\"[file tail $ReqLine]\""]]
+#    >          return [dict create File $ReqLine Content-Type "" Header [dict create Content-Disposition "attachment; filename=\"[file tail $ReqLine]\""]]
 #    >       }
 #    >       "default" {
-#    >          return [dict create Status "404" Body "404 - Unknown command: $ReqLine"]
+#    >          return [dict create Status "404" Body "404 - Unknown command: $ReqLine. Call 'help' for support."]
 #    >       }
 #    >    }
 #    > }
 
+	##########################
+	# DefaultResponderCommand
+	#    Default responder command that returns simply always a HTTP status 
+	#    404 (Not Found).
+	##########################
+
+	proc t2ws::DefaultResponderCommand {Request} {
+		return [dict create Status "404"]
+	}
+
+
+# Group: Response manipulation
+# The T2WS server initializes for each HTTP request a response dictionary prior 
+# to the call of the responder command. The responder commands can use a set of 
+# commands to manipulate this response dictionary; <t2ws::AddResponse> adds new 
+# fields or replaces already defined ones, <t2ws::UnsetResponse> removes fields, 
+# and <t2ws::SetResponse> re-defines the full response dictionary. Response that 
+# is directly returned by the responder command are added to the current 
+# response dictionary in the same  way <t2ws::AddResponse> adds response fields 
+# to the dictionary.
+#
+# The examples illustrate three different ways to build the same response :
+#
+#    > # Direct response return
+#    > proc t2ws::Responder1 {Request} {
+#    >    return [dict create Status 404 Body $::NotFoundHtmlGz8p Content-Type .html \
+#    >                        Header [dict create Content-Encoding gzip Server "T2WS"]]
+#    > }
+#
+#    > # Combination of explicit response definition and direct response return
+#    > proc t2ws::Responder1 {Request} {
+#    >    t2ws::AddResponse [dict create Content-Type .html Header [dict create Server "T2WS"]]
+#    >    return [dict create Status 404 Body $::NotFoundHtmlGz8p Header [dict create Content-Encoding gzip]]
+#    > }
+#
+#    > # Combination of multiple explicit response definitions
+#    > proc t2ws::Responder1 {Request} {
+#    >    t2ws::AddResponse [dict create Status 404]
+#    >    t2ws::AddResponse [dict create Body $::NotFoundHtmlGz8p]
+#    >    t2ws::AddResponse [dict create Content-Type .html]
+#    >    t2ws::AddResponse [dict create Header [dict create Content-Encoding gzip]]
+#    >    t2ws::AddResponse [dict create Header [dict create Server "T2WS"]]
+#    >    return
+#    > }
+#
+# The the available response commands are described below :
+
+	# Response dictionary variable
+	variable Response
+
+	
+	##########################
+	# Proc: t2ws::SetResponse
+	#    Initializes and defines the response dictionary. The existing response
+	#    is discarded.
+	#
+	# Parameters:
+	#    [Response] - New response data dictionary. If not provided the response 
+	#                 directory is just initialized.
+	#
+	# Returns:
+	#    -
+	#    
+	# Examples:
+	#    > t2ws::SetResponse [dict create Status "405" Body "405 - Incorrect Tcl command: $TclScript"]
+	# 
+	# See also:
+	#    <t2ws::AddResponse>, <t2ws::UnsetResponse>
+	##########################
+
+	proc t2ws::SetResponse { {Response {}} } {
+		ClearResponse
+		AddResponse $Response
+	}
+
+	##########################
+	# t2ws::ClearResponse
+	#    Initializes the response dictionary. Internally used.
+	##########################
+	
+	proc t2ws::ClearResponse {} {
+		variable Response [dict create Header [dict create] Body "" Status OK]
+		return
+	}
+
+
+	##########################
+	# Proc: t2ws::AddResponse
+	#    Adds response fields to the response dictionary. Already defined 
+	#    dictionary fields are replaced by the new fields.
+	#
+	# Parameters:
+	#    <Response> - Dictionary with additional response data
+	#
+	# Returns:
+	#    -
+	#    
+	# Examples:
+	#    > t2ws::AddResponse [dict create Header [dict create Set-Cookie "$Cookie; expires=[clock format $Expires];"]]
+	# 
+	# See also:
+	#    <t2ws::SetResponse>, <t2ws::UnsetResponse>
+	##########################
+
+	proc t2ws::AddResponse {ResponseN} {
+		variable Response
+		if {[dict exists $ResponseN Header]} {
+			dict set Response Header [dict merge [dict get $Response Header] [dict get $ResponseN Header]]
+			dict unset ResponseN Header }
+		set Response [dict merge $Response $ResponseN]
+		return
+	}
+
+	
+	##########################
+	# Proc: t2ws::UnsetResponse
+	#    Remove response information from the response dictionary.
+	#
+	# Parameters:
+	#    <KeyList> - List of keys to remove from the existing response
+	#
+	# Returns:
+	#    -
+	#    
+	# Examples:
+	#    > t2ws::UnsetResponse {Status {Header Set-Cookie}}
+	# 
+	# See also:
+	#    <t2ws::SetResponse>, <t2ws::AddResponse>
+	##########################
+
+	proc t2ws::UnsetResponse {KeyList} {
+		variable Response
+		foreach Key $KeyList {
+			if {[lindex $Key 0]=="Header"} {
+				foreach HKey [lrange $Key 1 end] {
+					dict unset Response Header $HKey }
+			} else {
+				dict unset Response $Key
+			}
+		}
+		return
+	}
+
 
 # Group: Configuration and customization
-#    The following group of commands allows configuring and customizing T2WS to 
-#    application specific needs.
+# The following group of commands allows configuring and customizing T2WS to 
+# application specific needs.
 
 	##########################
 	# Proc: t2ws::Configure
@@ -423,7 +578,7 @@
 	#    the file type/extension is in this case extracted. If the Mime type is 
 	#    already defined for a file type it will be replaced by the new one.
 	#
-	#    The Mime types for the following file extensions are pre-defined :
+	#    T2WS predefines the Mime types for the following file extensions :
 	#    .txt .htm .html .css .gif .jpg .png .xbm .js .json .xml
 	#
 	# Parameters:
@@ -451,8 +606,9 @@
 	##########################
 	# Proc: t2ws::GetMimeType
 	#    Returns Mime type. This command returns the Mime type defined for a 
-	#    given file. If no file is provided it returns the Mime type definition 
-	#    dictionary.
+	#    given file. If no Mime type matches with a file the default Mime type 
+	#    is returned (see <t2ws::Configure>). If no file is provided it returns 
+	#    the full Mime type definition dictionary.
 	#
 	# Parameters:
 	#    [File] - File extension or full qualified file name
@@ -472,8 +628,14 @@
 
 	proc t2ws::GetMimeType { {File ""} } {
 		variable MimeTypes
+		variable Config
 		if {$File!=""} {
-			return [dict get $MimeTypes [string tolower [file extension $File]]]
+			set FileExtension [string tolower [file extension $File]]
+			if {[dict exists $MimeTypes $FileExtension]} {
+				return [dict get $MimeTypes $FileExtension]
+			} else {
+				return [dict get $Config -default_Content-Type]
+			}
 		} else {
 			return $MimeTypes
 		}
@@ -530,7 +692,8 @@
 	##########################
 	# Proc: t2ws::GetStatusCode
 	#    Provides HTTP status code and message. This command provides for a 
-	#    given HTTP code or message the concatenated code and message. If no 
+	#    given HTTP code or message the concatenated code and message. If the 
+	#    provided HTTP code or message is not defined an error is raised. If no 
 	#    argument is provided it returns a dictionary of all defined HTTP codes.
 	#
 	# Parameters:
@@ -544,7 +707,7 @@
 	#    > -> 404 Not Found
 	#    > t2ws::GetStatusCode "Not Found"
 	#    > -> 404 Not Found
-	#    > t2ws::GetStatusCode "Not Found"
+	#    > t2ws::GetStatusCode
 	#    > -> 100 {100 Continue} 101 {101 Switching Protocols} 103 {103 Checkpoint} ...
 	#    
 	# See also:
@@ -598,14 +761,18 @@
 		# Global package configuration
 		variable Config [dict create]
 			dict set Config -protocol ""; # Forced HTTP protocol (HTTP/1.0, HTTP/1.1)
-			dict set Config -default_Content-Type "text/plain"; # Default conent type
+			dict set Config -default_Content-Type "text/plain"; # Default content type
 			dict set Config -log_level 1; # 0: No log, 3: maximum log
+			dict set Config -session_duration {1 minute}; # Session duration
 
 		# Server handler dict
 		variable Server [dict create]
 		
 		# Responder procedure dict
 		variable Responder [dict create]
+		
+		# Plugin list
+		variable Plugins {}
 
 		# Predefined status codes
 		variable StatusCodes [dict create]
@@ -635,7 +802,7 @@
 			DefineStatusCode $SCode $SMessage }
 		unset SCode SMessage
 
-		# Mime types
+		# Predefined Mime types
 		variable MimeTypes [dict create]
 		foreach {FTail MType} {
 			{} text/plain .txt text/plain
@@ -657,8 +824,8 @@
 	##########################
 	# t2ws::Log
 	#    Logs the provided message if its log level is lower or equal to the the 
-	#    configured log level threshold. The message is substituted in the 
-	#    scope of the calling procedure.
+	#    configured log level threshold. The message is substituted in the scope 
+	#    of the calling procedure.
 	#
 	# Parameters:
 	#    <Message> - Message/text to log
@@ -682,10 +849,10 @@
 
 	##########################
 	# t2ws::Puts
-	#    Wrapper function for 'puts'. All send transactions are performed 
-	#    through this wrapper function, which allows logging the data that is
-	#    transferred. The transferred data will be logged if the configured
-	#    log threshold is 3.
+	#    Wrapper function for 'puts'. All send transactions are performed  
+	#    through this wrapper function, which allows logging the data that is 
+	#    transferred. The transferred data will be logged if the configured log 
+	#    threshold is 3.
 	#
 	# Parameters:
 	#    [args] - Puts arguments
@@ -725,13 +892,13 @@
 	##########################
 	# SocketService
 	#    Communication service routine. This command is called on each HTTP 
-	#    request. It parses the HTTP request data, calls the responder command,
-	#    formats the response data and sent this data back to the client. The
-	#    socket will be closed after completing the transaction.
+	#    request. It parses the HTTP request data, calls the responder command 
+	#    and eventually defined plugins, formats the response data and sent this 
+	#    data back to the client. The socket will be closed after completing the 
+	#    transaction.
 	##########################
 
 	proc t2ws::SocketService {Socket} {
-		variable Status
 		variable Config
 		
 		# Find the port of the socket
@@ -754,19 +921,13 @@
 		set RequestBody ""
 		set RequestAcceptGZip 0; # Indicates that the request accepts a gzipped response
 		
-		# Default response data, they are overwritten by the responder command data
-		set ResponseStatus "OK"
-		set ResponseError 0
-		set ResponseBody ""
-		set ResponseHeader [dict create {*}{
-			Connection "close"
-		}]
-		set FilePath ""; # Will be set to the file path if the content of a file 
-		                 # has to be returned. Has precedence over 'ResponseBody'.
+		# Initial response dictionary data. The different fields are overwritten 
+		# by the responder command data
+		variable Response
+		ClearResponse; # Header={}; Body=""; Status=OK
 
 		# HTTP request parser setup
 		set State Connecting; # HTTP request section
-		set ErrorRecord {}; # Error code, list of HTTP error code and HTML error text
 		
 		# Start reading the available data, line after line
 		while {[gets $Socket Line]>=0} {
@@ -792,11 +953,9 @@
 			}
 		}
 
-		# Return a 'bad request response in case no valid line was received
+		# Return a 'bad request' response in case no valid line was received
 		if {$State=="Connecting"} {
-			set ResponseStatus "Bad request"
-			set ResponseError 1
-		}
+			dict set Response ErrorStatus "Bad request" }
 
 		# Read the Body (if the header section was read successfully)
 		if {$State=="Body"} {
@@ -810,8 +969,7 @@
 			set RequestAcceptGZip 1 }
 
 		# Evaluate the request if no error happened until this point.
-
-		if {!$ResponseError} {
+		if {![dict exists $Response ErrorStatus]} {
 			variable Responder
 			# Create the response dictionary
 			set RequestMethod [string toupper $RequestMethod]
@@ -826,46 +984,35 @@
 					                         URITail $RequestURITail \
 													 Header $RequestHeader Body $RequestBody]
 					Log {Call Responder command: [lindex $ResponderDef 3]} info 2
-					catch {set Response [[lindex $ResponderDef 3] $Request]}
+					catch {set ResponseD [[lindex $ResponderDef 3] $Request]}
 					break
 				}
 			}
 
-			# Process the response (there was a failure if 'Response' doesn't exist)
-			if {[info exists Response]} {
-				if {[dict exists $Response Status]} {
-					set ResponseStatus [dict get $Response Status] }
-				if {[dict exists $Response Body]} {
-					set ResponseBody [dict get $Response Body] }
-				if {[dict exists $Response Header]} {
-					set ResponseHeader [dict merge $ResponseHeader [dict get $Response Header]] }
-				if {[dict exists $Response Content-Type]} {
-					dict set ResponseHeader Content-Type [dict get $Response Content-Type] }
-				if {[dict exists $Response NoCache] && [dict get $Response NoCache]} {
-					dict set ResponseHeader Cache-Control "no-cache, no-store, must-revalidate" }
-				if {[dict exists $Response File]} {
-					set FilePath [dict get $Response File] }
+			# Process the response (there was a failure if 'ResponseD' doesn't exist)
+			if {[info exists ResponseD]} {
+				AddResponse $ResponseD
 			} else {
-				set ResponseStatus 500; # There was a failure
-				set ResponseError 1
+				dict set Response ErrorStatus 500; # There was a failure
 			}
 		}
 
 		# If a file has to be provided, read the file content
-		if {!$ResponseError && $FilePath!=""} {
+		set FilePath ""; # File path if the content of a file has to be returned.
+		if {![dict exists $Response ErrorStatus] && [dict exists $Response File]} {
+			set FilePath [dict get $Response File] }
+		if {$FilePath!=""} {
 			# Evaluate the MIME type. If the type is not recognized the default
 			# type is used (plain text)
-			if {![dict exists $ResponseHeader Content-Type]} {
-				catch {
-					dict set ResponseHeader Content-Type [GetMimeType $FilePath] }
-			}
+			if {![dict exists $Response Header Content-Type]} {
+				dict set Response Header Content-Type [GetMimeType $FilePath] }
 
 			# Try to provide a gzipped file if gzip encoding is accepted and if 
 			# the gzipped file already exists
 			
 			if {[file exists $FilePath.gz] && $RequestAcceptGZip} {
 				set FilePath $FilePath.gz
-				dict set ResponseHeader Content-Encoding "gzip"
+				dict set Response Header Content-Encoding "gzip"
 				set RequestAcceptGZip 0; # Don't gzip the zipped file another time
 			}
 
@@ -874,70 +1021,90 @@
 			# Read the file content as binary data. Catch errors due to non 
 			# existing files
 			if {[catch {set f [open $FilePath RDONLY]} err]} {
-				set ResponseStatus "Not Found"
-				set ResponseError 1
-				set ResponseBody "File '$FilePath' not found"
+				dict set Response ErrorStatus "Not Found"
+				dict set Response ErrorBody "File '$FilePath' not found"
 			} else {
 				fconfigure $f -translation binary
-				set ResponseBody [read $f]
+				dict set Response Body [read $f]
 				close $f
 			}
 		}
+		
+		# Execute the registered plugin commands
+		variable Plugins
+		foreach Plugin $Plugins {
+			$Plugin }
 
+		# If an error happened, define the HTTP response status and body
+		if {[dict exists $Response ErrorStatus]} {
+			if {[dict exists $Response ErrorBody]} {
+				SetResponse [dict create Status [dict get $Response ErrorStatus] \
+				                         Body [dict get $Response ErrorBody]]
+			} else {
+				SetResponse [dict create Status [dict get $Response ErrorStatus] Body ""] }
+
+		# If no error happened, set some auxiliary header fields
+		} else {
+			if {[dict exists $Response Content-Type]} {
+				dict set Response Header Content-Type [dict get $Response Content-Type] }
+			if {[dict exists $Response NoCache] && [dict get $Response NoCache]} {
+				dict set Response Header Cache-Control "no-cache, no-store, must-revalidate" }
+		}
+		
 		# Evaluate the response protocol (HTTP/1.0 or HTTP/1.1)
 		set ResponseProtocol $RequestProtocol
 		if {[dict get $Config -protocol]!=""} {
 			set ResponseProtocol [dict get $Config -protocol] }
 
 		# Build the full response status. If the response isn't OK and if no 
-		# response body is defined, create a response body containing the error info.
-		catch {set ResponseStatus [GetStatusCode $ResponseStatus]}
-		if {$ResponseStatus!="200 OK"} {
-			if {$ResponseBody==""} {
-				set ResponseBody $ResponseStatus }
-		}
+		# response body is defined, create a response body that contains the error info.
+		catch {
+			dict set Response Status [GetStatusCode [dict get $Response Status]] }
+		if {[dict get $Response Status]!="200 OK" && [dict get $Response Body]==""} {
+				dict set Response Body [dict get $Response Status] }
 
-		# Compress the data if this is accepted by the client, 
-		# supported by Tcl, and if the response is sufficient long (>100)
-		if {$RequestAcceptGZip && $::tcl_version>=8.6 && [string length $ResponseBody]>100} {
+		# Compress the data if this is accepted by the client, supported by Tcl, 
+		# and if the response is sufficient long (>100)
+		if {$RequestAcceptGZip && $::tcl_version>=8.6 && [string length [dict get $Response Body]]>100} {
 			if {$FilePath!=""} {
-				set ResponseBody [zlib gzip $ResponseBody \
-									-header [dict create filename [file tail $FilePath]]]
+				dict set Response Body [zlib gzip [dict get $Response Body] \
+									              -header [dict create filename [file tail $FilePath]]]
 			} else {
-				set ResponseBody [zlib gzip $ResponseBody]
+				dict set Response Body [zlib gzip [dict get $Response Body]]
 			}
-			dict set ResponseHeader Content-Encoding "gzip"
+			dict set Response Header Content-Encoding "gzip"
 		}
 
 		# If the content type hasn't bee specified, use the default one
-		if {![dict exists $ResponseHeader Content-Type] && \
+		if {![dict exists $Response Header Content-Type] && \
 		     [dict get $Config -default_Content-Type]!=""} {
-			dict set ResponseHeader Content-Type [dict get $Config -default_Content-Type] }
+			dict set Response Header Content-Type [dict get $Config -default_Content-Type] }
 
 		# Return the full response:
 		
 		# Return the response header lines using crlf line breaks. Evaluate and 
 		# return also the content length.
 		fconfigure $Socket -translation {auto crlf}; # HTTP headers need to have crlf line breaks
-		Puts $Socket "$ResponseProtocol $ResponseStatus"
-		dict for {DKey DVal} $ResponseHeader {
+		Puts $Socket "$ResponseProtocol [dict get $Response Status]"
+		dict for {DKey DVal} [dict get $Response Header] {
+			regsub {:.*$} $DKey {} DKey; # Remove an eventual ending :* sequence 
 			if {$DVal!=""} {
 				Puts $Socket "$DKey: $DVal" }
 		}
-		Puts $Socket "Content-Length: [string length $ResponseBody]"
+		Puts $Socket "Content-Length: [string length [dict get $Response Body]]"
 		Puts $Socket ""; # This empty line indicates the end of the header section
 
 		# Return the response body. Handle this data as binary, the content of 
 		# some files is binary (and to match also the length RequestData).
 		fconfigure $Socket -translation {auto binary}; # Binary data to match the content length RequestData
-		Puts -nonewline $Socket $ResponseBody
+		Puts -nonewline $Socket [dict get $Response Body]
 		flush $Socket
 
 		# Close the socket ('connection: close')
 		catch {close $Socket}
 		Log {t2ws: $Socket closed} info 2
 	}
-	
+
 
 	# URL encoding/decoding: See http://wiki.tcl.tk/14144
 
@@ -963,13 +1130,14 @@
 	
 	##########################
 	# t2ws::UrlEncode
-	#    Decode the hexadecimal encoding contained in HTTP requests (e.g. %2F).
+	#    Encodes special characters of an URL in a HTTP requests by the 
+	#    hexadecimal representation (e.g. %2F).
 	#
 	# Parameters:
-	#    <Text> - HTTP encoded text
+	#    <Text> - URL/text
 	#
 	# Returns:
-	#    HTTP decoded text
+	#    URL encoded text
 	#
 	# Examples:
 	#    
@@ -998,10 +1166,10 @@
 	#    Decode the hexadecimal encoding contained in HTTP requests (e.g. %2F).
 	#
 	# Parameters:
-	#    <Text> - HTTP encoded text
+	#    <Text> - URL encoded text
 	#
 	# Returns:
-	#    HTTP decoded text
+	#    URL decoded text
 	#
 	# Examples:
 	#    
@@ -1020,21 +1188,96 @@
 		# process \u unicode mapped chars
 		return [subst -novar -nocommand $Text]
 	}
-		
-	
-	
+
+
 	##########################
-	# DefaultResponderCommand
-	#    Default responder command that returns simply always a HTTP status 
-	#    404 (Not Found).
+	# t2ws::HtmlEncode
+	#    Encodes special characters in Html code by the 
+	#    hexadecimal representation (e.g. %2F).
+	#
+	# Parameters:
+	#    <Text> - HTML code/Text
+	#
+	# Returns:
+	#    HTTP decoded text
+	#
+	# Examples:
+	#    
+	#    > UrlEncode {http://localhost:8080/name="t2ws client"}
+	#    > -> http://localhost:8080/name=%22t2ws%20client%22
 	##########################
-	
-	proc t2ws::DefaultResponderCommand {Request} {
-		return [dict create Status "404"]
+
+	proc t2ws::HtmlEncode {Text} {
+		regsub -all {[\[\{]} $Text {(} Text
+		regsub -all {[\}\]]} $Text {)} Text
+		regsub -all "\"" $Text {'} Text
+		# regsub -all {\\} $Text {\\\\} Text
+		regsub -all {[\u0000-\u001f\u007f-\uffff]} $Text {?} Text
+		return $Text
 	}
 
+	
+# Group: Plugin/Extension API
+#
+# The T2WS server functionality can be extended via plugins. A plugin provides 
+# a command that is registered with <t2ws::DefinePlugin>. Once registered this 
+# plugin command is called by the T2WS server after each execution of the 
+# responder command. The plugin command can then modify or complete the 
+# current response.
+#
+# It may be necessary to adapt the plugin command behavior in case the HTTP 
+# server encountered an error. Such errors are indicated by a defined 
+# ErrorStatus field of the response dictionary. Possible reasons for errors 
+# are files that are not existing, connection problems, or an error raised by 
+# an responder command.
+#
+# The following example registers a plugin command that adds the header  
+# attributes 'Server' and 'Date' to the existing response. If no error 
+# happened also the 'ETag' attribute is added in form of a MD5 checksum of the 
+# Body.
+# 
+#    > package require md5
+#    > 
+#    > proc Plugin_DateServerMd5 {} {
+#    >    upvar Response Response
+#    > 
+#    >    set Date [clock format [clock seconds] -format "%a, %d %b %Y %T %Z"]
+#    >    t2ws::AddResponse [dict create Header [dict create Server "T2WS" Date $Date]]
+#    > 
+#    >    if {[dict exists $Response ErrorStatus]} return
+#    >    
+#    >    set ETag [md5::md5 -hex [dict get $Response Body]]
+#    >    t2ws::AddResponse [dict create Header [dict create ETag "\"$ETag\""]]
+#    > }
+#    > 
+#    > t2ws::DefinePlugin Plugin_DateServerMd5
+
+
+	##########################
+	# Proc: t2ws::DefinePlugin
+	#    Registers a plugin command. Multiple plugin commands can be registered.
+	#
+	# Parameters:
+	#    <Command> - Plugin command
+	#
+	# Returns:
+	#    -
+	#    
+	# Examples:
+	#    > t2ws::DefinePlugin ::MyT2wsPlugin
+	##########################
+
+	proc t2ws::DefinePlugin {Command} {
+		variable Plugins
+		# Register the  plugin command
+		lappend Plugins $Command
+		return
+	}
+
+	
 # Specify the t2ws version that is provided by this file:
-package provide t2ws 0.1
+
+	package provide t2ws 0.2
 
 
 ##################################################
