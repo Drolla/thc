@@ -97,7 +97,11 @@ proc nd2md {NdFile MdFile LinkFile Format} {
 				set nd2md_Link($Title) [list title $LinkFile $Title]
 			} elseif {[regexp {Group\s*:\s*(.+)} $DocText {} Group] |
 			          [regexp {Topics{0,1}\s*:\s*(.+)} $DocText {} Group]} {
-				set MdLine "\#\# $Group"
+				if {[regexp {Group\s*:\s*(.+)} $DocText]} {
+					set MdLine "\#\# $Group"
+				} else {
+					set MdLine "\#\#\# $Group"
+				}
 				set Mode Group
 				set NewSection Group
 				if {$CreateReferenceIndexes} {
