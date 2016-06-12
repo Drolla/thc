@@ -86,8 +86,8 @@ proc nd2md {NdFile MdFile LinkFile Format} {
 			set Mode ""
 			set SubMode ""
 		} else {
-			set DocText [string trim $DocText]
-			regsub -all {<} $DocText {\\<} DocText
+			set RowDocText [string trim $DocText]
+			regsub -all {<} $RowDocText {\\<} DocText
 			if {$DocText=="" || [string trim $DocText "\#"]==""} {
 				set NewSection ""
 			} elseif {[regexp {Title\s*:\s*(.+)} $DocText {} Title]} {
@@ -117,6 +117,9 @@ proc nd2md {NdFile MdFile LinkFile Format} {
 			} elseif {$Mode=="Proc" && $Section=="" && [regexp {(.*[^\s]):\s*$} $DocText {} SubMode]} {
 				set MdLine "\#\#\#\# $SubMode"
 				set NewSection ProcSectionTitle
+			} elseif {$Mode!="" && [regexp {^[>:|](.*)$} $RowDocText {} Code]} {
+				set NewSection Code
+				set MdLine $Code
 			} elseif {$Mode!=""} {
 				regsub -all {\|} $DocText {\\|} DocTextT
 	
@@ -136,10 +139,7 @@ proc nd2md {NdFile MdFile LinkFile Format} {
 					}
 				}
 				
-				if {[regexp {^[>:|](.*)$} $DocText {} Code]} {
-					set NewSection Code
-					set MdLine $Code
-				} elseif {[regexp {^([-+*][\s].*)$} $DocText {} List]} {
+				if {[regexp {^([-+*][\s].*)$} $DocText {} List]} {
 					set NewSection List
 					set MdLine $List
 					lappend LinkList {*}$LinkList2
@@ -180,7 +180,7 @@ proc nd2md {NdFile MdFile LinkFile Format} {
 		}
 		
 		#append MdFileContent "\n[string repeat { } 90]$Mode :: $Section :: $NewSection\n"
-		if {$MdLine!=""} {
+		if {$MdLine!="" || $NewSection=="Code"} {
 			if {!$AppendMdLine} {
 				append MdFileContent "\n"
 			} elseif {[string index $MdFileContent end]!=""} {
