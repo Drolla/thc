@@ -9,6 +9,15 @@ THC has the following features :
 * Platform independent - THC can be installed on each platform that runs Tcl (version 8.5 or higher).
 * Low resource needs - THC requires only about 2% CPU time on a on Raspberry PI version 1 (for a setup with 20 devices)
 
+<ul style="list-style-type:none"><li><dl>
+  <dt>Flexible automation solution</dt><dd>High flexibility through the Tcl scripting language and powerful job definitions.</dd>
+  <dt>Target device independent</dt><dd>THC provides a standardized way to access and control various types of target devices: z-Way/Razberry (Z-Wave controller), OpenWeatherMap (access to weather data), MeteoSwiss (access to weather data).</dd>
+  <dt>Rich features set</dt><dd>Responsive web interface, mail alert, random light control, device status and activity logging and plotting, action timer, ...</dd>
+  <dt>Modularity</dt><dd>Support for other target devices, or more features can be added via new modules.</dd>
+  <dt>Platform independent</dt><dd>THC can be installed on each platform that runs Tcl (version 8.5 or higher).</dd>
+  <dt>Low resource needs</dt><dd>THC requires only about 2% CPU time on a on Raspberry PI version 1 (for a setup with 20 devices)</dd>
+</dl></li></ul>
+
 A web interface provides an optimal experience on desktop and mobile devices.
 
 ![THC web interface](https://github.com/Drolla/thc/blob/master/developper/doc/thc_Web.gif)
