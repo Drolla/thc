@@ -953,9 +953,13 @@
 			}
 		}
 
-		# Return a 'bad request' response in case no valid line was received
+		# If the state is still 'connecting' just the socket has been opened but 
+		# no data has been transferred. Close in this situation the socket without
+		# returning a response.
 		if {$State=="Connecting"} {
-			dict set Response ErrorStatus "Bad request" }
+			catch {close $Socket}
+			return
+		}
 
 		# Read the Body (if the header section was read successfully)
 		if {$State=="Body"} {
@@ -1029,11 +1033,15 @@
 				close $f
 			}
 		}
-		
-		# Execute the registered plugin commands
+
+		# Execute the registered plugin commands, add the returned responses to 
+		# the response dictionary
 		variable Plugins
 		foreach Plugin $Plugins {
-			$Plugin }
+			if {[catch {$Plugin $Request}]} {
+				dict set Response ErrorStatus 500; # There was a failure
+			}
+		}
 
 		# If an error happened, define the HTTP response status and body
 		if {[dict exists $Response ErrorStatus]} {
@@ -1222,8 +1230,13 @@
 # The T2WS server functionality can be extended via plugins. A plugin provides 
 # a command that is registered with <t2ws::DefinePlugin>. Once registered this 
 # plugin command is called by the T2WS server after each execution of the 
-# responder command. The plugin command can then modify or complete the 
-# current response.
+# responder command.
+#
+# The HTTP request dictionary is provided as argument to the plugins. Reading 
+# and manipulating the HTTP response dictionary happens by accessing the 
+# response variable of the enclosing procedure via 'upvar'. Optionally a plugin 
+# command can also modify or complete the current response via the commands 
+# <t2ws::AddResponse> and <t2ws::UnsetResponse>.
 #
 # It may be necessary to adapt the plugin command behavior in case the HTTP 
 # server encountered an error. Such errors are indicated by a defined 
@@ -1232,22 +1245,24 @@
 # an responder command.
 #
 # The following example registers a plugin command that adds the header  
-# attributes 'Server' and 'Date' to the existing response. If no error 
-# happened also the 'ETag' attribute is added in form of a MD5 checksum of the 
-# Body.
+# fields 'Server' and 'Date' to the existing response 
+# (using <t2ws::AddResponse>). If no error happened also the 'ETag' attribute 
+# is added in form of a MD5 checksum of the Body (by directly writing the 
+# referred response dictionary variable).
 # 
 #    > package require md5
 #    > 
-#    > proc Plugin_DateServerMd5 {} {
-#    >    upvar Response Response
+#    > proc Plugin_DateServerMd5 {Request} {
+#    >    upvar Response Response; # Refer the response dictionary variable
 #    > 
+#    >    # 
 #    >    set Date [clock format [clock seconds] -format "%a, %d %b %Y %T %Z"]
 #    >    t2ws::AddResponse [dict create Header [dict create Server "T2WS" Date $Date]]
 #    > 
 #    >    if {[dict exists $Response ErrorStatus]} return
 #    >    
 #    >    set ETag [md5::md5 -hex [dict get $Response Body]]
-#    >    t2ws::AddResponse [dict create Header [dict create ETag "\"$ETag\""]]
+#    >    dict set Response Header ETag "\"$ETag\""
 #    > }
 #    > 
 #    > t2ws::DefinePlugin Plugin_DateServerMd5
@@ -1277,7 +1292,7 @@
 	
 # Specify the t2ws version that is provided by this file:
 
-	package provide t2ws 0.2
+	package provide t2ws 0.3
 
 
 ##################################################
