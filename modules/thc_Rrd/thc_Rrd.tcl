@@ -222,6 +222,9 @@ namespace eval thc_Rrd {
 	#
 	# Returns:
 	#    Device list
+	#    
+	# Examples:
+	#    thc_Rrd::RrdGetDeviceList thc.rrd
 	##########################
 
 	proc RrdGetDeviceList {RrdFile} {
@@ -261,6 +264,9 @@ namespace eval thc_Rrd {
 	#
 	# Returns:
 	#    -
+	#
+	# Examples:
+	#    thc_Rrd::RrdAddDevices thc.rrd {Living,temp Living,hum}
 	##########################
 
 	proc RrdAddDevices {RrdFile AddedDeviceList} {
@@ -336,6 +342,9 @@ namespace eval thc_Rrd {
 	#
 	# Returns:
 	#    -
+	#
+	# Examples:
+	#    thc_Rrd::RrdRenameDevices thc.rrd {Living,temp Living,temperature Living,hum Living,humidity}
 	##########################
 
 	proc RrdRenameDevices {RrdFile DeviceUpdateList} {
@@ -383,6 +392,9 @@ namespace eval thc_Rrd {
 	#
 	# Returns:
 	#    -
+	#
+	# Examples:
+	#    thc_Rrd::RrdRemoveDevices thc.rrd {Living,humidity}
 	##########################
 
 	proc RrdRemoveDevices {RrdFile RemovedDeviceList} {
@@ -436,18 +448,23 @@ namespace eval thc_Rrd {
 
 	
 	##########################
-	# thc_Rrd::RrdModifyDeviceValue
+	# thc_Rrd::RrdModifyDeviceValues
 	#    Modify the values of a devices in an existing RRD database.
 	#
 	# Parameters:
 	#    RrdFile - The name of the RRD database file
 	#    Device - Device for which the values have to be changed
 	#    Expression - Value recalculation expression. The expression has to
-	#                 refer the original value via the variable 'Value'.
-	#                 Expression examples: $Value*1.23, (1?"NaA":"")
+	#                 refer the original value via the variable 'Value'. To 
+	#                 invalidate a value set it to an empty string ("") and not
+	#                 to "NaN"
+	#                 Expression examples: $Value*1.23, ($Value<0?"":$Value)
 	#
 	# Returns:
 	#    -
+	#
+	# Examples:
+	#    thc_Rrd::RrdModifyDeviceValues thc.rrd "Living,temperature" {$Value+1.3}
 	##########################
 
 	proc RrdModifyDeviceValues {RrdFile Device Expression} {
@@ -456,13 +473,11 @@ namespace eval thc_Rrd {
 		# Check the expression
 		set Value 123
 		if {[catch {expr $Expression}]} {
-			error "Expression '$Expression' cannot be evaluated. Correct examples: '\$Value*1.23', '(1?\"NaA\":\"\")'"
-		}
+			error "Expression '$Expression' cannot be evaluated. Correct examples: '\$Value*1.23', '{\$Value<0.0?\"NaN\":\$Value}'" }
 	
 		# Dump the current database
 		if {[catch {set Data [exec rrdtool dump $RrdFile]}]} {
-			error "Current Rrd database '$RrdFile' cannot be dumped."
-		}
+			error "Current Rrd database '$RrdFile' cannot be dumped." }
 		
 		# Replace characters not supported by Rrd
 		regsub -all {[,.]} [string range $Device 0 18] {_} RrdDevice
@@ -472,8 +487,7 @@ namespace eval thc_Rrd {
 		set NbrRrdDevices [expr [llength $AllDeviceDefs]/2]
 		set DeviceIndex [expr ([lsearch -exact $AllDeviceDefs $RrdDevice]-1)/2]
 		if {$DeviceIndex<0} {
-			error "Device $Device is not part of the Rrd database"
-		}
+			error "Device $Device is not part of the Rrd database" }
 		
 		# Create the regex pattern to modify all values of the relevant device
 		set RegExpPattern "<row>[string repeat {<v>.*?</v>} $DeviceIndex]<v>(.*?)</v>[string repeat {<v>.*?</v>} [expr $NbrRrdDevices-$DeviceIndex-1]]</row>"
@@ -481,13 +495,13 @@ namespace eval thc_Rrd {
 		# Change all values of the device. Start at the end to avoid a conflict with the location indexes
 		set LastIndex 0
 		set NewData ""
-		foreach {RowIndex ValueIndex} [regexp -all -inline -indices $RegExpPattern $Data] {
+		foreach {RowIndex ValueIndex} [regexp -line -all -inline -indices $RegExpPattern $Data] {
 			append NewData [string range $Data $LastIndex [lindex $ValueIndex 0]-1]
 			set Value [string range $Data {*}$ValueIndex]
 			# Change the value, in case of an error change the value into 'NaN'
-			if {($Value eq "NaN") || [catch {set Value [expr $Expression]}]} {
-				set Value "NaN"
-			}
+			if {$Value eq "NaN"} { # No change, ignore NaN
+			} elseif {[catch {set Value [expr $Expression]}] || ($Value eq "")} {
+				set Value "NaN" }
 			append NewData $Value
 			set LastIndex [expr {[lindex $ValueIndex 1]+1}]
 		}
@@ -496,16 +510,40 @@ namespace eval thc_Rrd {
 		# Backup the database, and restore it with the new device definitions
 		set BackupFileName ${RrdFile}.old_[clock seconds]
 		if {[catch {file rename $RrdFile $BackupFileName}]} {
-			error "The original file cannot be backed up."
-		}
+			error "The original file cannot be backed up." }
 		if {[catch {exec rrdtool restore - $RrdFile << $NewData}]} {
 			file delete $RrdFile
 			file rename $BackupFileName $RrdFile
+			puts stderr "Error: $::errorInfo"
 			error "The Rrd database cannot be extended (read only of the directory?)"
 		}
 		
 		# The Rrd database extension was successful
 		return
+	}
+
+	
+	##########################
+	# thc_Rrd::RrdCheckDeviceValueRange
+	#    Check the valid range of the values of a devices in an existing RRD 
+	#    database. Invalid values are marked as NaN
+	#
+	# Parameters:
+	#    RrdFile   - The name of the RRD database file
+	#    Device    - Device for which the values have to be changed
+	#    LowLimit  - Lower limit of the valid value range
+	#    HighLimit - Higher limit of the valid value range
+	#
+	# Returns:
+	#    -
+	#
+	# Examples:
+	#    thc_Rrd::RrdCheckDeviceValueRange thc.rrd "Living,temperature" -5 40
+	##########################
+
+	proc RrdCheckDeviceValueRange {RrdFile Device LowLimit HighLimit} {
+		thc_Rrd::RrdModifyDeviceValues $RrdFile $Device \
+			"(\$Value<$LowLimit || \$Value>$HighLimit ? \"\" : \$Value)"
 	}
 
 	
