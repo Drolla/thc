@@ -36,6 +36,8 @@ exec tclsh "$0" ${1+"$@"}
 #  > RrdManip.tcl modif <RrdDatabaseFile> <Device> <Expression>
 #  > (the expression has to refer the original value with '$Value')
 #
+#  > RrdManip.tcl range <RrdDatabaseFile> <Device> <LowLimit> <HighLimit>
+#
 # Description:
 # 
 # RrdManip.tcl can _list_, _add_, _rename_ or _remove_ devices from/to an existing THC
@@ -51,6 +53,7 @@ exec tclsh "$0" ${1+"$@"}
 #   > /opt/thc/modules/thc_Rrd/RrdManip.tcl rename /var/thc/thc.rrd Light,Cellar Light,Basement
 #   > /opt/thc/modules/thc_Rrd/RrdManip.tcl remove /var/thc/thc.rrd Light,Living Light,Basement
 #   > /opt/thc/modules/thc_Rrd/RrdManip.tcl modif  /var/thc/thc.rrd Temp,Living '$Value+0.3'
+#   > /opt/thc/modules/thc_Rrd/RrdManip.tcl range  /var/thc/thc.rrd Temp,Living 10 35
 
 
 ######## Help ########
@@ -66,6 +69,7 @@ exec tclsh "$0" ${1+"$@"}
 		puts "RrdManip.tcl rename <RrdDatabaseFile> <Device1OldName> <Device1NewName> <Device2OldName> <Device2NewName> ..."
 		puts "RrdManip.tcl remove <RrdDatabaseFile> <Device1> <Device2> ..."
 		puts "RrdManip.tcl modif  <RrdDatabaseFile> <Device> <Expression>"
+		puts "RrdManip.tcl range  <RrdDatabaseFile> <Device> <LowLimit> <HighLimit>"
 		puts ""
 		exit
 	}
@@ -89,6 +93,7 @@ exec tclsh "$0" ${1+"$@"}
 		rename  {puts [thc_Rrd::RrdRenameDevices $RrdFile [lrange $argv 2 end]]}
 		remove  {puts [thc_Rrd::RrdRemoveDevices $RrdFile [lrange $argv 2 end]]}
 		modif   {puts [thc_Rrd::RrdModifyDeviceValues $RrdFile {*}[lrange $argv 2 3]]}
+		range   {puts [thc_Rrd::RrdCheckDeviceValueRange $RrdFile {*}[lrange $argv 2 4]]}
 		default {Help}
 	}
 	}
