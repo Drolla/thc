@@ -360,7 +360,7 @@ exec tclsh "$0" ${1+"$@"}
 						set Stat ""
 					}
 				}
-				if {[info exists DeviceAttributes($Device,InverseValue)]} {
+				if {$Stat!="" && [info exists DeviceAttributes($Device,InverseValue)]} {
 					if {[catch {set Stat [expr {!$Stat}]}]} {
 						set Stat ""
 					}
