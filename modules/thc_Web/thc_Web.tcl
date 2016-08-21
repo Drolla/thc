@@ -59,7 +59,7 @@ namespace eval thc_Web {
 		Stop
 		
 		# Open the new socket server
-		set Server [t2ws::Start $Port [namespace current]::GetRequestResponseData GET]
+		set Server [t2ws::Start $Port -responder [namespace current]::GetRequestResponseData -method GET]
 		Log "thc_Web started (port $Port)" 3
 	}
 	

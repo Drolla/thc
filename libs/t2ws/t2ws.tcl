@@ -15,19 +15,19 @@
 #
 # Group: Introduction
 #
-# T2WS is a small HTTP server that is easily deployable and embeddable in a 
-# Tcl application. To add a T2WS web server to a Tcl application, load the T2WS 
+# T2WS is a HTTP server that is easily deployable and embeddable in a Tcl 
+# application. To add a T2WS web server to a Tcl application, load the T2WS 
 # package and start the HTTP server for the desired port (e.g. 8085) :
 #
 #    > package require t2ws
-#    > t2ws::Start 8085 ::MyResponder
+#    > t2ws::Start 8085 -responder ::MyResponder
 #
-# The <t2ws::Start> command requires as argument an application specific 
-# responder command that provides for each HTTP request the adequate response.
-# The HTTP request data are provided to the responder command in form of a 
-# dictionary, and the T2WS web server expects to get back from the responder 
-# command the response also in form of a dictionary.  The following lines 
-# implements a responder command example that allows either executing Tcl 
+# The <t2ws::Start> command accepts as '-responder' argument an application 
+# specific responder command that provides for each HTTP request the adequate 
+# response. The HTTP request data are provided to the responder command in form 
+# of a dictionary, and the T2WS web server expects to get back from the 
+# responder command the response also in form of a dictionary.  The following 
+# lines implements a responder command example that allows either executing Tcl 
 # commands or that lets the T2WS server returning file contents.
 #
 #    > proc MyResponder {Request} {
@@ -67,6 +67,17 @@
 
 	namespace eval t2ws {}
 
+	##########################
+	# Assert
+	#    Assert a condition. This procedure assert that a condition is 
+	#    satisfied. If the provided condition is not true an error is raised.
+	##########################
+
+	proc t2ws::Assert {Condition Message} {
+		if {[uplevel 1 "expr \{$Condition\}"]} return
+		error $Message
+	}
+
 
 # Group: Main API commands
 # The following group of commands is usually sufficient to deploy a web server.
@@ -82,32 +93,75 @@
 	#    for other request methods and/or URIs can be specified later with 
 	#    <t2ws::DefineRoute>.
 	#
+	#    By default, a non-secure network socket is opened to support conventional 
+	#    HTTP connections. If certification and key files are provided 
+	#    respectively via the '-certfile' and '-keyfile' arguments and if the TLS 
+	#    package has been previously loaded, a secure network connections is 
+	#    opened to support secured HTTPS connections. If the TLS package hasn't 
+	#    been previously loaded an error is generated. See also <Secure connections>.
+	#
 	# Parameters:
 	#    <Port> - HTTP port
-	#    [Responder] - Responder command, optional
-	#    [Method] - HTTP request method glob matching pattern, default="*"
-	#    [URI] - HTTP request URI glob matching pattern, default="*"
+	#    [-responder <Responder>] - Responder command, optional
+	#    [-method <Method>] - HTTP request method glob matching pattern. Ignored 
+	#              if option '-responder' isn't defined. Set to "*" if not defined
+	#    [-uri <URI>] - HTTP request URI glob matching pattern. Ignored if 
+	#              option '-responder' isn't defined. Set to "*" if not defined
+	#
+	# Additional parameters for secured connections only (TLS/HTTPS):
+	#    -certfile <CertFile> - SSL certification file
+	#    -keyfile <KeyFile> - SSL keyfile. Required if option '-certfile' is 
+	#              defined, ignored if it is not defined.
+	#    [<args>] - Additional arguments that are passed to 'tls::socket'.
 	#
 	# Returns:
-	#    HTTP port (used as T2WS server identifier)
+	#    HTTP/HTTPS port (used as T2WS server identifier)
 	#    
 	# Examples:
-	#    > set MyServ [t2ws::Start $Port ::Responder_GetGeneral GET]
+	#    > # Non-secure connection
+	#    > set MyServ [t2ws::Start $Port -responder ::Responder_GetGeneral -method GET]
+	#    
+	#    > # Secure connection: A password handler is declared with the 
+	#    > # additional argument '-password'
+	#    > package require tls
+	#    > set MyServS [t2ws::Start $PortS -responder ::Responder_GetGeneral -method GET \
+	#    >    -certfile cert.pem -keyfile key.pem -password ::PwService]
+	#    > proc PwService {args} {return "MyPassword123"}
 	#    
 	# See also:
 	#    <t2ws::DefineRoute>, <t2ws::Stop>
 	##########################
 	
-	proc t2ws::Start {Port {ResponderCommand ""} {Method "*"} {URI "*"}} {
+	proc t2ws::Start {Port args} {
 		variable Server
+		
+		# Argument handling and checks
+		set Options [dict create -responder "" -method "*" -uri "*" -certfile "" -keyfile "" {*}$args]
+		Assert {[dict get $Options -certfile]=="" || [dict get $Options -keyfile]!=""} "Keyfile isn't defined"
+
+		# Stop an already running server. Start the server
 		Stop $Port
 		Log {HttpServer::Start $Port} info 1
-		dict set Server $Port [socket -server [namespace current]::Accept $Port]
+		
+		# Open a secure connection if the '-certfile' argument is defined. Check 
+		# in this case that the 'tls' package has been loaded. Provide all 
+		# arguments to the 'tls::socket' command except the ones related to
+		# 't2ws::Start'
+		if {[dict get $Options -certfile]!=""} {
+			if {[catch {package present tls}]} {
+				return -code error "Load package 'tls' to open a secure connection!" }
+			dict set Server $Port [::tls::socket -server [namespace current]::Accept \
+			                          {*}[dict remove $Options -responder -method -uri] $Port]
+		
+		# Open a non-secure socket if no certification file is provided
+		} else {
+			dict set Server $Port [socket -server [namespace current]::Accept $Port]
+		}
 
 		# Define the default responder command, and if defined the custom command
-		DefineRoute $Port t2ws::DefaultResponderCommand "*" "*"
-		if {$ResponderCommand!=""} {
-			DefineRoute $Port $ResponderCommand $Method $URI }
+		DefineRoute $Port t2ws::DefaultResponderCommand -method "*" -uri "*"
+		if {[dict get $Options -responder]!=""} {
+			DefineRoute $Port [dict get $Options -responder] -method [dict get $Options -method] -uri [dict get $Options -uri] }
 
 		return $Port
 	}
@@ -160,38 +214,43 @@
 	# Parameters:
 	#    <Port> - HTTP port
 	#    <Responder> - Responder command
-	#    [Method] - HTTP request method glob matching pattern, default="*"
-	#    [URI] - HTTP request URI glob matching pattern, default="*"
+	#    [-method <Method>] - HTTP request method glob matching pattern. Ignored 
+	#              if option -responder isn't defined. Set to "*" if not defined
+	#    [-uri <URI>] - HTTP request URI glob matching pattern. Ignored if 
+	#              option -responder isn't defined. Set to "*" if not defined
 	#
 	# Returns:
 	#    -
 	#    
 	# Examples:
-	#    > t2ws::DefineRoute $MyServ ::Responder_GetApi GET api/*
+	#    > t2ws::DefineRoute $MyServ ::Responder_GetApi -method GET -uri /api/*
 	# 
 	# See also:
 	#    <t2ws::Start>
 	##########################
 
-	proc t2ws::DefineRoute {Port ResponderCommand {Method "*"} {URI "*"}} {
+	proc t2ws::DefineRoute {Port ResponderCommand args} {
 		variable Server
 		variable Responder
+		
+		# Argument handling and checks
 		if {![dict exists $Server $Port]} {
 			error "No server for port $Port defined" }
-		
-		# Evaluate the position of the variable URL begin (the location of the 
+		set Options [dict create -method "*" -uri "*" {*}$args]
+
+		# Evaluate the position of the variable URI begin (the location of the 
 		# first place holder * or ?. Ignore place holders preceded by a backslash.
-		if {[regexp {^[*?]} $URI]} { # * or ? on the line begin
+		if {[regexp {^[*?]} [dict get $Options -uri]]} { # * or ? on the line begin
 			set URITailPos 0
-		} elseif {[regexp {[^\\][*?]} $URI]} { # First * or ? location without preceding bs
-			set URITailPos [lindex [regexp -inline -indices {[^\\][*?]} $URI] 0 1]
+		} elseif {[regexp {[^\\][*?]} [dict get $Options -uri]]} { # First * or ? location without preceding bs
+			set URITailPos [lindex [regexp -inline -indices {[^\\][*?]} [dict get $Options -uri]] 0 1]
 		} else {
-			set URITailPos [string length $URI]; # No place holder -> the URL has no variable part
+			set URITailPos [string length [dict get $Options -uri]]; # No place holder -> the URI has no variable part
 		}
 
 		# Add the new responder command to the list of the related port, and sort 
 		# it afterwards.
-		dict lappend Responder $Port [list [string toupper $Method] $URI $URITailPos $ResponderCommand]
+		dict lappend Responder $Port [list [string toupper [dict get $Options -method]] [dict get $Options -uri] $URITailPos $ResponderCommand]
 		dict set Responder $Port [lsort -unique -command ResponderCompare -decreasing [dict get $Responder $Port]]
 	}
 	
@@ -234,10 +293,10 @@
 # command definition order is therefore irrelevant.
 # The following line contain some responder command definition examples :
 #
-#    > set MyServ [t2ws::Start $Port ::Responder_General * *]
-#    > t2ws::DefineRoute $MyServ ::Responder_GetApi GET /api/*
-#    > t2ws::DefineRoute $MyServ ::Responder_GetApiPriv GET /api/privat/*
-#    > t2ws::DefineRoute $MyServ ::Responder_GetFile GET /file/*
+#    > set MyServ [t2ws::Start $Port ::Responder_General -method * -uri *]
+#    > t2ws::DefineRoute $MyServ ::Responder_GetApi -method GET -uri /api/*
+#    > t2ws::DefineRoute $MyServ ::Responder_GetApiPriv -method GET -uri /api/privat/*
+#    > t2ws::DefineRoute $MyServ ::Responder_GetFile -method GET -uri /file/*
 #
 # Topic: Request data dictionary
 #
@@ -434,7 +493,7 @@
 	##########################
 	
 	proc t2ws::ClearResponse {} {
-		variable Response [dict create Header [dict create] Body "" Status OK]
+		variable Response [dict create Header [dict create Connection "close"] Body "" Status OK]
 		return
 	}
 
@@ -924,7 +983,7 @@
 		# Initial response dictionary data. The different fields are overwritten 
 		# by the responder command data
 		variable Response
-		ClearResponse; # Header={}; Body=""; Status=OK
+		ClearResponse; # Header={Connection="close"}; Body=""; Status=OK
 
 		# HTTP request parser setup
 		set State Connecting; # HTTP request section
@@ -957,6 +1016,7 @@
 		# no data has been transferred. Close in this situation the socket without
 		# returning a response.
 		if {$State=="Connecting"} {
+			Log {  No data received -> close socket} info 2
 			catch {close $Socket}
 			return
 		}
@@ -1110,7 +1170,7 @@
 
 		# Close the socket ('connection: close')
 		catch {close $Socket}
-		Log {t2ws: $Socket closed} info 2
+		Log {t2ws: Done, close $Socket} info 2
 	}
 
 
@@ -1290,9 +1350,39 @@
 	}
 
 	
+# Group: Secure connections
+#
+# If the TLS package is loaded secure network sockets can be opened by providing 
+# to the <t2ws::Start> command a certification file and a key file.
+#
+# Key and certification files can be generated with OpenSSL. The following 
+# lines contain a simple example of a key and certification file generation. 
+# The second line that generates the certificate will ask to enter additional
+# parameters via the command line interface :
+#
+# > # Private RSA key pair generation:
+# > openssl genrsa -out key.pem 1024
+# >
+# > # Certificate generation
+# > openssl req -new -x509 -key key.pem -out cert.pem -days 365
+#
+# An extensive documentation about key and certification generation can be 
+# found online on the OpenSSL website <https://www.openssl.org/> and on many 
+# other websites.
+#
+# Secured websites are not accessible via the traditional HTTP protocol, but
+# via the HTTPS protocol, which has to be indicated in the URL provided to 
+# the web browsers (e.g. https://localhost:8085).
+#
+# Note that most web browser will indicate a security problem if the used 
+# certificate is either not signed at all, or signed by its own and not by
+# an official certificate authority. The browsers will ask in these situations 
+# to acknowledge a security exception.
+
+	
 # Specify the t2ws version that is provided by this file:
 
-	package provide t2ws 0.3
+	package provide t2ws 0.4
 
 
 ##################################################

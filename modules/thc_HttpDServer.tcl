@@ -79,7 +79,7 @@ namespace eval thc_HttpDServer {
 	proc Start {Port} {
 		variable Server
 		Stop
-		set Server [t2ws::Start $Port [namespace current]::GetRequestResponseData GET]
+		set Server [t2ws::Start $Port -responder [namespace current]::GetRequestResponseData -method GET]
 		Log "thc Debug server started (port $Port)" 3
 	}
 	

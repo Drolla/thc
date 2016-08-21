@@ -31,7 +31,7 @@ To add a T<sup>2</sup>WS web server to a Tcl application, load the T<sup>2</sup>
     return [dict create Status "404" Body "404 - Unknown command: $Command"]
  }
 
- t2ws::Start 8085 ::MyResponder
+ t2ws::Start 8085 -responder ::MyResponder
 ```
 
 With this responder command example the web server will accept the commands _eval_and _file_ and return an error for other requests :
