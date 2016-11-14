@@ -94,8 +94,7 @@
 	#    <t2ws::DefineRoute>.
 	#
 	#    By default, a non-secure network socket is opened to support conventional 
-	#    HTTP connections. If certification and key files are provided 
-	#    respectively via the '-certfile' and '-keyfile' arguments and if the TLS 
+	#    HTTP connections. If the -tls option has been defined and if the TLS 
 	#    package has been previously loaded, a secure network connections is 
 	#    opened to support secured HTTPS connections. If the TLS package hasn't 
 	#    been previously loaded an error is generated. See also <Secure connections>.
@@ -107,12 +106,10 @@
 	#              if option '-responder' isn't defined. Set to "*" if not defined
 	#    [-uri <URI>] - HTTP request URI glob matching pattern. Ignored if 
 	#              option '-responder' isn't defined. Set to "*" if not defined
-	#
-	# Additional parameters for secured connections only (TLS/HTTPS):
-	#    -certfile <CertFile> - SSL certification file
-	#    -keyfile <KeyFile> - SSL keyfile. Required if option '-certfile' is 
-	#              defined, ignored if it is not defined.
-	#    [<args>] - Additional arguments that are passed to 'tls::socket'.
+	#    [-tls <TlsSocketArguments>] - Argument list provided to the tls::socket 
+	#              command to open a secured connection. At a minimum the TLS 
+	#              arguments -certfile and -keyfile have to be defined. Additional
+	#              TLS arguments can be added.
 	#
 	# Returns:
 	#    HTTP/HTTPS port (used as T2WS server identifier)
@@ -121,11 +118,11 @@
 	#    > # Non-secure connection
 	#    > set MyServ [t2ws::Start $Port -responder ::Responder_GetGeneral -method GET]
 	#    
-	#    > # Secure connection: A password handler is declared with the 
-	#    > # additional argument '-password'
+	#    > # Secure connection: Define -certfile and -keyfile. A password handler  
+	#    > # is declared with the additional argument '-password'
 	#    > package require tls
 	#    > set MyServS [t2ws::Start $PortS -responder ::Responder_GetGeneral -method GET \
-	#    >    -certfile cert.pem -keyfile key.pem -password ::PwService]
+	#    >    -tls {-certfile cert.pem -keyfile key.pem -password ::PwService}]
 	#    > proc PwService {args} {return "MyPassword123"}
 	#    
 	# See also:
@@ -136,8 +133,7 @@
 		variable Server
 		
 		# Argument handling and checks
-		set Options [dict create -responder "" -method "*" -uri "*" -certfile "" -keyfile "" {*}$args]
-		Assert {[dict get $Options -certfile]=="" || [dict get $Options -keyfile]!=""} "Keyfile isn't defined"
+		set Options [dict create -responder "" -method "*" -uri "*" -tls {} {*}$args]
 
 		# Stop an already running server. Start the server
 		Stop $Port
@@ -147,11 +143,11 @@
 		# in this case that the 'tls' package has been loaded. Provide all 
 		# arguments to the 'tls::socket' command except the ones related to
 		# 't2ws::Start'
-		if {[dict get $Options -certfile]!=""} {
+		if {[dict get $Options -tls]!={}} {
 			if {[catch {package present tls}]} {
 				return -code error "Load package 'tls' to open a secure connection!" }
 			dict set Server $Port [::tls::socket -server [namespace current]::Accept \
-			                          {*}[dict remove $Options -responder -method -uri] $Port]
+			                          {*}[dict get $Options -tls] $Port]
 		
 		# Open a non-secure socket if no certification file is provided
 		} else {
@@ -349,6 +345,8 @@
 #     ErrorStatus  - If defined an error has been encountered and this field 
 #                    provides the error status. The 'normal' fields Status and 
 #                    Body are ignored by the T2WS server.
+#     ErrorHeader  - Provides optionally HTTP header attributes for the case 
+#                    ErrorStatus is defined.
 #     ErrorBody    - Provides optionally the HTTP body for the case ErrorStatus 
 #                    is defined.
 #
@@ -510,7 +508,7 @@
 	#    -
 	#    
 	# Examples:
-	#    > t2ws::AddResponse [dict create Header [dict create Set-Cookie "$Cookie; expires=[clock format $Expires];"]]
+	#    > t2ws::AddResponse [dict create Header [dict create Set-Cookie "$Cookie; expires=[t2ws::FormatTime $Expires];"]]
 	# 
 	# See also:
 	#    <t2ws::SetResponse>, <t2ws::UnsetResponse>
@@ -561,6 +559,86 @@
 # The following group of commands allows configuring and customizing T2WS to 
 # application specific needs.
 
+# A generic configuration management procedure is used (ConfigureInt) to set the
+# default configuration values and to handle configuration requests. This same
+# procedure can also be used by plugins to handle their configuration options.
+
+# Specification of the configuration options of the package, their default 
+# values and the validity check.
+
+	namespace eval t2ws {
+		variable ConfigDefinitions [dict create \
+			-protocol {"" {[lsearch -exact {"" "HTTP/1.0" "HTTP/1.1"} $Value]>=0}} \
+			-default_Content-Type {"text/plain" 1} \
+			-zip_threshold {100 {[string is integer -strict $Value] && $Value>=0}} \
+			-log_level {1 {[string is integer -strict $Value] && $Value>=0 && $Value<=3}} \
+		]
+	}
+	
+	##########################
+	# t2ws::ConfigureInt
+	#    Internal configuration procedure. It can be reused to provide 
+	#    configuration capabilities to plugins.
+	#
+	# Parameters:
+	#    [ConfigVarRef] - Configuration dictionary variable reference
+	#    [Definitions] - Configuration definition dictionary
+	#    [args] - Arguments provided to the (main) configuration command
+	#
+	# Returns:
+	#    Usual return of a configure command
+	#
+	# Examples:
+	#    > proc MyPlugin::Configure {args} {
+	#    >   variable Config
+	#    >   variable ConfigDefinitions
+	#    >   ConfigureInt Config $ConfigDefinitions {*}$args
+	#    > }
+	#    
+	##########################
+	
+	proc t2ws::ConfigureInt {ConfigVarRef Definitions args} {
+		upvar $ConfigVarRef Config
+		
+		# Set the default values
+		if {$args=="SetDefaults"} {
+			dict for {Key Value} $Definitions {
+				dict set Config $Key [lindex $Value 0]
+			}
+			return
+
+		# No arguments are provided, return the full configuration dictionary
+		} elseif {[llength $args]==0} {
+			return $Config
+		
+		# A single option is provided with no value, return the option value
+		} elseif {[llength $args]==1} {
+			if {[dict exist $Config $args]} {
+				return [dict get $Config $args]
+			} else {
+				error "'$args' is not known configuration attribute. Valid keys are: [dict keys $Config]"
+			}
+
+		# Otherwise, create an error if element and values are not provided in pairs
+		} elseif {[llength $args]%2!=0} {
+			error "Configuration requires key-value pairs. Provided an odd number of arguments to Config!"
+
+		# Apply the definition of all options
+		} else {
+			foreach {Key Value} $args {
+				if {![dict exist $Definitions $Key]} {
+					error "'$Key' is not known configuration attribute. Valid keys are: [dict keys $Definitions]"
+				} elseif {![expr [lindex [dict get $Definitions $Key] 1]]} {
+					error "'$Value' is not a correct value for $Key"
+				} else {
+					dict set Config $Key $Value
+				}
+			}
+			return
+		}
+	}
+
+
 	##########################
 	# Proc: t2ws::Configure
 	#    Set and get T2WS configuration options. This command can be called in 
@@ -577,6 +655,11 @@
 	#       -default_Content-Type - Default content type if it is not explicitly 
 	#                   specified by the responder command or if it cannot be 
 	#                   derived from the file extension
+	#       -zip_threshold - Zip compression threshold. If the size of the body 
+	#                   is larger than this defined threshold a zip compression 
+	#                   is performed if zip capabilities are available. If set 
+	#                   to 0 no compression is performed. If set to 1 compression
+	#                   is always performed. Default is 100.
 	#       -log_level - Log level, 0: no log, 1 (default): T2WS server 
 	#                   start/stop logged, 2: transaction starts are logged, 
 	#                   3: full HTTP transfer is logged.
@@ -599,37 +682,14 @@
 
 	proc t2ws::Configure {args} {
 		variable Config
-		
-		# No arguments are provided, return the full configuration dictionary
-		if {[llength $args]==0} {
-			return $Config
-		
-		# A single option is provided with no value, return the option value
-		} elseif {[llength $args]==1} {
-			if {[dict exist $Config $args]} {
-				return [dict get $Config $args]
-			} else {
-				error "'$args' is not known configuration attribute. Valid keys are: [dict keys $Config]"
-			}
-
-		# Otherwise, create an error if element and values are not provided in pairs
-		} elseif {[llength $args]%2!=0} {
-			error "Configuration requires key-value pairs. Provided an odd number of arguments to Config!"
-
-		# Apply the definition of all options
-		} else {
-			foreach {Key Value} $args {
-				if {[dict exist $Config $Key]} {
-					dict set Config $Key $Value
-				} else {
-					error "'$Key' is not known configuration attribute. Valid keys are: [dict keys $Config]"
-				}
-			}
-			return
-		}
+		variable ConfigDefinitions
+		ConfigureInt Config $ConfigDefinitions {*}$args
 	}
 
+	# Define the default options
+	t2ws::Configure SetDefaults
 
+	
 	##########################
 	# Proc: t2ws::DefineMimeType
 	#    Define a Mime type. This command defines a Mime type for a given file 
@@ -817,12 +877,6 @@
 	# Package variable initializations
 	
 	namespace eval t2ws {
-		# Global package configuration
-		variable Config [dict create]
-			dict set Config -protocol ""; # Forced HTTP protocol (HTTP/1.0, HTTP/1.1)
-			dict set Config -default_Content-Type "text/plain"; # Default content type
-			dict set Config -log_level 1; # 0: No log, 3: maximum log
-			dict set Config -session_duration {1 minute}; # Session duration
 
 		# Server handler dict
 		variable Server [dict create]
@@ -830,8 +884,9 @@
 		# Responder procedure dict
 		variable Responder [dict create]
 		
-		# Plugin list
-		variable Plugins {}
+		# Pre- and post plugin command lists
+		variable PluginCommands [dict create]
+		variable PluginConfig [dict create]
 
 		# Predefined status codes
 		variable StatusCodes [dict create]
@@ -951,9 +1006,10 @@
 	##########################
 	# SocketService
 	#    Communication service routine. This command is called on each HTTP 
-	#    request. It parses the HTTP request data, calls the responder command 
-	#    and eventually defined plugins, formats the response data and sent this 
-	#    data back to the client. The socket will be closed after completing the 
+	#    request. It parses the HTTP request data, calls eventually defined 
+	#    pre-processing plugins, then the responder command, eventually defined 
+	#    post-processing plugins, formats the response data and sent this data 
+	#    back to the client. The socket will be closed after completing the 
 	#    transaction.
 	##########################
 
@@ -1008,6 +1064,7 @@
 					}
 				} else {
 					set State Body
+					break; # Header is completed, read now the body
 				}
 			}
 		}
@@ -1032,26 +1089,70 @@
 		if {[regexp {\mgzip\M} [dict get $RequestHeader accept-encoding]]} {
 			set RequestAcceptGZip 1 }
 
-		# Evaluate the request if no error happened until this point.
+		# Search the responder command if no error happened until this point.
+		variable Responder
 		if {![dict exists $Response ErrorStatus]} {
-			variable Responder
 			# Create the response dictionary
 			set RequestMethod [string toupper $RequestMethod]
 			set RequestURI [UrlDecode $RequestURI]
 
-			# Call the relevant responder command
-			foreach ResponderDef [dict get $Responder $Port] {
-				if {[string match [lindex $ResponderDef 0] $RequestMethod] && 
-				    [string match [lindex $ResponderDef 1] $RequestURI]} {
-					set RequestURITail [string range $RequestURI [lindex $ResponderDef 2] end]; # Neg index are handled as 0
-					set Request [dict create Method $RequestMethod URI $RequestURI \
-					                         URITail $RequestURITail \
-													 Header $RequestHeader Body $RequestBody]
-					Log {Call Responder command: [lindex $ResponderDef 3]} info 2
-					catch {set ResponseD [[lindex $ResponderDef 3] $Request]}
+			# Search the relevant responder command
+			foreach ResponderDefL [dict get $Responder $Port] {
+				if {[string match [lindex $ResponderDefL 0] $RequestMethod] && 
+				    [string match [lindex $ResponderDefL 1] $RequestURI]} {
+					set ResponderDef $ResponderDefL
 					break
 				}
 			}
+
+			# Register a failure if responder command could be found:
+			if {![info exists ResponderDef]} {
+				dict set Response ErrorStatus 500};
+		}
+
+		# Prepare the list of plugins that are active for the provided URL
+		variable PluginCommands
+		variable PluginConfig
+		set ActivePlugins {}; # Plugins active for the current URL
+		dict for {Plugin PluginCmdDef} $PluginCommands {
+			set PluginState Disable; # Each plugin is disabled by default
+			if {[dict exists $PluginConfig $Port $Plugin]} {
+				foreach PlCfg [dict get $PluginConfig $Port $Plugin] {
+					if {[string match [lindex $PlCfg 0] $RequestMethod] && 
+					    [string match [lindex $PlCfg 1] $RequestURI]} {
+						set PluginState [lindex $PlCfg 2]
+					}
+				}
+			}
+			if {$PluginState=="Enable"} {
+				lappend ActivePlugins $Plugin }
+		}
+		Log {Active plugins: $ActivePlugins} info 2
+
+		# Prepare the request dict, and call the pre-plugins
+		if {![dict exists $Response ErrorStatus]} {
+			set RequestURITail [string range $RequestURI [lindex $ResponderDef 2] end]; # Neg index are handled as 0
+			set Request [dict create Method $RequestMethod URI $RequestURI \
+			                         URITail $RequestURITail \
+											 Header $RequestHeader Body $RequestBody]
+
+			# Execute the registered pre plugin commands, add the returned responses 
+			# to the response dictionary
+			foreach Plugin $ActivePlugins {
+				foreach PlCommand [dict get $PluginCommands $Plugin] {
+					if {[lindex $PlCommand 0]=="Pre"} {
+						Log {Call Plugin: [lindex $PlCommand 1]} info 2
+						if {[catch {[lindex $PlCommand 1]}]} {
+							dict set Response ErrorStatus 500; # There was a failure }
+					}
+				}
+			}
+		}
+
+		# Call the responder command
+		if {![dict exists $Response ErrorStatus]} {
+			Log {Call Responder command: [lindex $ResponderDef 3]} info 2
+			catch {set ResponseD [[lindex $ResponderDef 3] $Request]}
 
 			# Process the response (there was a failure if 'ResponseD' doesn't exist)
 			if {[info exists ResponseD]} {
@@ -1091,25 +1192,31 @@
 				fconfigure $f -translation binary
 				dict set Response Body [read $f]
 				close $f
+				dict set Response Header Last-Modified [FormatTime [file mtime $FilePath]]
 			}
 		}
 
-		# Execute the registered plugin commands, add the returned responses to 
-		# the response dictionary
-		variable Plugins
-		foreach Plugin $Plugins {
-			if {[catch {$Plugin $Request}]} {
-				dict set Response ErrorStatus 500; # There was a failure
+		# Execute the registered post plugin commands, add the returned responses 
+		# to the response dictionary
+		foreach Plugin $ActivePlugins {
+			foreach PlCommand [dict get $PluginCommands $Plugin] {
+				if {[lindex $PlCommand 0]=="Post"} {
+					Log {Call Plugin: [lindex $PlCommand 1]} info 2
+					if {[catch {[lindex $PlCommand 1]}]} {
+						dict set Response ErrorStatus 500; # There was a failure }
+				}
 			}
 		}
 
-		# If an error happened, define the HTTP response status and body
+
+		# If an error happened, define the HTTP response status, body and header
 		if {[dict exists $Response ErrorStatus]} {
-			if {[dict exists $Response ErrorBody]} {
-				SetResponse [dict create Status [dict get $Response ErrorStatus] \
-				                         Body [dict get $Response ErrorBody]]
-			} else {
-				SetResponse [dict create Status [dict get $Response ErrorStatus] Body ""] }
+			set FullResponse $Response
+			SetResponse [dict create Status [dict get $FullResponse ErrorStatus]]
+			if {[dict exists $FullResponse ErrorBody]} {
+				AddResponse [dict create Body [dict get $FullResponse ErrorBody]] }
+			if {[dict exists $FullResponse ErrorHeader]} {
+				AddResponse [dict create Header [dict get $FullResponse ErrorHeader]] }
 
 		# If no error happened, set some auxiliary header fields
 		} else {
@@ -1133,7 +1240,9 @@
 
 		# Compress the data if this is accepted by the client, supported by Tcl, 
 		# and if the response is sufficient long (>100)
-		if {$RequestAcceptGZip && $::tcl_version>=8.6 && [string length [dict get $Response Body]]>100} {
+		if {$RequestAcceptGZip && $::tcl_version>=8.6 && 
+		    [dict get $Config -zip_threshold]>0 &&
+			 [string length [dict get $Response Body]]>[dict get $Config -zip_threshold]} {
 			if {$FilePath!=""} {
 				dict set Response Body [zlib gzip [dict get $Response Body] \
 									              -header [dict create filename [file tail $FilePath]]]
@@ -1284,18 +1393,183 @@
 		return $Text
 	}
 
+
+# Group: Miscellaneous commands
+#
+# The following set of commands can be used by the responder commands and 
+# plugins. 
+
+	##########################
+	# Proc: t2ws::FormatTime
+	#    Formats a date/time value in the HTTP standard format (RFC 822).
+	#
+	# Parameters:
+	#    <TimeValue> - Time represented as an integer number of seconds (since 
+	#                  Jan 01, 1970). This is the standard time representation 
+	#                  used by Tcl.
+	#
+	# Returns:
+	#    HTTP time/date formated string
+	#
+	# Examples:
+	#    > set Date [t2ws::FormatTime [clock seconds]]
+	#    > t2ws::AddResponse [dict create Header [dict create Server "T2WS" Date $Date]]
+	##########################
+
+	proc t2ws::FormatTime {TimeValue} {
+		return [clock format $TimeValue -format {%a, %d %b %Y %T %Z}]
+	}
+
 	
-# Group: Plugin/Extension API
+# Group: Using plugins
 #
-# The T2WS server functionality can be extended via plugins. A plugin provides 
-# a command that is registered with <t2ws::DefinePlugin>. Once registered this 
-# plugin command is called by the T2WS server after each execution of the 
-# responder command.
+# The T2WS HTTP server functionality can be extended via plugins that are usually
+# provided in form of packages. An application has to load a plugin first (via
+# 'package require') and has to enable it then (via <t2ws::EnablePlugin>). Plugins 
+# have to be enabled individually for each port opened by T2WS servers.
+# 
+#    > package require t2ws
+#    > t2ws::Start $Port -responder ::My_Responder
+#    > package require t2ws::bauth
+#    > t2ws::EnablePlugin $Port t2ws::bauth
 #
-# The HTTP request dictionary is provided as argument to the plugins. Reading 
-# and manipulating the HTTP response dictionary happens by accessing the 
-# response variable of the enclosing procedure via 'upvar'. Optionally a plugin 
-# command can also modify or complete the current response via the commands 
+# The commands <t2ws::EnablePlugin> and <t2ws::DisablePlugin> together with 
+# their options '-method' and '-uri' allow enabling and disabling plugins for 
+# specific URI sub-paths and for specific HTTP request methods. If a HTTP 
+# request URI matches multiple plugin enable and disable definitions, the more 
+# specific (=longer) definition will be applied. The order of the definitions 
+# is not relevant. In the  following example a plugin is disabled if the URI 
+# sub-path is '/log/*' but not /log/privat/*. In all other cases the plugin is 
+# enabled.
+#
+#    > t2ws::EnablePlugin $Port t2ws::bauth
+#    > t2ws::DisablePlugin $Port t2ws::bauth -method GET -uri /log/*
+#    > t2ws::EnablePlugin $Port t2ws::bauth -method GET -uri /log/privat/*
+
+
+	##########################
+	# t2ws::ConfigurePlugin
+	#    Plugin activity control. Enables or disables a plugin for a specific 
+	#    port, and if specified for a specific request method, and URI. Used by 
+	#    <t2ws::EnablePlugin> and <t2ws::DisablePlugin>.
+	#
+	# Parameters:
+	#    <Port> - HTTP port
+	#    <Plugin> - Plugin name
+	#    <State> - 'Enable' or 'Disable'
+	#    [-method <Method>] - See <t2ws::EnablePlugin> and <t2ws::DisablePlugin>
+	#    [-uri <URI>] - See <t2ws::EnablePlugin> and <t2ws::DisablePlugin>
+	#
+	# Returns:
+	#    -
+	##########################
+
+	proc t2ws::ConfigurePlugin {Port Plugin State args} {
+		variable Server
+		variable PluginCommands
+		variable PluginConfig
+
+		# Argument handling and checks
+		if {![dict exists $Server $Port]} {
+			error "No server for port $Port defined" }
+		if {![dict exists $PluginCommands $Plugin]} {
+			error "No plugin $Plugin loaded" }
+		set Options [dict create -method "*" -uri "*" {*}$args]
+
+		# Add the new plugin configuration to the list of the related port, and sort 
+		# it afterwards.
+		if {![dict exists $PluginConfig $Port $Plugin]} {
+			dict set PluginConfig $Port $Plugin [dict create]}
+		set PluginList [dict get $PluginConfig $Port $Plugin]
+		lappend PluginList [list [string toupper [dict get $Options -method]] [dict get $Options -uri] [string totitle $State]]
+		dict set PluginConfig $Port $Plugin [lsort -unique -command t2ws::PluginConfigCompare -decreasing $PluginList]
+		return
+	}
+
+	##########################
+	# t2ws::PluginConfigCompare
+	#    Compares 2 plugin configuration definitions and returns 0 if they are 
+	#    equally weighted or -1 or 1 if they have a precedence. The URL definition
+	#    is compared first, and if it is equal the method is compared. This 
+	#    function is used by the plugin configuration command t2ws::ConfigurePlugin.
+	##########################
+	
+	proc t2ws::PluginConfigCompare {r0 r1} {
+		set UrlDiff [expr {[string length [lindex $r1 1]]-[string length [lindex $r0 1]]}]
+		if {$UrlDiff} {
+			return $UrlDiff }
+		set MethodDiff [string compare [lindex $r0 0] [lindex $r1 0]]
+		return $MethodDiff
+	}
+
+	##########################
+	# Proc: t2ws::EnablePlugin
+	#    Enables a plugin. Enables a plugin for a specific port, and if 
+	#    specified for a specific request method, and URI.
+	#
+	# Parameters:
+	#    <Port> - HTTP port
+	#    <Plugin> - Plugin name
+	#    [-method <Method>] - HTTP request method glob matching pattern. 
+	#                         Default: "*"
+	#    [-uri <URI>] - HTTP request URI glob matching pattern. Default: "*"
+	#
+	# Returns:
+	#    -
+	#    
+	# Examples:
+	#    > t2ws::EnablePlugin $Port t2ws::bauth
+	#    > t2ws::EnablePlugin $Port t2ws::bauth -method GET -uri /privat/*
+	# 
+	# See also:
+	#    <t2ws::DisablePlugin>
+	##########################
+
+	proc t2ws::EnablePlugin {Port Plugin args} {
+		ConfigurePlugin $Port $Plugin Enable {*}$args
+	}
+
+	##########################
+	# Proc: t2ws::DisablePlugin
+	#    Disables a plugin. Disables a plugin for a specific port, and if 
+	#    specified for a specific request method, and URI.
+	#
+	# Parameters:
+	#    <Port> - HTTP port
+	#    <Plugin> - Plugin name
+	#    [-method <Method>] - HTTP request method glob matching pattern. 
+	#                         Default: "*"
+	#    [-uri <URI>] - HTTP request URI glob matching pattern. Default: "*"
+	#
+	# Returns:
+	#    -
+	#    
+	# Examples:
+	#    > t2ws::DisablePlugin $Port t2ws::bauth -method GET -uri /public/*
+	# 
+	# See also:
+	#    <t2ws::EnablePlugin>
+	##########################
+
+	proc t2ws::DisablePlugin {Port Plugin args} {
+		ConfigurePlugin $Port $Plugin Disable {*}$args
+	}
+
+
+# Group: Plugin API - Writing plugins
+#
+# A plugin provides procedures to process the HTTP request and response 
+# dictionaries before and/or after they are handled by the responder command.
+# These procedures, called pre- and post-processing commands or simply plugin
+# commands, are registered by the plugins with <t2ws::DefinePlugin>. A plugin
+# can register a single command or multiple commands. It is usually provided
+# in form of a package, but this is not a strict condition; the plugin
+# commands and their registration can also be performed in a Tcl source file
+# that is part of an application.
+#
+# The plugin commands access the HTTP request and response dictionaries by
+# referring them from the calling procedure via 'upvar'. Optionally a plugin
+# command can also modify or complete the current response via the commands
 # <t2ws::AddResponse> and <t2ws::UnsetResponse>.
 #
 # It may be necessary to adapt the plugin command behavior in case the HTTP 
@@ -1304,67 +1578,85 @@
 # are files that are not existing, connection problems, or an error raised by 
 # an responder command.
 #
-# The following example registers a plugin command that adds the header  
-# fields 'Server' and 'Date' to the existing response 
-# (using <t2ws::AddResponse>). If no error happened also the 'ETag' attribute 
-# is added in form of a MD5 checksum of the Body (by directly writing the 
-# referred response dictionary variable).
+# The following example registers a post-processing plugin command that adds 
+# the header fields 'Server' and 'Date' to the existing response (using 
+# <t2ws::AddResponse>). If no error happened also the 'ETag' attribute is added 
+# in form of a MD5 checksum of the Body (by directly writing the referred 
+# response dictionary variable).
 # 
 #    > package require md5
 #    > 
-#    > proc Plugin_DateServerMd5 {Request} {
-#    >    upvar Response Response; # Refer the response dictionary variable
+#    > proc Plugin_DateServerMd5 {} {
+#    >    # Refer the response dictionary variable
+#    >    upvar Response Response
 #    > 
-#    >    # 
-#    >    set Date [clock format [clock seconds] -format "%a, %d %b %Y %T %Z"]
+#    >    # Add always the date attribute to the header
+#    >    set Date [t2ws::FormatTime [clock seconds]]
 #    >    t2ws::AddResponse [dict create Header [dict create Server "T2WS" Date $Date]]
 #    > 
+#    >    # If there was previously an error (by the responder command) do not more
 #    >    if {[dict exists $Response ErrorStatus]} return
 #    >    
+#    >    # Add the ETag attribute to the header (kind of checksum of the body)
 #    >    set ETag [md5::md5 -hex [dict get $Response Body]]
 #    >    dict set Response Header ETag "\"$ETag\""
 #    > }
 #    > 
-#    > t2ws::DefinePlugin Plugin_DateServerMd5
+#    > t2ws::DefinePlugin date_server Post Plugin_DateServerMd5
 
 
 	##########################
 	# Proc: t2ws::DefinePlugin
-	#    Registers a plugin command. Multiple plugin commands can be registered.
+	#    Registers a plugin command either as a pre- or post-processing command.
+	#    Multiple plugin commands can be registered.
 	#
 	# Parameters:
-	#    <Command> - Plugin command
+	#    <Plugin>    - Plugin name
+	#    <PreOrPost> - Needs to be either 'Pre' or 'Post'. Defines if the plugin
+	#                  command is a pre-processing or a post-processing command.
+	#    <Command>   - Plugin command
 	#
 	# Returns:
 	#    -
 	#    
 	# Examples:
-	#    > t2ws::DefinePlugin ::MyT2wsPlugin
+	#    > t2ws::DefinePlugin Pre ::MyT2wsPlugin
 	##########################
 
-	proc t2ws::DefinePlugin {Command} {
-		variable Plugins
+	proc t2ws::DefinePlugin {Plugin PreOrPost Command} {
+		variable PluginCommands
+
+		# Argument handling and checks
+		set PreOrPost [string totitle $PreOrPost]
+		if {$PreOrPost ni {"Pre" "Post"}} {
+			error "PreOrPost parameter has either to be 'Pre' or 'Post'" }
+
 		# Register the  plugin command
-		lappend Plugins $Command
+		if {![dict exists $PluginCommands $Plugin]} {
+			dict set PluginCommands $Plugin [dict create]}
+		set PluginList [dict get $PluginCommands $Plugin]
+		lappend PluginList [list $PreOrPost $Command]
+		dict set PluginCommands $Plugin [lsort -unique $PluginList]
 		return
 	}
 
-	
+
 # Group: Secure connections
 #
 # If the TLS package is loaded secure network sockets can be opened by providing 
-# to the <t2ws::Start> command a certification file and a key file.
+# to the <t2ws::Start> command the -tls option that defines a certification 
+# file and a key file.
 #
 # Key and certification files can be generated with OpenSSL. The following 
 # lines contain a simple example of a key and certification file generation. 
 # The second line that generates the certificate will ask to enter additional
 # parameters via the command line interface :
 #
-# > # Private RSA key pair generation:
-# > openssl genrsa -out key.pem 1024
-# >
-# > # Certificate generation
-# > openssl req -new -x509 -key key.pem -out cert.pem -days 365
+#    > # Private RSA key pair generation:
+#    > openssl genrsa -out key.pem 1024
+#    >
+#    > # Certificate generation
+#    > openssl req -new -x509 -key key.pem -out cert.pem -days 365
 #
 # An extensive documentation about key and certification generation can be 
 # found online on the OpenSSL website <https://www.openssl.org/> and on many 
@@ -1382,7 +1674,7 @@
 	
 # Specify the t2ws version that is provided by this file:
 
-	package provide t2ws 0.4
+	package provide t2ws 0.6
 
 
 ##################################################
