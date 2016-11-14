@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<head>
+	<link rel="stylesheet" href="TclConsole.css">
+	<script src="TclConsole.js"></script>
+</head>
+<body width="100%">
+	<div id="top">
+		<div id="header">
+			<h1>T<sup>2</sup>WS Debug Server</h1>
+		</div>
+		<h3>File Access</h3>
+			<input id="FileName" type="text" name="FileName">
+			<button type="button" onclick="ShowFile()">Show</button> 
+			<button type="button" onclick="DownloadFile()">Download</button> 
+		<h3>Tcl Console</h3>
+	</div>
+
+	<div id="Console">
+		<pre><code id="TclHistory"><br><br><br><br><br><br><br><br><br><br><br><br></code></pre>
+		<textarea id="TclScript" rows="1" onkeydown="if (event.keyCode == 13) { ExecuteTcl(); return false; }"></textarea>
+		<label for="TclScript">Enter above your Tcl code, validate with 'enter'"</label>
+		<pre><br><br><br></pre>
+	</div>
+
+	<div id="footer">
+		<h1>T<sup>2</sup>WS Debug Server</h1>
+	</div>
+</html>

@@ -1,0 +1,89 @@
+body {
+	background: white;
+}
+#top {
+	position: fixed;
+	top: 0;
+   width:100%;
+	background: inherit;
+}
+#header {
+	background-color:black;
+	color:white;
+	text-align:center;
+	padding: 0;
+}
+#header h1, #footer h1 {
+	margin: 0;
+}
+#footer {
+	background-color:black;
+	color:white;
+	clear:both;
+	text-align: center;
+
+   position:fixed;
+   bottom:0px;
+   width:100%;
+}
+
+textarea {
+	background-color: inherit;
+}
+
+pre {
+   white-space: normal;
+   word-wrap: break-word;
+   overflow: auto;
+	tab-size: 3;
+}
+
+#TclHistoryDiv {
+	height: 100%;
+	background-color: #E0E0E0;
+	margin: 0.5em;
+	padding: 0.5em;
+}
+
+#TctScriptDiv {
+	//position:fixed;
+   //bottom:0px;
+   width:100%;
+	background-color: #E0E0E0;
+	margin: 0.5em;
+	padding: 0.5em;
+}
+
+#TclHistory {
+//	background-color: gray;
+}
+
+#TclScript {
+	width: 100%;
+}
+
+.tclscript {
+	color: black;
+	font-weight: bold;
+}
+
+.tclscript:hover {
+	background-color: #E0E0E0;
+}
+
+.tclresult {
+	color: green;
+}
+
+.tclerror {
+	color: red;
+	font-weight: bold;
+}
+
+.tclstdout {
+	color: blue;
+}
+
+.tclstderr {
+	color: red;
+}
