@@ -1,9 +1,9 @@
 ##########################################################################
 # T2WS - Tiny Tcl Web Server
 ##########################################################################
-# t2ws.tcl - Tiny HTTP Server main file
+# t2ws_template.tcl - Templating engine plugin for T2WS
 # 
-# This file implements a tiny HTTP server.
+# This file implements a templating engine for the T2WS web server
 #
 # Copyright (C) 2016 Andreas Drollinger
 ##########################################################################
@@ -12,19 +12,16 @@
 ##########################################################################
 
 
-	package require Tcl 8.5
-	package require t2ws
-
-
 # Title: T2WS Template - Template engine for T2WS
 #
 # Group: Introduction
 # This plugin extends the T2WS server with a template engine that process 
 # template files or raw response data to generate the desired output file 
-# (usually a HTML page). The plugin is loaded by executing the following 
-# command :
+# (usually a HTML page). The plugin is loaded and enabled by executing the 
+# following commands :
 #
-#    > package require t2ws_template
+#    > package require t2ws::template
+#    > t2ws::EnablePlugin $Port t2ws::template
 #
 # Once loaded the responder command can add the following response dictionary 
 # field to trigger the T2WS server to post-process the response data by 
@@ -89,10 +86,17 @@
 #    > </body></html>
 
 
+# Package requirements, configurations and variables
+
+	package require Tcl 8.5
+	package require t2ws
+	namespace eval t2ws::template {}
+
 # Register a T2WS plugin that handles invokes the template engine if a response 
 # defines the IsTemplate field as true (e.g. 1).
 
-	proc t2ws::Plugin_Template {Request} {
+	proc t2ws::template::PostPluginCmd {} {
+		upvar Request Request
 		upvar Response Response
 
 		# Don't run the template engine if an error happened
@@ -105,24 +109,24 @@
 		set Script [GetTemplateScript [dict get $Response Body] TemplateEvalResult]
 		eval $Script
 		
-		# Return the processed data
+		# Save the processed data in the response body
 		dict set Response Body $TemplateEvalResult
 	}
 	
 	# Register the plugin
-	t2ws::DefinePlugin t2ws::Plugin_Template
+	t2ws::DefinePlugin t2ws::template Post t2ws::template::PostPluginCmd
 
 
 # Group: Template commands
 # This plugin provides additional template commands that allow evaluating 
-# templates in a more explicit manner. <t2ws::GetTemplateScript> translates a 
+# templates in a more explicit manner. <t2ws::template::GetTemplateScript> translates a 
 # template into a script that can then be evaluated in a custom procedure. And 
-# <t2ws::ProcessTemplate> and <t2ws::ProcessTemplateFile> evaluate respectively 
+# <t2ws::template::ProcessTemplate> and <t2ws::template::ProcessTemplateFile> evaluate respectively 
 # template raw data and template files. Note that templates evaluated by these 
 # commands cannot access the 'Request' and 'Response' dictionary variables! 
 
 	##########################
-	# Proc: t2ws::GetTemplateScript
+	# Proc: t2ws::template::GetTemplateScript
 	#    This command translates a template into a script that will generate the 
 	#    processed template file if it is executed.
 	#
@@ -150,12 +154,12 @@
 	#    > }
 	#    
 	# See also:
-	#    <t2ws::ProcessTemplateFile>
+	#    <t2ws::template::ProcessTemplateFile>
 	##########################
 
 	# Inspired by: http://wiki.tcl.tk/18455
 	
-	proc t2ws::GetTemplateScript {Template {EvalVar ::t2ws::TemplateScript}} {
+	proc t2ws::template::GetTemplateScript {Template {EvalVar ::t2ws::template::TemplateScript}} {
 		set Script "set $EvalVar \"\"\n"
 		foreach Line [split $Template "\n"] {
 			if {[string index $Line 0]=="%"} {
@@ -169,7 +173,7 @@
 
 	
 	##########################
-	# Proc: t2ws::ProcessTemplate
+	# Proc: t2ws::template::ProcessTemplate
 	#    This command processes a template provided in form of text and returns 
 	#    the generated data.
 	#
@@ -196,10 +200,10 @@
 	#    > }
 	#    
 	# See also:
-	#    <t2ws::ProcessTemplateFile>
+	#    <t2ws::template::ProcessTemplateFile>
 	##########################
 
-	proc t2ws::ProcessTemplate {Template {EvalVar ::t2ws::TemplateScript}} {
+	proc t2ws::template::ProcessTemplate {Template {EvalVar ::t2ws::template::TemplateScript}} {
 		uplevel #0 [GetTemplateScript $Template $EvalVar]
 		set ProcessTemplate [set $EvalVar]
 		unset $EvalVar
@@ -208,7 +212,7 @@
 
 
 	##########################
-	# Proc: t2ws::ProcessTemplateFile
+	# Proc: t2ws::template::ProcessTemplateFile
 	#    This command processes a template provided in form of a file and 
 	#    returns the generated data.
 	#
@@ -223,17 +227,17 @@
 	#    >    set File [dict get $Request URITail]
 	#    >    switch [file extension $File] {
 	#    >       .htmt {
-	#    >          return [dict create Body [t2ws::ProcessTemplateFile $File] Content-Type .html]}
+	#    >          return [dict create Body [t2ws::template::ProcessTemplateFile $File] Content-Type .html]}
 	#    >       default {
 	#    >          return [dict create File $File]}
 	#    >    }
 	#    > }
 	#    
 	# See also:
-	#    <t2ws::ProcessTemplate>
+	#    <t2ws::template::ProcessTemplate>
 	##########################
 
-	proc t2ws::ProcessTemplateFile {TemplateFile} {
+	proc t2ws::template::ProcessTemplateFile {TemplateFile} {
 		set f [open $TemplateFile]
 		set Template [read $f]
 		close $f
@@ -244,7 +248,7 @@
 
 # Specify the t2ws version that is provided by this file:
 
-	package provide t2ws_template 0.2
+	package provide t2ws::template 0.4
 
 
 ##################################################
