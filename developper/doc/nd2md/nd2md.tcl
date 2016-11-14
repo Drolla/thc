@@ -300,8 +300,9 @@ LoadConfigAndIndex
 #    [-d <Destination Directory>]
 #    [-o <OutputMdFile>]
 #    [-f <InputFormat>]
-#    [-x]                          - Generate new index MD file
-#    [-n]                          - Don't create reference indexes for the file content
+#    [-x] - Generate new index MD file
+#    [-n] - Don't create reference indexes for the file content
+#    [-config <Config>=<Value>] - Overrides configuration deined by _nd2md.settings file
 #    NdFile1 [NdFile2, ...]
 set GenIndex 0
 set DestDir $nd2md_DestDir
@@ -316,6 +317,10 @@ for {set a 0} {$a<[llength $argv]} {incr a} {
 		-f {set Format [lindex $argv [incr a]]}
 		-x {set GenIndex 1}
 		-n {set CreateReferenceIndexes 0}
+		-config {
+			regexp {^(.*)=(.*)$} [lindex $argv [incr a]] {} CfgName CfgValue
+			set nd2md_config($CfgName) $CfgValue
+		}
 		default {lappend NdFileList [lindex $argv $a]}
 	}
 }
