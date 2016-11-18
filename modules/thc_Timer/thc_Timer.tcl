@@ -68,9 +68,11 @@ namespace eval thc_Timer {
 		set JobTag "timer$TimerCount"
 		
 		# Define the timer job
+		set JobCmd "thc_Timer::StateControl $Device $Command"
+		if {$Repeat==""} { # Delete the job after its execution if no repeat is defined
+			append JobCmd "\nDefineRecoveryCommand thc_Timer,$JobTag"}
 		if {[catch {
-			::DefineJob -tag $JobTag -time $Time -repeat $Repeat -description $Description \
-				[list thc_Timer::StateControl $Device $Command]
+			::DefineJob -tag $JobTag -time $Time -repeat $Repeat -description $Description $JobCmd
 		} Err]} {
 			regsub {DefineJob} $Err {thc_Timer::Define} Err
 			return -code error $Err
