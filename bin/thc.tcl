@@ -907,6 +907,8 @@ exec tclsh "$0" ${1+"$@"}
 				set NextTime [clock add [lindex $Job 0] {*}$Repeat]
 				lappend JobList [list $NextTime {*}[lrange $Job 1 end]]
 				incr Resort
+			} else {
+				rename Job($Tag) {}; # Delete the Job command if not used anymore (if no repeat)
 			}
 		}
 
