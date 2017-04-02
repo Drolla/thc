@@ -34,9 +34,11 @@ exec tclsh "$0" ${1+"$@"}
 #  > RrdManip.tcl remove <RrdDatabaseFile> <Device1> <Device2> ...
 #
 #  > RrdManip.tcl modif <RrdDatabaseFile> <Device> <Expression>
+#  >                    [-from <FromTime>] [-to <ToTime>]
 #  > (the expression has to refer the original value with '$Value')
 #
 #  > RrdManip.tcl range <RrdDatabaseFile> <Device> <LowLimit> <HighLimit>
+#  >                    [-from <FromTime>] [-to <ToTime>]
 #
 # Description:
 # 
@@ -45,6 +47,10 @@ exec tclsh "$0" ${1+"$@"}
 # names are converted into RRD conform names (e.g. device names truncated to 19 
 # characters, ',' replaced by '_').
 #
+# If the _-from_ and/or _-to_ option is provided the device value modification 
+# is performed only in a certain time range. The _FromTime_ and _ToTime_ 
+# arguments have to correspond to valid Tcl time expressions.
+# 
 # Examples:
 #   > chmod 777 /opt/thc/modules/thc_Rrd/RrdManip.tcl
 #   >
@@ -52,24 +58,42 @@ exec tclsh "$0" ${1+"$@"}
 #   > /opt/thc/modules/thc_Rrd/RrdManip.tcl add    /var/thc/thc.rrd Light,Living Light,Cellar
 #   > /opt/thc/modules/thc_Rrd/RrdManip.tcl rename /var/thc/thc.rrd Light,Cellar Light,Basement
 #   > /opt/thc/modules/thc_Rrd/RrdManip.tcl remove /var/thc/thc.rrd Light,Living Light,Basement
-#   > /opt/thc/modules/thc_Rrd/RrdManip.tcl modif  /var/thc/thc.rrd Temp,Living '$Value+0.3'
-#   > /opt/thc/modules/thc_Rrd/RrdManip.tcl range  /var/thc/thc.rrd Temp,Living 10 35
+#   > /opt/thc/modules/thc_Rrd/RrdManip.tcl modif  /var/thc/thc.rrd Temp,Living '$Value+0.3' \
+#   >                                              -from {Jun 27 06:01:00 CEST 2016}
+#   > /opt/thc/modules/thc_Rrd/RrdManip.tcl range  /var/thc/thc.rrd Temp,Living 10 35 \
+#   >                                              -from {2016-06-27 06:01:00 CEST} \
+#   >                                              -to {2016-06-27 07:00:00 CEST}
 
 
 ######## Help ########
 
 	proc Help {} {
 		puts ""
-		puts "RrdManip.tcl <Command> <Options>"
+		puts "Syntax:"
+		puts "  RrdManip.tcl <Command> <Options>"
 		puts ""
-		puts "Commands: list add rename remove"
+		puts "  Commands: list add rename remove"
 		puts ""
-		puts "RrdManip.tcl list   <RrdDatabaseFile>"
-		puts "RrdManip.tcl add    <RrdDatabaseFile> <Device1> <Device2> ..."
-		puts "RrdManip.tcl rename <RrdDatabaseFile> <Device1OldName> <Device1NewName> <Device2OldName> <Device2NewName> ..."
-		puts "RrdManip.tcl remove <RrdDatabaseFile> <Device1> <Device2> ..."
-		puts "RrdManip.tcl modif  <RrdDatabaseFile> <Device> <Expression>"
-		puts "RrdManip.tcl range  <RrdDatabaseFile> <Device> <LowLimit> <HighLimit>"
+		puts "  RrdManip.tcl list   <RrdDatabaseFile>"
+		puts "  RrdManip.tcl add    <RrdDatabaseFile> <Device1> <Device2> ..."
+		puts "  RrdManip.tcl rename <RrdDatabaseFile> <Device1OldName> <Device1NewName> <Device2OldName> <Device2NewName> ..."
+		puts "  RrdManip.tcl remove <RrdDatabaseFile> <Device1> <Device2> ..."
+		puts "  RrdManip.tcl modif  <RrdDatabaseFile> <Device> <Expression> \\"
+		puts "                      \[-from <FromTime>\] \[-to <ToTime>\]"
+		puts "                      (the expression has to refer the original value with '\$Value')"
+		puts "  RrdManip.tcl range  <RrdDatabaseFile> <Device> <LowLimit> <HighLimit> \\"
+		puts "                      \[-from <FromTime>\] \[-to <ToTime>\]"
+		puts ""
+		puts "Examples:"
+		puts "  RrdManip.tcl list   /var/thc/thc.rrd"
+		puts "  RrdManip.tcl add    /var/thc/thc.rrd Light,Living Light,Cellar"
+		puts "  RrdManip.tcl rename /var/thc/thc.rrd Light,Cellar Light,Basement"
+		puts "  RrdManip.tcl remove /var/thc/thc.rrd Light,Living Light,Basement"
+		puts "  RrdManip.tcl modif  /var/thc/thc.rrd Temp,Living '\$Value+0.3' \\"
+		puts "                      -from {Jun 27 06:01:00 CEST 2016}"
+		puts "  RrdManip.tcl range  /var/thc/thc.rrd Temp,Living 10 35 \\"
+		puts "                      -from {2016-06-27 06:01:00 CEST} \\"
+		puts "                      -to {2016-06-27 07:00:00 CEST}"
 		puts ""
 		exit
 	}
@@ -92,8 +116,8 @@ exec tclsh "$0" ${1+"$@"}
 		add     {puts [thc_Rrd::RrdAddDevices $RrdFile [lrange $argv 2 end]]}
 		rename  {puts [thc_Rrd::RrdRenameDevices $RrdFile [lrange $argv 2 end]]}
 		remove  {puts [thc_Rrd::RrdRemoveDevices $RrdFile [lrange $argv 2 end]]}
-		modif   {puts [thc_Rrd::RrdModifyDeviceValues $RrdFile {*}[lrange $argv 2 3]]}
-		range   {puts [thc_Rrd::RrdCheckDeviceValueRange $RrdFile {*}[lrange $argv 2 4]]}
+		modif   {puts [thc_Rrd::RrdModifyDeviceValues $RrdFile {*}[lrange $argv 2 end]]}
+		range   {puts [thc_Rrd::RrdCheckDeviceValueRange $RrdFile {*}[lrange $argv 2 end]]}
 		default {Help}
 	}
 	}

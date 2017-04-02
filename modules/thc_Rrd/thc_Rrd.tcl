@@ -459,6 +459,8 @@ namespace eval thc_Rrd {
 	#                 invalidate a value set it to an empty string ("") and not
 	#                 to "NaN"
 	#                 Expression examples: $Value*1.23, ($Value<0?"":$Value)
+	#    [-from <FromTime>] - Start time, has to be a valid Tcl time expression
+	#    [-to <ToTime>] - End time, has to be a valid Tcl time expression
 	#
 	# Returns:
 	#    -
@@ -467,14 +469,29 @@ namespace eval thc_Rrd {
 	#    thc_Rrd::RrdModifyDeviceValues thc.rrd "Living,temperature" {$Value+1.3}
 	##########################
 
-	proc RrdModifyDeviceValues {RrdFile Device Expression} {
+	proc RrdModifyDeviceValues {RrdFile Device Expression args} {
 		variable Step
 		
 		# Check the expression
 		set Value 123
 		if {[catch {expr $Expression}]} {
 			error "Expression '$Expression' cannot be evaluated. Correct examples: '\$Value*1.23', '{\$Value<0.0?\"NaN\":\$Value}'" }
-	
+
+		# FromTime/ToTime option handling
+		array set Options {-from "" -to ""}
+		foreach {ArgName ArgValue} $args {
+			if {[catch {
+				switch -- $ArgName {
+					-from {set Options(-from) [clock scan $ArgValue]}
+					-to {set Options(-to) [clock scan $ArgValue]}
+				}
+			}]} {
+				error "Option '$ArgName' unknown or incorrectly defined."
+			}
+		}
+		set FromTime $Options(-from)
+		set ToTime $Options(-to)
+			
 		# Dump the current database
 		if {[catch {set Data [exec rrdtool dump $RrdFile]}]} {
 			error "Current Rrd database '$RrdFile' cannot be dumped." }
@@ -490,12 +507,17 @@ namespace eval thc_Rrd {
 			error "Device $Device is not part of the Rrd database" }
 		
 		# Create the regex pattern to modify all values of the relevant device
-		set RegExpPattern "<row>[string repeat {<v>.*?</v>} $DeviceIndex]<v>(.*?)</v>[string repeat {<v>.*?</v>} [expr $NbrRrdDevices-$DeviceIndex-1]]</row>"
+		set RegExpPattern "/\\s*(\\d+)\\s*-->\\s*<row>[string repeat {<v>.*?</v>} $DeviceIndex]<v>(.*?)</v>[string repeat {<v>.*?</v>} [expr $NbrRrdDevices-$DeviceIndex-1]]</row>"
 
 		# Change all values of the device. Start at the end to avoid a conflict with the location indexes
 		set LastIndex 0
 		set NewData ""
-		foreach {RowIndex ValueIndex} [regexp -line -all -inline -indices $RegExpPattern $Data] {
+		foreach {RowIndex TimeIndex ValueIndex} [regexp -line -all -inline -indices $RegExpPattern $Data] {
+			# Don't update the value if the time is not in a defined time span
+			set Time [string range $Data {*}$TimeIndex]
+			if {$FromTime!="" && $Time<$FromTime} continue
+			if {$ToTime!="" && $Time>$ToTime} continue
+			
 			append NewData [string range $Data $LastIndex [lindex $ValueIndex 0]-1]
 			set Value [string range $Data {*}$ValueIndex]
 			# Change the value, in case of an error change the value into 'NaN'
@@ -533,6 +555,8 @@ namespace eval thc_Rrd {
 	#    Device    - Device for which the values have to be changed
 	#    LowLimit  - Lower limit of the valid value range
 	#    HighLimit - Higher limit of the valid value range
+	#    [-from <FromTime>] - Start time, has to be a valid Tcl time expression
+	#    [-to <ToTime>] - End time, has to be a valid Tcl time expression
 	#
 	# Returns:
 	#    -
@@ -541,9 +565,9 @@ namespace eval thc_Rrd {
 	#    thc_Rrd::RrdCheckDeviceValueRange thc.rrd "Living,temperature" -5 40
 	##########################
 
-	proc RrdCheckDeviceValueRange {RrdFile Device LowLimit HighLimit} {
+	proc RrdCheckDeviceValueRange {RrdFile Device LowLimit HighLimit args} {
 		thc_Rrd::RrdModifyDeviceValues $RrdFile $Device \
-			"(\$Value<$LowLimit || \$Value>$HighLimit ? \"\" : \$Value)"
+			"(\$Value<$LowLimit || \$Value>$HighLimit ? \"\" : \$Value)" {*}$args
 	}
 
 	
