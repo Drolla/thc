@@ -158,13 +158,21 @@
 		set Zone 1
 
 		# Define the lights that should be randomly controlled in surveillance mode
-		Define LightLiv,state         -time {7.2 $SunriseT-0.3 $SunsetT+0.0 21.5} -min_intervall 0.30 -probability_on 0.2
-		Define LightRoomParent,state  -time {6.7 $SunriseT-0.0 $SunsetT+0.2 23.0} -min_intervall 0.30 -probability_on 0.7 -default 1
-		Define LightCorridor,state    -time {7.0 $SunriseT-0.2 $SunsetT+0.3 22.0} -min_intervall 0.30 -probability_on 0.4
-		Define LightCorridor1st,state -time {6.5 $SunriseT-0.1 $SunsetT+0.4 22.5} -min_intervall 0.30 -probability_on 0.8
-		Define Light2nd,state         -time {6.4 $SunriseT-0.1 $SunsetT+0.2 22.1} -min_intervall 0.30 -probability_on 0.4
-		#Define LightCellar,state        -time {7.2 $SunriseT-0.3 $SunsetT+0.0 21.5} -min_intervall 0.30 -probability_on 0.0
+		Define LightLiv,state         -time {7.2 $SunriseT-0.3 $SunsetT+0.0 21.5} -min_interval 0.30 -probability_on 0.2
+		Define LightRoomParent,state  -time {6.7 $SunriseT-0.0 $SunsetT+0.2 23.0} -min_interval 0.30 -probability_on 0.7 -default 1
+		Define LightCorridor,state    -time {7.0 $SunriseT-0.2 $SunsetT+0.3 22.0} -min_interval 0.30 -probability_on 0.4
+		Define LightCorridor1st,state -time {6.5 $SunriseT-0.1 $SunsetT+0.4 22.5} -min_interval 0.30 -probability_on 0.8
+		Define Light2nd,state         -time {6.4 $SunriseT-0.1 $SunsetT+0.2 22.1} -min_interval 0.30 -probability_on 0.4
+		#Define LightCellar,state        -time {7.2 $SunriseT-0.3 $SunsetT+0.0 21.5} -min_interval 0.30 -probability_on 0.0
 	}
+
+### CsvLog ###
+
+	# Specify the CSV data file
+	set CsvFile "$LogDir/thc.csv"
+
+	# Create/open the CSV file
+	thc_Csv::Open -file $CsvFile -min_interval 300; # 5 minutes interval
 
 ### RRD ###
 
@@ -393,7 +401,7 @@
 
 		# Intrusion detection
 		DefineJob -tag Intrusion -description "Intrusion detection" \
-		          -repeat 0 -min_intervall $AlarmRetriggerT \
+		          -repeat 0 -min_interval $AlarmRetriggerT \
 					 -condition {[GetSensorEvent]} {
 
 		 	# An intrusion has been detected: Enable the sirens, and run new jobs 
@@ -403,7 +411,7 @@
 			Set $SireneDeviceList 1
 			thc_RandomLight::Control 1
 			
-			DefineJob -tag AlrtMail -description "Send alert mail" -min_intervall $AlertMailRetriggerT -time +2s {
+			DefineJob -tag AlrtMail -description "Send alert mail" -min_interval $AlertMailRetriggerT -time +2s {
 				thc_MailAlert::Send \
 					-to abcd@abcd.ch \
 					-from efgh@efgh.ch \

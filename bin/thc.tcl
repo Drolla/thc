@@ -288,7 +288,8 @@ exec tclsh "$0" ${1+"$@"}
 		# - Try to access the get command
 		# - Define the initial states
 		if {[info exist DeviceAttributes($Device,GetCommand)]} {
-			if {[lsearch $UpdateDeviceList $Device]<0} {lappend UpdateDeviceList $Device}
+			if {[lsearch $UpdateDeviceList $Device]<0} {
+				lappend UpdateDeviceList $Device}
 			lappend DeviceUpdate($Update) $Device
 		
 			# Run an eventually defined setup command from the relevant interface 
@@ -489,7 +490,7 @@ exec tclsh "$0" ${1+"$@"}
 # Group: Job handling
 # The following commands allow defining and deleting jobs.
 
-	set JobList {}; # Job: {NextExecTime Tag RepeatIntervall MinIntervall Description Script}
+	set JobList {}; # Job: {NextExecTime Tag RepeatInterval MinInterval Description Script}
 	set PermanentJobList {}; # Job: {Tag Description Script}
 	set JobCount 0; # Job counter
 
@@ -648,7 +649,7 @@ exec tclsh "$0" ${1+"$@"}
 	#            has to be set to 0. By default a job is not repeated.
 	#    [-init_time <Initial time>] - Optional additional initial job 
 	#            execution. Absolute and relative time definitions are accepted.
-	#    [-min_intervall <MinimumIntervall> - Minimal interval. A job will not 
+	#    [-min_interval <MinimumInterval> - Minimal interval. A job will not 
 	#            be executed if the interval from the last execution is smaller 
 	#            than the specified one. By default there is not minimum 
 	#            interval constraint. Absolute time definitions are accepted.
@@ -748,7 +749,7 @@ exec tclsh "$0" ${1+"$@"}
 	#    > 
 	#    > # Intrusion detection
 	#    > DefineJob -tag Intrusion -description "Intrusion detection" \
-	#    >           -repeat 0 -min_intervall $AlarmRetriggerT \
+	#    >           -repeat 0 -min_interval $AlarmRetriggerT \
 	#    >           -condition {$State(Surveillance,state)==1 && [GetSensorEvent]} {
 	#    >   # An intrusion has been detected: Run new jobs to initiate the alarm and to send alert mails/SMS
 	#    > 
@@ -758,7 +759,7 @@ exec tclsh "$0" ${1+"$@"}
 	#    >   }
 	#    > 
 	#    >   # Send alert mails (2 seconds later)
-	#    >   DefineJob -tag AlrtMail -description "Send alert mail" -min_intervall $AlertMailRetriggerT -time +2s {
+	#    >   DefineJob -tag AlrtMail -description "Send alert mail" -min_interval $AlertMailRetriggerT -time +2s {
 	#    >     thc_MailAlert::Send \
 	#    >       -to MyAlertMail@MyHome.home \
 	#    >       -from MySecuritySystem@MyHome.home \
@@ -780,7 +781,7 @@ exec tclsh "$0" ${1+"$@"}
 		# Option definitions
 		Assert {[llength $args]%2==1} "DefineJob, incorrect parameters!"
 		# Set default options
-		array set Options [list -tag "j$::JobCount" -time "+0" -repeat "" -init_time "" -min_intervall "" -condition 1 -description ""]
+		array set Options [list -tag "j$::JobCount" -time "+0" -repeat "" -init_time "" -min_interval "" -condition 1 -description ""]
 		# Override default options with explicitly specified ones
 		foreach {OpName OpValue} [lrange $args 0 end-1] {
 			Assert {[info exists Options($OpName)]} "DefineJob, unknown option: $OpName!"
@@ -792,7 +793,7 @@ exec tclsh "$0" ${1+"$@"}
 			set Options(-repeat_smpl)   [ParseTime $Options(-repeat) "i"]
 			set Options(-time)          [ParseTime $Options(-time) $Options(-repeat_smpl)]
 			set Options(-init_time)     [ParseTime $Options(-init_time) ""]
-			set Options(-min_intervall) [ParseTime $Options(-min_intervall) "i"]
+			set Options(-min_interval) [ParseTime $Options(-min_interval) "i"]
 		} Err]} {
 			error "DefineJob, $Err"
 		}
@@ -812,13 +813,13 @@ exec tclsh "$0" ${1+"$@"}
 		append JobProc "  uplevel \#0 \{\n"; # "
 		if {$Options(-condition)!="" && $Options(-condition)!=1} {
 			append JobProc "    if \{!($Options(-condition))\} return\n" }
-		if {$Options(-min_intervall)!="" && $Options(-min_intervall)!=1} {
+		if {$Options(-min_interval)!="" && $Options(-min_interval)!=1} {
 			if {![info exists ::EarliestNextJobExec($Tag)]} {
 				set ::EarliestNextJobExec($Tag) -1 }
 			append JobProc "    if \{\$Time<\$::EarliestNextJobExec($Tag)\} \{\n"
 			append JobProc "      Log \{Cancel $Tag - $Options(-description)\} 1\n"
 			append JobProc "      return\}\n"
-			append JobProc "    set ::EarliestNextJobExec($Tag) \[clock add \$::Time $Options(-min_intervall)\]\n"
+			append JobProc "    set ::EarliestNextJobExec($Tag) \[clock add \$::Time $Options(-min_interval)\]\n"
 		}
 		append JobProc "    Log \{Exec $Tag - $Options(-description)\} [expr {$IsPermanentJob?0:2}]\n\n"
 		append JobProc [string trim [lindex $args end] "\n"]
@@ -831,9 +832,9 @@ exec tclsh "$0" ${1+"$@"}
 		if {$IsPermanentJob} {
 			lappend ::PermanentJobList [list $Options(-tag) $Options(-description)]
 		} else { # Non permanent job
-			lappend ::JobList [list $Options(-time) $Options(-tag) $Options(-repeat_smpl) $Options(-min_intervall) $Options(-description)]
+			lappend ::JobList [list $Options(-time) $Options(-tag) $Options(-repeat_smpl) $Options(-min_interval) $Options(-description)]
 			if {$Options(-init_time)!=""} {
-				lappend ::JobList [list $Options(-init_time) $Options(-tag) {} $Options(-min_intervall) $Options(-description)]
+				lappend ::JobList [list $Options(-init_time) $Options(-tag) {} $Options(-min_interval) $Options(-description)]
 			}
 			set ::JobList [lsort -integer -index 0 $::JobList]
 		}

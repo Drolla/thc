@@ -31,7 +31,7 @@ namespace eval thc_RandomLight {
 	#           {On1, Off1, On2, Off2} that corresponds to the light enable and
 	#           disable times in the morning and the evening. The time is specified
 	#           in hours and it can be an expressions (e.g. $SunriseT-0.3)
-	#    [-min_intervall <MinIntervall> - Minimum interval time in hours. 
+	#    [-min_interval <MinInterval> - Minimum interval time in hours. 
 	#           Default is 0.5 (=30').
 	#    [-probability_on <ProbabilityOn> - Value between 0 and 1 that specifies 
 	#           the probability that the light is on. Default: 0.5
@@ -43,7 +43,7 @@ namespace eval thc_RandomLight {
 	#    
 	# Examples:
 	#    > Define LightSalon,state -time {7.2 $SunriseT-0.3 $SunsetT+0.0 21.5} \
-	#    >                         -min_intervall 0.30 -probability_on 0.2
+	#    >                         -min_interval 0.30 -probability_on 0.2
 	#    
 	# See also:
 	#    <thc_RandomLight::Control>
@@ -53,12 +53,12 @@ namespace eval thc_RandomLight {
 		variable Settings
 		variable DefaultDevices
 		
-		array set Options {-min_intervall 0.50 -probability_on 0.5 -default 0}
+		array set Options {-min_interval 0.50 -probability_on 0.5 -default 0}
 		array set Options $args
 		Assert [info exists Options(-time)] "thc_RandomLight::Define: The option -time is mandatory!"
 		Assert [info exists ::DeviceAttributes($Device,name)] "thc_RandomLight::Define: Device $Device is not defined - ignore it"
 		
-		set Settings($Device) [list $Options(-time) $Options(-min_intervall) $Options(-probability_on) $Options(-default)]
+		set Settings($Device) [list $Options(-time) $Options(-min_interval) $Options(-probability_on) $Options(-default)]
 		if {$Options(-default)} {
 			lappend DefaultDevices $Device
 		}
@@ -87,7 +87,7 @@ namespace eval thc_RandomLight {
 			EvaluateSunRiseSunSet
 		}
 		
-		set MinIntervallTime [lindex $Settings($Device) 1]
+		set MinIntervalTime [lindex $Settings($Device) 1]
 		set ProbabilityOn [lindex $Settings($Device) 2]
 		set On1  [lindex $Settings($Device) 0 0]
 		set Off1 [lindex $Settings($Device) 0 1]
@@ -108,10 +108,10 @@ namespace eval thc_RandomLight {
 			} elseif {![info exists NextSwitchTime($Device)] || $Time>$NextSwitchTime($Device)} {
 				if {$State($Device)==1} {
 					Set $Device 0
-					set NextSwitchTime($Device) [expr {$Time+(1.0-$ProbabilityOn)*(0.3+1.4*rand())*$MinIntervallTime*3600.0}]
+					set NextSwitchTime($Device) [expr {$Time+(1.0-$ProbabilityOn)*(0.3+1.4*rand())*$MinIntervalTime*3600.0}]
 				} else {
 					Set $Device 1
-					set NextSwitchTime($Device) [expr {$Time+($ProbabilityOn)*(0.3+1.4*rand())*$MinIntervallTime*3600.0}]
+					set NextSwitchTime($Device) [expr {$Time+($ProbabilityOn)*(0.3+1.4*rand())*$MinIntervalTime*3600.0}]
 				}
 			}
 		} elseif {![info exists State($Device)] || $State($Device)!=0} {

@@ -152,7 +152,7 @@ namespace eval thc_Timer {
 		
 		# Loop over all defined jobs
 		foreach Job $::JobList {
-			# Job syntax:         { NextExecTime Tag RepeatIntervall MinIntervall Description Script }
+			# Job syntax:         { NextExecTime Tag RepeatInterval MinInterval Description Script }
 			# Job example:        { {1420533000 100} timer2 3600 {} {Timer 2: Surveillance,state Off @ 2015-01-06 09:30, rep='1h'} {thc_Timer::StateControl Surveillance,state Off} }
 			# Timer task example: { timer2 {Tue Jan 06 09:30:00 CET 2015} Surveillance,state Off 3600 {Timer 2: Surveillance,state Off @ 2015-01-06 09:30, rep='1h'} }
 
