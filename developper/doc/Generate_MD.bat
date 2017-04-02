@@ -34,7 +34,7 @@ tclsh nd2md\nd2md.tcl ../../bin/thc.tcl
 :: Module documentation
 tclsh nd2md\nd2md.tcl ^
    ../../modules/thc_MailAlert.tcl ^
-   ../../modules/thc_HttpDServer.tcl ^
+   ../../modules/thc_HttpDServer/thc_HttpDServer.tcl ^
    ../../modules/thc_MeteoSwiss.tcl ^
    ../../modules/thc_OpenWeatherMap.tcl ^
    ../../modules/thc_RandomLight.tcl ^
@@ -43,7 +43,8 @@ tclsh nd2md\nd2md.tcl ^
    ../../modules/thc_Rrd/RrdManip.tcl ^
    ../../modules/thc_Timer/thc_Timer.tcl ^
    ../../modules/thc_Web/thc_Web.tcl ^
-   ../../modules/thc_zWay/thc_zWay.tcl
+   ../../modules/thc_zWay/thc_zWay.tcl ^
+   ../../modules/thc_Csv.tcl
 
 :: Other documentation
 tclsh nd2md\nd2md.tcl ../../targets/Raspberry/Raspberry-installation.txt
