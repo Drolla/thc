@@ -171,7 +171,8 @@ namespace eval thc_RandomLight {
 	#
 	#   > Longitude - Geographical longitude
 	#   > Latitude - Geographical latitude
-	#   > Zone - Time zone
+	#   > Zone - Time zone in hours (e.g. +2). If set to 'auto' or '' the time 
+	#            zone will be automatically evaluated
 	#
 	# Returns:
 	#    -
@@ -180,7 +181,7 @@ namespace eval thc_RandomLight {
 	#    > namespace eval thc_RandomLight {
 	#    >   set Longitude 6.8250
 	#    >   set Latitude 47.1013
-	#    >   set Zone 2 }
+	#    >   set Zone auto }
 	#    >
 	#    > DefineJob -tag EvalSun -time 01h -repeat 24h -init_time +0 \
 	#    >           -description "Evaluate the sun shine time" {
@@ -205,6 +206,13 @@ namespace eval thc_RandomLight {
 		
 		set B [expr {$Latitude*$RAD}]; # Geographical latitude in radian
 		set T [string trimleft [clock format $Time -format %j] 0]; # Day in the year
+
+		# Set the time zone time shift. Determine it automatically if Zone is set to 'auto' or ''
+		set ZoneShift $Zone
+		if {$ZoneShift=="" || $ZoneShift=="auto"} {
+			set ZoneShift [clock format [clock seconds] -format %z];           # e.g. +0200, -1200
+			set ZoneShift [regsub {^([-+])0{0,1}(\d+)\d\d$} $ZoneShift {\1\2}]; # e.g. 2, -12
+		}
 		
 		# Sun declination in radian
 		# Formula 2008 by Arnold(at)Barmettler.com, fit to 20 years of average declinations (2008-2017)
@@ -219,11 +227,11 @@ namespace eval thc_RandomLight {
 		
 		# Sunrise and sunset calculations
 		set SunRise0 [expr {12 - $TimeDifference - $TimeEquation}]; # Sunrise at 0° Longitude
-		set SunriseT [expr {$SunRise0 - $Longitude /15.0 + $Zone}]; # Sunrise at specified Longitude and time zone in hours
+		set SunriseT [expr {$SunRise0 - $Longitude/15.0 + $ZoneShift}]; # Sunrise at specified Longitude and time zone in hours
 		set SunSet0 [expr {12 + $TimeDifference - $TimeEquation}]; # Sunset at 0° Longitude
-		set SunsetT  [expr {$SunSet0 - $Longitude /15.0 + $Zone}]; # Sunset at specified Longitude and time zone in hours
+		set SunsetT  [expr {$SunSet0 - $Longitude/15.0 + $ZoneShift}]; # Sunset at specified Longitude and time zone in hours
 
-		Log [format "thc_RandomLight - Sunrise:%2ih%2i, sunset:%2ih%2i" [expr int($SunriseT)] [expr int($SunriseT*60)%60] [expr int($SunsetT)] [expr int($SunsetT*60)%60]] 2
+		Log [format "thc_RandomLight - Sunrise:%2ih%2i, sunset:%2ih%2i (zone %d)" [expr int($SunriseT)] [expr int($SunriseT*60)%60] [expr int($SunsetT)] [expr int($SunsetT*60)%60] $ZoneShift] 2
 	}
 
 }; # end namespace thc_RandomLight
