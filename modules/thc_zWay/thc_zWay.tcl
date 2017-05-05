@@ -162,7 +162,7 @@ namespace eval thc_zWay {
 		}
 
 		# Check if authentication is required
-		set zWayRevResponse [GetUrl "$Url/JS/Run/zway.controller.data.softwareRevisionVersion.value" -method POST -noerror 0 {*}$GetUrlArgs]
+		set zWayRevResponse [GetUrl "$Url/JS/Run/zway.controller.data.softwareRevisionVersion.value" -method GET -noerror 0 {*}$GetUrlArgs]
 		if {[lindex $zWayRevResponse 0]>=400 && [lindex $zWayRevResponse 0]<500} { # 4xx error
 			Log {  Unexpected z-Way server response ($zWayRevResponse), try using authentication} 3
 			if {![info exists InitArgs(-user)] || ![info exists InitArgs(-password)]} {
@@ -198,7 +198,7 @@ namespace eval thc_zWay {
 			set GetUrlArgs [list -headers [concat [lindex $GetUrlArgs 1] Cookie [join $Cookies {;}]]]
 			
 			# Try again to read the z-Way revision
-			set zWayRevResponse [GetUrl "$Url/JS/Run/zway.controller.data.softwareRevisionVersion.value" -method POST -noerror 0 {*}$GetUrlArgs]
+			set zWayRevResponse [GetUrl "$Url/JS/Run/zway.controller.data.softwareRevisionVersion.value" -method GET -noerror 0 {*}$GetUrlArgs]
 			if {[lindex $zWayRevResponse 0]!=200} {
 				Log {  Unable to communicate with the z-Way server response ($zWayRevResponse), z-Way interface will be disabled!} 3
 				return
@@ -220,7 +220,7 @@ namespace eval thc_zWay {
 		# The THC extension is loaded with the executeFile command:
 		#    http://<Url>/JS/Run/executeFile("thc_zWay.js");
 		if {![catch {
-			set CheckResResponse [GetUrl "$Url/JS/Run/Get_IndexArray(257.1)" -method POST {*}$GetUrlArgs -noerror 0]; # -> [257,1,0]
+			set CheckResResponse [GetUrl "$Url/JS/Run/Get_IndexArray(257.1)" -method GET {*}$GetUrlArgs -noerror 0]; # -> [257,1,0]
 		}] && [lindex $CheckResResponse 2]=={[257,1,0]}} {
 			Log {  z-Way THC extensions are available} 3
 			set UrlBase $Url
@@ -230,8 +230,8 @@ namespace eval thc_zWay {
 		# The THC extension seems not be loaded. Load it, and check again if
 		# it has been correctly loaded.
 		if {![catch {
-			set StatusResponse [GetUrl "$Url/JS/Run/executeFile(\"thc_zWay.js\");" -method POST {*}$GetUrlArgs -noerror 0]; # -> Null
-			set CheckResResponse [GetUrl "$Url/JS/Run/Get_IndexArray(257.1)" -method POST {*}$GetUrlArgs -noerror 0]; # -> [257,1,0]
+			set StatusResponse [GetUrl "$Url/JS/Run/executeFile(\"thc_zWay.js\");" -method GET {*}$GetUrlArgs -noerror 0]; # -> Null
+			set CheckResResponse [GetUrl "$Url/JS/Run/Get_IndexArray(257.1)" -method GET {*}$GetUrlArgs -noerror 0]; # -> [257,1,0]
 		}] && [lindex $CheckResResponse 2]=={[257,1,0]}} {
 			Log {  Loaded z-Way THC extension} 3
 			set UrlBase $Url
@@ -258,7 +258,7 @@ namespace eval thc_zWay {
 			"TagReader" {
 				# Install the bindings for the alarms
 				Log {thc_zWay::DeviceSetup $DeviceNbr -> Configure TagReader} 1
-				set Response [GetUrl "$UrlBase/JS/Run/Configure_TagReader($DeviceNbr)" -method POST {*}$GetUrlArgs] }
+				set Response [GetUrl "$UrlBase/JS/Run/Configure_TagReader($DeviceNbr)" -method GET {*}$GetUrlArgs] }
 		}
 	}
 
@@ -278,7 +278,7 @@ namespace eval thc_zWay {
 		regsub -all { } $JsonFormatedArgs "\",\"" JsonFormatedArgs; # -> ["SensorBinary","12"],["SensorBinary","5"],["SwitchBinary","7.2"]
 		set JsonFormatedArgs "\[$JsonFormatedArgs\]"; # -> [["SensorBinary","12"],["SensorBinary","5"],["SwitchBinary","7.2"]]
 		
-		set NewStateResponse [GetUrl "$UrlBase/JS/Run/Get($JsonFormatedArgs)" -method POST {*}$GetUrlArgs]; # -> [0,"",1,[1407694169,"unlock"],\"\",17.7]
+		set NewStateResponse [GetUrl "$UrlBase/JS/Run/Get($JsonFormatedArgs)" -method GET {*}$GetUrlArgs]; # -> [0,"",1,[1407694169,"unlock"],\"\",17.7]
 		# Return empty states if the z-Way server response isn't OK (200)
 		if {[lindex $NewStateResponse 0]!=200} {
 			return [lrepeat $NbrDevices ""] }
@@ -311,7 +311,7 @@ namespace eval thc_zWay {
 		regsub -all { } $JsonFormatedArgs "\",\"" JsonFormatedArgs; # -> ["Control","Surveillance"],["SwitchBinary","20.1"]
 		set JsonFormatedArgs "\[$JsonFormatedArgs\]"; # -> [["Control","Surveillance"],["SwitchBinary","20.1"]]
 		
-		set NewStateResponse [GetUrl "$UrlBase/JS/Run/Set($JsonFormatedArgs,$NewState)" -method POST {*}$GetUrlArgs]
+		set NewStateResponse [GetUrl "$UrlBase/JS/Run/Set($JsonFormatedArgs,$NewState)" -method GET {*}$GetUrlArgs]
 		# Return empty states if the z-Way server response isn't OK (200)
 		if {[lindex $NewStateResponse 0]!=200} {
 			return [lrepeat $NbrDevices ""] }
@@ -337,7 +337,7 @@ namespace eval thc_zWay {
 		foreach Element $ElementList {
 			lappend ElementIdList $DeviceId($Element)
 		}
-		GetUrl $UrlBase/JS/Run/Sleep(\[$ElementIdList\]) -method POST {*}$GetUrlArgs
+		GetUrl $UrlBase/JS/Run/Sleep(\[$ElementIdList\]) -method GET {*}$GetUrlArgs
 	}
 
 }; # end namespace thc_zWay
