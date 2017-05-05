@@ -155,7 +155,7 @@
 		# Define the location and time zone (e.g. Chaux-de-Fonds)
 		set Longitude 6.8250
 		set Latitude 47.1013
-		set Zone 1
+		set Zone "auto"
 
 		# Define the lights that should be randomly controlled in surveillance mode
 		Define LightLiv,state         -time {7.2 $SunriseT-0.3 $SunsetT+0.0 21.5} -min_interval 0.30 -probability_on 0.2
