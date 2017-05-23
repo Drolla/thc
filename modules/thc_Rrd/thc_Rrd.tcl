@@ -135,7 +135,7 @@ namespace eval thc_Rrd {
 			set RrdDevice2Device($RrdDevice) $Device
 		}
 		
-		# Check that the file is specified. Create a new Rrd file if not alreay
+		# Check that the file is specified. Create a new Rrd file if not already
 		# existing. Check if the dataset setup in the current file
 		# corresponds to the current set of devices and add new devices if 
 		# necessary.

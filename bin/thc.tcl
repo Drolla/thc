@@ -173,7 +173,7 @@ exec tclsh "$0" ${1+"$@"}
 	#    [-set <SetCommandDefinition>] - 'Set' command specification
 	#    [-update <UpdateInterval>] - Update interval, same syntax as for 
 	#                                 <DefineJob>, default: 0 (continuous update)
-	#    [-sticky 0|1] - Defines sticky behaviour, default: 0
+	#    [-sticky 0|1] - Defines sticky behavior, default: 0
 	#    [-range <Range>]   - Valid range specification. This is a list 
 	#                         of a min and of a max value. Data outside 
 	#                         of the specified range will be set to unknown ("").

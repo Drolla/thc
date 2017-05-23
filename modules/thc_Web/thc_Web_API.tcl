@@ -97,6 +97,7 @@ namespace eval thc_Web::API {
 		global DeviceList DeviceAttributes
 		set DeviceInfoJSON "\{\n"
 		foreach Device $DeviceList {
+			if {$DeviceAttributes($Device,group)==""} continue; # Skip devices with no group
 			append DeviceInfoJSON "\"$Device\":\n  \{"
 			
 			foreach {AttrName} {name type group data} {
