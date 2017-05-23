@@ -61,8 +61,8 @@ exec tclsh "$0" ${1+"$@"}
 #   > /opt/thc/modules/thc_Rrd/RrdManip.tcl modif  /var/thc/thc.rrd Temp,Living '$Value+0.3' \
 #   >                                              -from {Jun 27 06:01:00 CEST 2016}
 #   > /opt/thc/modules/thc_Rrd/RrdManip.tcl range  /var/thc/thc.rrd Temp,Living 10 35 \
-#   >                                              -from {2016-06-27 06:01:00 CEST} \
-#   >                                              -to {2016-06-27 07:00:00 CEST}
+#   >                                              -from "2016-06-27 06:01:00 CEST" \
+#   >                                              -to "2016-06-27 07:00:00 CEST"
 
 
 ######## Help ########
@@ -90,10 +90,10 @@ exec tclsh "$0" ${1+"$@"}
 		puts "  RrdManip.tcl rename /var/thc/thc.rrd Light,Cellar Light,Basement"
 		puts "  RrdManip.tcl remove /var/thc/thc.rrd Light,Living Light,Basement"
 		puts "  RrdManip.tcl modif  /var/thc/thc.rrd Temp,Living '\$Value+0.3' \\"
-		puts "                      -from {Jun 27 06:01:00 CEST 2016}"
+		puts "                      -from \"Jun 27 06:01:00 CEST 2016\""
 		puts "  RrdManip.tcl range  /var/thc/thc.rrd Temp,Living 10 35 \\"
-		puts "                      -from {2016-06-27 06:01:00 CEST} \\"
-		puts "                      -to {2016-06-27 07:00:00 CEST}"
+		puts "                      -from \"2016-06-27 06:01:00 CEST\" \\"
+		puts "                      -to \"2016-06-27 07:00:00 CEST\""
 		puts ""
 		exit
 	}
