@@ -169,10 +169,10 @@ namespace eval thc_RandomLight {
 	#    respectively inside the variables SunriseT and SunsetT. The
 	#    following variables need to be defined for the sun time calculation:
 	#
-	#   > Longitude - Geographical longitude
-	#   > Latitude - Geographical latitude
-	#   > Zone - Time zone in hours (e.g. +2). If set to 'auto' or '' the time 
-	#            zone will be automatically evaluated
+	#    Longitude - Geographical longitude
+	#    Latitude - Geographical latitude
+	#    Zone - Time zone in hours (e.g. +2). If set to 'auto' or '' the time 
+	#           zone will be automatically evaluated
 	#
 	# Returns:
 	#    -
