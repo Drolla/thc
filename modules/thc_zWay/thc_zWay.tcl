@@ -65,13 +65,16 @@
 # 
 #    Virtual - Allows accessing virtual devices from the z-way automation 
 #              system.
-#    TagReader - Provides info about the last event of the BeNEXT tag 
-#                reader. The <Get> command returns a list of 2-3 elements. 
-#                The first one corresponds to the last event time, the 
-#                second one is one of the following event names: 'lock', 
-#                'unlock', 'tamper', 'wrongcode'. In case the event is 
-#                'wrongcode' the 3rd element corresponds to this wrong
-#                code.
+#    TagReader - Provides info about the last event of the BeNEXT tag reader.
+#                The <Get> command returns a list of 2-3 elements. The first 
+#                one corresponds to the last event time, the second one is one 
+#                of the following event names: 'lock', 'unlock', 'tamper', 
+#                'wrongcode'. In case the event is 'wrongcode' the 3rd element 
+#                corresponds to this wrong code.
+#    SwitchMultiBinary - Groups multiple binary switch instances of a device to
+#                        a multi-bit instance. The device identifier requires 3
+#                        elements: Device number, instance number with the 
+#                        lower index, instance number with the higher index.
 #    Control - Allows implementing control states (=variables) on the z-Way server.
 #    
 # Examples:
@@ -98,6 +101,9 @@
 #    > DefineDevice MultiCave,temp     -get {thc_zWay "SensorMultilevel 23.0.1"} -update 1m
 #    > DefineDevice MultiCave,hum      -get {thc_zWay "SensorMultilevel 23.0.5"} -update 1m
 #    > DefineDevice MultiCave,battery  -get {thc_zWay "Battery 23"} -update 1h
+#    > 
+#    > DefineDevice FourLevelFan,state -get {thc_zWay "SwitchMultiBinary 33.1.2"} \
+#    >                                 -set {thc_zWay "SwitchMultiBinary 33.1.2"}
 
 ######## z-Way device control functions ########
 

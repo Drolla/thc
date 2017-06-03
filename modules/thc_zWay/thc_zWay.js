@@ -150,6 +150,41 @@ Get_SwitchBinary = function(NI) {
 	return "";
 }
 
+/* Set_SwitchMultiBinary(NI,I) 
+   Usage: http://192.168.1.21:8083/JS/Run/Set_SwitchMultiBinary("33.1.2", 3)
+          -> 3
+*/
+Set_SwitchMultiBinary = function(NI, state) {
+	state = Math.round(state);
+	var IndexArray=Get_IndexArray(NI);
+	try {
+		for (var Idx=IndexArray[1]; Idx<=IndexArray[2]; Idx++) {
+			zway.devices[ IndexArray[0] ].instances[ Idx ].SwitchBinary.Set( (state&1)==0?0:255 );
+			state = state>>>1;
+		}
+	}
+	catch(err) {}
+	return Get_SwitchMultiBinary(NI);
+}
+
+/* Get_SwitchMultiBinary(NI)
+   Usage: http://192.168.1.21:8083/JS/Run/Get_SwitchMultiBinary("33.1.2")
+          -> 3
+*/
+Get_SwitchMultiBinary = function(NI) {
+	var IndexArray=Get_IndexArray(NI);
+	var State=0;
+	try {
+		for (var Idx=IndexArray[2]; Idx>=IndexArray[1]; Idx--) {
+			State = (State*2) | (zway.devices[ IndexArray[0] ].instances[ Idx ].SwitchBinary.data.level.value==0 ? 0 : 1);
+		}
+	}
+	catch(err) {
+		State=""
+	}
+	return State;
+}
+
 /* Get_SensorBinary(NI)
    Usage : http://192.168.1.21:8083/JS/Run/Get_SensorBinary(2)
            -> 1
@@ -446,6 +481,9 @@ Get = function(DeviceList) {
 				case "SwitchBinary":
 					Value=Get_SwitchBinary(Device[1]);
 					break;
+				case "SwitchMultiBinary":
+					Value=Get_SwitchMultiBinary(Device[1]);
+					break;
 				case "SensorBinary":
 					Value=Get_SensorBinary(Device[1]);
 					break;
@@ -517,6 +555,9 @@ Set = function(DeviceList, State) {
 					break;
 				case "SwitchBinary":
 					Value=Set_SwitchBinary(Device[1], State);
+					break;
+				case "SwitchMultiBinary":
+					Value=Set_SwitchMultiBinary(Device[1], State);
 					break;
 				case "SwitchMultilevel":
 					Value=Set_SwitchMultilevel(Device[1], State);
