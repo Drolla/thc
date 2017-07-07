@@ -177,6 +177,7 @@ exec tclsh "$0" ${1+"$@"}
 	#    [-range <Range>]   - Valid range specification. This is a list 
 	#                         of a min and of a max value. Data outside 
 	#                         of the specified range will be set to unknown ("").
+	#    [-step <Step>]     - Step size (used by the modules: thc_Web)
 	#    [-inverse 0|1]     - Performs logic state inversion, '' is defined if state 
 	#                         is not numerical.
 	#    [-gexpr <GetExpr>] - Performs an expression evaluation with the 
@@ -248,6 +249,7 @@ exec tclsh "$0" ${1+"$@"}
 		set DeviceAttributes($Device,group) ""
 		set DeviceAttributes($Device,type) ""
 		set DeviceAttributes($Device,range) ""
+		set DeviceAttributes($Device,step) ""
 		set DeviceAttributes($Device,format) "%s"
 		set DeviceAttributes($Device,data) {}
 		regexp {(.*),(.*)} $Device {} DeviceAttributes($Device,name) DeviceAttributes($Device,group)
@@ -269,6 +271,7 @@ exec tclsh "$0" ${1+"$@"}
 					set DeviceAttributes($Device,GetExpression) $Value}
 				-type -
 				-range -
+				-step -
 				-group -
 				-format -
 				-data -
@@ -908,8 +911,6 @@ exec tclsh "$0" ${1+"$@"}
 				set NextTime [clock add [lindex $Job 0] {*}$Repeat]
 				lappend JobList [list $NextTime {*}[lrange $Job 1 end]]
 				incr Resort
-			} else {
-				rename Job($Tag) {}; # Delete the Job command if not used anymore (if no repeat)
 			}
 		}
 
