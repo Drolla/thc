@@ -363,9 +363,10 @@
 	
 	DeviceWidget["level"].Create = function(Parent, ChildId, DeviceId, DeviceInfo) {
 		var Range = (DevicesInfo[DeviceId]["range"].length==0 ? [0,1] : DevicesInfo[DeviceId]["range"]);
+		var Step = (DevicesInfo[DeviceId]["step"].length==0 ? (Range[1]-Range[0])/100 : DevicesInfo[DeviceId]["step"]);
 		$(Parent).append(
 			'<label for="' + ChildId + '">' + DeviceInfo["name"] + '</label>' +
-			'<input data-type="range" id="' + ChildId + '" value="'+Range[0]+'" min="'+Range[0]+'" max="'+Range[1]+'" step="'+(Range[1]-Range[0])/100+'" data-highlight="true">');
+			'<input data-type="range" id="' + ChildId + '" value="'+Range[0]+'" min="'+Range[0]+'" max="'+Range[1]+'" step="'+Step+'" data-highlight="true">');
 
 		$(Parent).on("slidestop", "#"+ChildId, function(event) {
 			DeviceWidget["level"].ChangeState(ChildId,DeviceId);
