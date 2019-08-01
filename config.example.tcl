@@ -189,7 +189,7 @@ proc mail_custom_send {Title Message RecipientList From} {
 	regsub -all "\"" $Title "\\\"" Title
 	
 	# Call the Unix mail command to send the message
-	exec bash -c "echo \"$Message\" | mail -s $Title -r $From $RecipientList"
+	exec bash -c "echo \"$Message\" | mail -s \"$Title\" -r $From $RecipientList"
 }
 
 ### CsvLog ###

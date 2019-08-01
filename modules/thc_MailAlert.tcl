@@ -33,19 +33,15 @@ namespace eval thc_MailAlert {
 	# Parameters:
 	#    -method <DeliveryMethod> - Mail delivery method. Has to be 'custom', 
 	#                               'direct_sync' or 'direct_async' (default)
-	#
 	#    [-custom_command <CustomCommand>] - Specifies the custom mail command
 	#                               that will be called if the custom delivery 
 	#                               method is selected. The argument list of the 
 	#                               custom command and the use of the Unix mail
 	#                               command 'mail' is shown in the example 
 	#                               below.
-	#                               
-	#
 	#    [-direct_args <Direct delivery arguments>] - Arguments transferred to 
 	#                               smtp::sendmessage if one of the direct mail
 	#                               delivery methods is selected
-	#
 	#    -debug 0|1 - If set to 1 some additional log information are displayed 
 	#                 that help debugging the email delivery method. Default: 0
 	#
@@ -69,7 +65,7 @@ namespace eval thc_MailAlert {
 	#    >    regsub -all "\"" $Title "\\\"" Title
 	#    > 
 	#    >    # Call the Unix mail command to send the message
-	#    >    exec bash -c "echo \"$Message\" | mail -s $Title -r $From $RecipientList"
+	#    >    exec bash -c "echo \"$Message\" | mail -s \"$Title\" -r $From $RecipientList"
 	#    > }
 	#    
 	# See also:
