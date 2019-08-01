@@ -922,8 +922,22 @@ exec tclsh "$0" ${1+"$@"}
 	}
 
 	##########################
-	# JobsString
+	# Proc: JobsString
 	#    Returns the currently scheduled jobs in form of a formatted string.
+	#    Useful for debugging.
+	#
+	# Parameters:
+	#    [WithPermanentJobs] - Adds permanent jobs to the generated string if 
+	#                          set to 1. Default: 0.
+	#
+	# Returns:
+	#    -
+	#    
+	# Examples:
+	#    > JobsString
+	#    
+	# See also:
+	#    <DefineJob>
 	##########################
 
 	proc JobsString { {WithPermanentJobs 0} } {

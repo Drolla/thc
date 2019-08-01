@@ -22,15 +22,15 @@
 ### Device definitions ###
 
 	DefineDevice Surveillance,state \
-				-name Surveillance -group Scenes -type switch \
+				-name Surveillance -group Security -type switch \
 				-get {thc_Virtual "Surveillance"} \
 				-set {thc_Virtual "Surveillance"}
 	DefineDevice Alarm,state \
-				-name Alarm -group Scenes -type switch \
+				-name Alarm -group Security -type switch \
 				-get {thc_Virtual "Alarm"} \
 				-set {thc_Virtual "Alarm"}
 	DefineDevice AllLights,state \
-				-name AllLights -group Scenes -type switch \
+				-name AllLights -group Security -type switch \
 				-get {thc_Virtual "AllLights"} \
 				-set {thc_Virtual "AllLights"}
 
@@ -49,36 +49,46 @@
 				-name MotionCellar -group Battery -format "%s%%" -update 1h \
 				-get {thc_zWay "Battery 25"}
 
+	DefineDevice MainDoor,state \
+				-name MainDoor -group Security -sticky 1 -inverse 1 \
+				-get {thc_zWay "SensorBinary 36"}
+	DefineDevice MainDoor,battery \
+				-name MainDoor -group Battery -format "%s%%" -update 1h \
+				-get {thc_zWay "Battery 36"}
 
 	# Register light switches
-	DefineDevice LightRoomParent,state \
-				-name LightRoomParent -group Light -type switch \
-				-get {thc_zWay "SwitchBinary 3"} \
-				-set {thc_zWay "SwitchBinary 3"}
-	DefineDevice LightLiv,state \
-				-name LightLiv -group Light -type switch \
-				-get {thc_zWay "SwitchBinary 8.1"} \
-				-set {thc_zWay "SwitchBinary 8.1"}
-	DefineDevice LightCorridor,state \
-				-name LightCorridor -group Light -type switch \
-				-get {thc_zWay "SwitchBinary 8.2"} \
-				-set {thc_zWay "SwitchBinary 8.2"}
 	DefineDevice LightCorridor1st,state \
 				-name LightCorridor1st -group Light -type switch \
 				-get {thc_zWay "SwitchBinary 7.1"} \
 				-set {thc_zWay "SwitchBinary 7.1"}
-	DefineDevice Light2nd,state \
-				-name Light2nd -group Light -type switch \
+	DefineDevice LightRoomParent,state \
+				-name LightRoomParent -group Light -type switch \
 				-get {thc_zWay "SwitchBinary 7.2"} \
 				-set {thc_zWay "SwitchBinary 7.2"}
+	DefineDevice LightLiv,state \
+				-name LightLiv -group Light -type switch \
+				-get {thc_zWay "SwitchBinary 8.2"} \
+				-set {thc_zWay "SwitchBinary 8.2"}
+#	DefineDevice LightOutside,state \
+#				-name LightOutside -group Light -type switch \
+#				-get {thc_zWay "SwitchBinary 8.1"} \
+#				-set {thc_zWay "SwitchBinary 8.1"}
+	DefineDevice LightCorridor,state \
+				-name LightCorridor -group Light -type switch \
+				-get {thc_zWay "SwitchBinary 20.1"} \
+				-set {thc_zWay "SwitchBinary 20.1"}
+	DefineDevice Light2nd,state \
+				-name Light2nd -group Light -type switch \
+				-get {thc_zWay "SwitchBinary 9.0"} \
+				-set {thc_zWay "SwitchBinary 9.0" "SwitchBinary 9.1" "SwitchBinary 9.2"}
 	DefineDevice LightCellar,state \
 				-name LightCellar -group Light -type switch \
-				-get {thc_zWay "SwitchBinary 9.2"} \
-				-set {thc_zWay "SwitchBinary 9.2"}
-	DefineDevice LightLiv2,state \
-				-name LightLiv2 -group Light -type level \
-				-get {thc_zWay "SwitchMultilevel 12.2"} \
-				-set {thc_zWay "SwitchMultilevel 12.2"}
+				-get {thc_zWay "SwitchBinary 14.1"} \
+				-set {thc_zWay "SwitchBinary 14.1"}
+	# DefineDevice TestDimmer_state \
+	# 			-name TestDimmer -group Light -type level \
+	# 			-get {thc_zWay "SwitchMultilevel 12.2"} \
+	# 			-set {thc_zWay "SwitchMultilevel 12.2"}
 
 	# Register sirens
 	DefineDevice Sirene,state \
@@ -99,11 +109,11 @@
 				-get {thc_zWay "Battery 22"}
 
 	# Register temperature and humidity measurement devices
-	DefineDevice MultiAux,temp \
-				-name "Temp Aux" -group Environment -format "%s°C" -range {10 30} -update 1m \
+	DefineDevice MultiParent,temp \
+				-name "Temp Room Parent" -group Environment -format "%s°C" -range {10 30} -update 1m \
 				-get {thc_zWay "SensorMultilevel 5.0.1"} -gexpr {$Value-1.5}
-	DefineDevice MultiAux,battery \
-				-name Aux -group Battery -format "%s%%" -update 1h \
+	DefineDevice MultiParent,battery \
+				-name "Bat MultiParent" -group Battery -format "%s%%" -update 1h \
 				-get {thc_zWay "Battery 5"}
 
 	DefineDevice MultiLiv,temp \
@@ -128,10 +138,10 @@
 
 	# OpenWeatherMap devices
 	# DefineDevice ChauxDeFonds,chx_temp \
-	# 			-name "Temp Chaux-de-Fonds" -group Environment -format "%s°C" -update 10m \
+	# 			-name "Temp Chaux-de-Fonds" -group Environment -format "%s°C" -update 5m \
 	# 			-get {thc_OpenWeatherMap {"La Chaux-de-Fonds,ch" "temp"}}
 	# DefineDevice ChauxDeFonds,chx_hum \
-	# 			-name "Humidity Chaux-de-Fonds" -group Environment -format "%s%%" -update 10m \
+	# 			-name "Humidity Chaux-de-Fonds" -group Environment -format "%s%%" -update 5m \
 	# 			-get {thc_OpenWeatherMap {"La Chaux-de-Fonds,ch" "humidity"}}
 
 	# MeteoSwiss devices
@@ -166,6 +176,22 @@
 		#Define LightCellar,state        -time {7.2 $SunriseT-0.3 $SunsetT+0.0 21.5} -min_interval 0.30 -probability_on 0.0
 	}
 
+### Mail setup ###
+
+thc_MailAlert::Configure {*}{
+	-method custom
+	-custom_command mail_custom_send
+}
+
+proc mail_custom_send {Title Message RecipientList From} {
+	# Backslash double quotes
+	regsub -all "\"" $Message "\\\"" Message
+	regsub -all "\"" $Title "\\\"" Title
+	
+	# Call the Unix mail command to send the message
+	exec bash -c "echo \"$Message\" | mail -s $Title -r $From $RecipientList"
+}
+
 ### CsvLog ###
 
 	# Specify the CSV data file
@@ -189,12 +215,12 @@
 	# Make a copy of the generated graph files
 	proc CopyGraphs {DayTime} {
 		set Date [clock format $DayTime -format %Y%m%d]
-		foreach Pic {thc thc_bat thc_mlt} {
+		foreach Pic {thc thc_bat thc_mlt thc_rad} {
 			file copy -force $::LogDir/$Pic.png $::LogDir/${Pic}_${Date}.png
 		}
 
 		set Date [clock format $DayTime -format %Y%m]
-		foreach Pic {thc_32d thc_bat_32d thc_mlt_32d} {
+		foreach Pic {thc_32d thc_bat_32d thc_mlt_32d thc_rad_32d} {
 			file copy -force $::LogDir/$Pic.png $::LogDir/${Pic}_${Date}.png
 		}
 	}
@@ -328,6 +354,7 @@
 	# Log the device states all minutes into the RRD databases
 	DefineJob -tag RrdLog -time +1m -repeat 1m -description "RRD log" {
 		thc_Rrd::Log
+		thc_Csv::Log
 		ResetStickyStates
 	}
 

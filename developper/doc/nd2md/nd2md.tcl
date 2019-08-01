@@ -114,6 +114,13 @@ proc nd2md {NdFile MdFile LinkFile Format} {
 				if {$CreateReferenceIndexes} {
 					set nd2md_Link($Proc) [list proc $LinkFile "proc-$Proc"]
 				}
+			} elseif {[regexp {Var\s*:\s*(.+)} $DocText {} Var]} {
+				set MdLine "***\n\#\#\# Var: $Var"
+				set Mode Var
+				set NewSection Var
+				if {$CreateReferenceIndexes} {
+					set nd2md_Link($Var) [list proc $LinkFile "var-$Var"]
+				}
 			} elseif {$Mode=="Proc" && $Section=="" && [regexp {(.*[^\s]):\s*$} $DocText {} SubMode]} {
 				set MdLine "\#\#\#\# $SubMode"
 				set NewSection ProcSectionTitle

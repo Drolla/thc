@@ -11,7 +11,7 @@
 :: Specify the NaturalDocs launch command. Examples:
 ::   set NaturalDocsCommand=perl "C:\Program Files\NaturalDocs\NaturalDocs"
 ::   set NaturalDocsCommand="C:\Program Files (86)\Perl\bin\perl.exe "C:\Program Files\NaturalDocs\NaturalDocs"
-set NaturalDocsCommand=perl "..\..\..\..\NaturalDocs\NaturalDocs"
+set NaturalDocsCommand="C:\Program Files (x86)\Perl\bin\perl" "..\..\..\..\..\NaturalDocs\NaturalDocs"
 
 :: Specify the HTML documentation target directory. Examples:
 ::    set DestinationDir = "..\..\doc"

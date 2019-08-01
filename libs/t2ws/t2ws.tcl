@@ -569,6 +569,7 @@
 	namespace eval t2ws {
 		variable ConfigDefinitions [dict create \
 			-protocol {"" {[lsearch -exact {"" "HTTP/1.0" "HTTP/1.1"} $Value]>=0}} \
+			-connection {"" {[lsearch -exact {"" "close" "keep"} $Value]>=0}} \
 			-default_Content-Type {"text/plain" 1} \
 			-zip_threshold {100 {[string is integer -strict $Value] && $Value>=0}} \
 			-log_level {1 {[string is integer -strict $Value] && $Value>=0 && $Value<=3}} \
@@ -1620,7 +1621,7 @@
 	#    -
 	#    
 	# Examples:
-	#    > t2ws::DefinePlugin Pre ::MyT2wsPlugin
+	#    > t2ws::DefinePlugin my_plugin Pre ::MyT2wsPlugin
 	##########################
 
 	proc t2ws::DefinePlugin {Plugin PreOrPost Command} {
