@@ -16,14 +16,13 @@ fi
 cd ~
 
 echo "Install Tcl, RRDTools, mail send support"
-sudo apt-get install tcl rrdtool-tcl rrdtool ssmtp heirloom-mailx
+sudo apt-get install tcl8.5 rrdtool-tcl rrdtool ssmtp heirloom-mailx
 
 echo "Install THC inside /opt/thc"
 wget -q -O /tmp/thc-master.zip https://github.com/Drolla/thc/archive/master.zip
 unzip -d /opt /tmp/thc-master.zip
 mv /opt/thc-master /opt/thc
 chmod 775 /opt/thc/bin/thc.tcl
-chmod 775 /opt/thc/targets/Raspberry/thc_shell_control.tcl
 
 if [ "$old_thc_dir" != "" ]; then
 	echo "Copy old THC configuration file into /opt/thc"
