@@ -50,14 +50,17 @@ namespace eval thc_MailAlert {
 	#    
 	# Examples:
 	#    > # 1)
-	#    > thc_MailAlert::Configure -method direct_async
-	#    >    -direct_args {-servers mail.my_host.com -ports 25}
+	#    > package require tls
+	#    > thc_MailAlert::Configure \
+	#    >    -method direct_async \
+	#    >    -direct_args {-servers mail.my_host.com -ports 25
+	#    >                  -username my_name@my_host.xyz -password my_pw_123 
+	#    >                  -usetls 1}
 	#    >
 	#    > # 2)
-	#    > thc_MailAlert::Configure {*}{
-	#    >    -method custom
+	#    > thc_MailAlert::Configure \
+	#    >    -method custom \
 	#    >    -custom_command mail_custom_send
-	#    > }
 	#    > 
 	#    > proc mail_custom_send {Title Message RecipientList From} {
 	#    >    # Backslash double quotes
@@ -194,13 +197,19 @@ namespace eval thc_MailAlert {
 	}
 
 	proc SendDirect {Title Message RecipientList From args} {
+		variable Options
+
 		# Send all messages using the mime and smtp packages
 		set tok [mime::initialize -canonical text/plain -encoding 7bit -string $Message]
 		mime::setheader $tok Subject $Title
 		if {![catch {
 			if {$Options(-debug)} {
-				Log {Executed command: smtp::sendmessage $tok -originator $From -recipients [join $RecipientList ","] {*}$args} 3 }
-			smtp::sendmessage $tok -originator $From -recipients [join $RecipientList ","] {*}$args
+				Log {Executed command: smtp::sendmessage $tok \
+						-originator $From -recipients [join $RecipientList ","] \
+						-debug $Options(-debug) {*}$args} 3 }
+			smtp::sendmessage $tok \
+					-originator $From -recipients [join $RecipientList ","] \
+					-debug $Options(-debug) {*}$args
 		}]} {
 			Log {Alert sent to $RecipientList was successful} 3
 		} else {
@@ -220,16 +229,20 @@ namespace eval thc_MailAlert {
 		if {![info exists MailSendThId]} {
 			package require Thread
 			set MailSendThId [thread::create]
-			thread::send $MailSendThId {package require mime; package require smtp}
+			thread::send $MailSendThId {package require mime}
+			thread::send $MailSendThId {package require smtp}
+			thread::send $MailSendThId {catch {package require tls}}
 			thread::send $MailSendThId "set MainThId [thread::id]"
 			thread::send $MailSendThId {proc Log {Text {Level 3}} {thread::send $::MainThId [list Log [uplevel 1 "subst \{$Text\}"] $Level]}}
 			thread::send $MailSendThId [list proc SendDirect [info args SendDirect] [info body SendDirect]]
+			thread::send $MailSendThId [list array set Options [array get Options]]
 		}
 	}
 
 	proc InitDirectSync {} {
 		package require mime
 		package require smtp
+		catch {package require tls}
 	}
 	
 
