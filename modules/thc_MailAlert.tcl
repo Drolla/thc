@@ -17,11 +17,10 @@
 
 ######## Mail Alert ########
 
-namespace eval thc_MailAlert {
-
+namespace eval ::thc::MailAlert {
 
 	##########################
-	# Proc: thc_MailAlert::Configure
+	# Proc: thc::MailAlert::Configure
 	#    Configures the mail delivery method. Mails can be delivered either via 
 	#    a custom mail procedure (method=custom), or using the Tcl smtp 
 	#    package. For this second case the mail delivery can either be managed 
@@ -51,14 +50,14 @@ namespace eval thc_MailAlert {
 	# Examples:
 	#    > # 1)
 	#    > package require tls
-	#    > thc_MailAlert::Configure \
+	#    > thc::MailAlert::Configure \
 	#    >    -method direct_async \
 	#    >    -direct_args {-servers mail.my_host.com -ports 25
 	#    >                  -username my_name@my_host.xyz -password my_pw_123 
 	#    >                  -usetls 1}
 	#    >
 	#    > # 2)
-	#    > thc_MailAlert::Configure \
+	#    > thc::MailAlert::Configure \
 	#    >    -method custom \
 	#    >    -custom_command mail_custom_send
 	#    > 
@@ -72,11 +71,11 @@ namespace eval thc_MailAlert {
 	#    > }
 	#    
 	# See also:
-	#    <thc_MailAlert::Send>
+	#    <thc::MailAlert::Send>
 	##########################
 	
-	variable Options
-	array set Options {
+	variable Config
+	array set Config {
 		-method direct_async
 		-custom_command ""
 		-direct_args {}
@@ -84,31 +83,32 @@ namespace eval thc_MailAlert {
 	}
 
 	proc Configure {args} {
-		variable Options
+		variable Config
 		
 		if {$args=={}} {
-			return [array get Options]
+			return [array get Config]
 		} elseif {[lindex $args 0]=="init"} {
 		} elseif {[llength $args]==1} {
-			return $Options($args)
+			return $Config($args)
 		} else {
-			array set Options $args
+			array set Config $args
 		}
 		
 		Init
 	}
 	
 	proc Init {} {
-		variable Options
+		variable Config
+		
 		if {[catch {
-			if {$Options(-method)=="custom"} {
+			if {$Config(-method)=="custom"} {
 				InitCustom
-			} elseif {$Options(-method)=="direct_async"} {
+			} elseif {$Config(-method)=="direct_async"} {
 				InitDirectAsync
-			} elseif {$Options(-method)=="direct_sync"} {
+			} elseif {$Config(-method)=="direct_sync"} {
 				InitDirectSync
 			} else {
-				error "Mail delivery method '$Options(-method)' unknown"
+				error "Mail delivery method '$Config(-method)' unknown"
 			}
 		}]} {
 			error "Error initializing mail: $::errorInfo"
@@ -117,7 +117,7 @@ namespace eval thc_MailAlert {
 
 
 	##########################
-	# Proc: thc_MailAlert::Send
+	# Proc: thc::MailAlert::Send
 	#    Sends a mail message. Send sends a mail message to one or to multiple
 	#    destination addresses. To use this command the command *mail* needs to 
 	#    be available and configured.
@@ -133,24 +133,24 @@ namespace eval thc_MailAlert {
 	#    -
 	#    
 	# Examples:
-	#    > thc_MailAlert::Send -to knopf@vaucher.ch -to 0041791234567@sms.ecall.ch \
+	#    > thc::MailAlert::Send -to knopf@vaucher.ch -to 0041791234567@sms.ecall.ch \
 	#    >                     -from myhome.vaucher@bluewin.ch -title "Alarm alert" \
 	#    >                     "Sensor $Sensor triggered"
 	#    
 	# See also:
-	#    <thc_MailAlert::Configure>
+	#    <thc::MailAlert::Configure>
 	##########################
 
 	proc Send {args} {
-		variable Options
+		variable Config
 		
-		# Default options
+		# Default Config
 		set RecipientList {}
 		set From {localhost}
 		set Message {}
 		set Title ""
 
-		# Parse the arguments, parse first all options, and then the message lines
+		# Parse the arguments, parse first all Config, and then the message lines
 		for {set a 0} {$a<[llength $args]} {incr a} {
 			set arg [lindex $args $a]
 			switch -regexp -- $arg {
@@ -168,54 +168,54 @@ namespace eval thc_MailAlert {
 		Init
 		
 		# Mail delivery using custom mail program
-		if {$Options(-method)=="custom"} {
+		if {$Config(-method)=="custom"} {
 			SendCustom $Title $Message $RecipientList $From
 
 		# Asynchronous message delivery (using separate thread)
-		} elseif {$Options(-method)=="direct_async"} {
+		} elseif {$Config(-method)=="direct_async"} {
 			variable MailSendThId
 			thread::send -async $MailSendThId \
-				[list SendDirect $Title $Message $RecipientList $From {*}$Options(-direct_args)]
+				[list SendDirect $Title $Message $RecipientList $From {*}$Config(-direct_args)]
 
 		# Synchronous message delivery (without using separate thread)
 		} else {
-			SendDirect $Title $Message $RecipientList $From {*}$Options(-direct_args)
+			SendDirect $Title $Message $RecipientList $From {*}$Config(-direct_args)
 		}
 	}
 
 	proc SendCustom {Title Message RecipientList From} {
-		variable Options
+		variable Config
 		
 		# Send the message via the custom mail program
-		if {![catch [list $Options(-custom_command) $Title $Message $RecipientList $From]]} {
-			Log {Alert sent to $RecipientList was successful} 3
+		if {![catch [list $Config(-custom_command) $Title $Message $RecipientList $From]]} {
+			::thc::Log {Alert sent to $RecipientList was successful} 3
 		} else {
-			Log {Alert sent to \{$RecipientList\} was failing} 3
-			if {$Options(-debug)} {
-				Log {error message: $::errorInfo} 3 }
+			::thc::Log {Alert sent to \{$RecipientList\} was failing} 3
+			if {$Config(-debug)} {
+				::thc::Log {error message: $::errorInfo} 3 }
 		}
 	}
 
 	proc SendDirect {Title Message RecipientList From args} {
-		variable Options
+		variable Config
 
 		# Send all messages using the mime and smtp packages
 		set tok [mime::initialize -canonical text/plain -encoding 7bit -string $Message]
 		mime::setheader $tok Subject $Title
 		if {![catch {
-			if {$Options(-debug)} {
-				Log {Executed command: smtp::sendmessage $tok \
+			if {$Config(-debug)} {
+				::thc::Log {Executed command: smtp::sendmessage $tok \
 						-originator $From -recipients [join $RecipientList ","] \
-						-debug $Options(-debug) {*}$args} 3 }
+						-debug $Config(-debug) $args} 3 }
 			smtp::sendmessage $tok \
 					-originator $From -recipients [join $RecipientList ","] \
-					-debug $Options(-debug) {*}$args
+					-debug $Config(-debug) {*}$args
 		}]} {
-			Log {Alert sent to $RecipientList was successful} 3
+			::thc::Log {Alert sent to $RecipientList was successful} 3
 		} else {
-			Log {Alert sent to $RecipientList was failing} 3
-			if {$Options(-debug)} {
-				Log {error message: $::errorInfo} 3 }
+			::thc::Log {Alert sent to $RecipientList was failing} 3
+			if {$Config(-debug)} {
+				::thc::Log {error message: $::errorInfo} 3 }
 		}
 		# Destroys the MIME part represented by token
 		mime::finalize $tok
@@ -226,6 +226,7 @@ namespace eval thc_MailAlert {
 	
 	proc InitDirectAsync {} {
 		variable MailSendThId
+		variable Config
 		if {![info exists MailSendThId]} {
 			package require Thread
 			set MailSendThId [thread::create]
@@ -233,9 +234,10 @@ namespace eval thc_MailAlert {
 			thread::send $MailSendThId {package require smtp}
 			thread::send $MailSendThId {catch {package require tls}}
 			thread::send $MailSendThId "set MainThId [thread::id]"
-			thread::send $MailSendThId {proc Log {Text {Level 3}} {thread::send $::MainThId [list Log [uplevel 1 "subst \{$Text\}"] $Level]}}
-			thread::send $MailSendThId [list proc SendDirect [info args SendDirect] [info body SendDirect]]
-			thread::send $MailSendThId [list array set Options [array get Options]]
+			thread::send $MailSendThId "namespace eval ::thc {}"
+			thread::send $MailSendThId {proc ::thc::Log {Text {Level 3}} {thread::send $::MainThId [list Log [uplevel 1 "subst \{$Text\}"] $Level]}}
+			thread::send $MailSendThId [list proc ::thc::MailAlert::SendDirect [info args SendDirect] [info body SendDirect]]
+			thread::send $MailSendThId [list array set ::thc::MailAlert::Config [array get Config]]
 		}
 	}
 
@@ -246,4 +248,6 @@ namespace eval thc_MailAlert {
 	}
 	
 
-}; # End namespace thc_MailAlert
+}; # End namespace thc::MailAlert
+
+return

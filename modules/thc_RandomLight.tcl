@@ -15,14 +15,58 @@
 
 ######## RandomLight ########
 
-namespace eval thc_RandomLight {
-
-	catch {unset Settings}
-	catch {unset DefaultDevices}
-	catch {unset NextSwitchTime}
+namespace eval ::thc::RandomLight {
 
 	##########################
-	# Proc: thc_RandomLight::Define
+	# Proc: thc::RandomLight::Configure
+	#    Configures the geographical location and time zone.
+	#
+	# Parameters:
+	#    [-longitude <Longitude> - Geographical longitude
+	#    [-latitude <Latitude> - Geographical latitude
+	#    [-zone <Zone>] - Time zone in hours (e.g. +2). If set to 'auto' or '' 
+	#                     the time zone will be automatically evaluated. 
+	#                     Default: 'auto'
+	#
+	# Returns:
+	#    -
+	#    
+	# Examples:
+	#    > thc::RandomLight::Configure \
+	#    >    -longitude 6.8250 -latitude 47.1013 -zone "auto"
+	#    
+	# See also:
+	#    <thc::RandomLight::Define>
+	##########################
+
+	variable Config
+	array set Config {
+		-longitude ""
+		-latitude ""
+		-zone "auto"
+	}
+
+	proc Configure {args} {
+		variable Config
+		
+		if {$args=={}} {
+			return [array get Config]
+		} elseif {[llength $args]==1} {
+			return $Config($args)
+		} else {
+			array set Config $args
+		}
+	}
+
+	variable Settings
+		catch {unset Settings}
+	variable DefaultDevices
+		catch {unset DefaultDevices}
+	variable NextSwitchTime
+		catch {unset NextSwitchTime}
+
+	##########################
+	# Proc: thc::RandomLight::Define
 	#    Defines the random control settings for one device
 	#
 	# Parameters:
@@ -42,11 +86,12 @@ namespace eval thc_RandomLight {
 	#    -
 	#    
 	# Examples:
-	#    > Define LightSalon,state -time {7.2 $SunriseT-0.3 $SunsetT+0.0 21.5} \
-	#    >                         -min_interval 0.30 -probability_on 0.2
+	#    > thc::RandomLight::Define LightSalon,state \
+	#    >            -time {7.2 $SunriseT-0.3 $SunsetT+0.0 21.5} \
+	#    >            -min_interval 0.30 -probability_on 0.2
 	#    
 	# See also:
-	#    <thc_RandomLight::Control>
+	#    <thc::RandomLight::Control>
 	##########################
 
 	proc Define {Device args} {
@@ -55,8 +100,8 @@ namespace eval thc_RandomLight {
 		
 		array set Options {-min_interval 0.50 -probability_on 0.5 -default 0}
 		array set Options $args
-		Assert [info exists Options(-time)] "thc_RandomLight::Define: The option -time is mandatory!"
-		Assert [info exists ::DeviceAttributes($Device,name)] "thc_RandomLight::Define: Device $Device is not defined - ignore it"
+		::thc::Assert [info exists Options(-time)] "thc::RandomLight::Define: The option -time is mandatory!"
+		::thc::Assert [info exists ::thc::DeviceAttributes($Device,Name)] "thc::RandomLight::Define: Device $Device is not defined - ignore it"
 		
 		set Settings($Device) [list $Options(-time) $Options(-min_interval) $Options(-probability_on) $Options(-default)]
 		if {$Options(-default)} {
@@ -78,10 +123,13 @@ namespace eval thc_RandomLight {
 	}
 
 	proc ControlSingleDevice {Device {Force ""}} {
-		global DayTime Time NextSwitchTime State
 		variable SunriseT
 		variable SunsetT
 		variable Settings
+		variable NextSwitchTime
+		upvar #0 thc::Time Time
+		upvar #0 thc::DayTime DayTime
+		upvar #0 thc::State State
 		
 		if {![info exists SunriseT]} {
 			EvaluateSunRiseSunSet
@@ -102,27 +150,27 @@ namespace eval thc_RandomLight {
 		#puts "if ($DayTime>=$On1 && $DayTime<=$Off1) || ($DayTime>=$On2 && $DayTime<=$Off2)"
 		if {($DayTime>=$On1 && $DayTime<=$Off1) || ($DayTime>=$On2 && $DayTime<=$Off2)} {
 			if {$Force=="0" || $Force=="1"} {
-				Set $Device $Force
+				::thc::Set $Device $Force
 			} elseif {$ProbabilityOn==0.0 || $ProbabilityOn==1.0} {
-				Set $Device [expr round($ProbabilityOn)]
+				::thc::Set $Device [expr round($ProbabilityOn)]
 			} elseif {![info exists NextSwitchTime($Device)] || $Time>$NextSwitchTime($Device)} {
 				if {$State($Device)==1} {
-					Set $Device 0
+					::thc::Set $Device 0
 					set NextSwitchTime($Device) [expr {$Time+(1.0-$ProbabilityOn)*(0.3+1.4*rand())*$MinIntervalTime*3600.0}]
 				} else {
-					Set $Device 1
+					::thc::Set $Device 1
 					set NextSwitchTime($Device) [expr {$Time+($ProbabilityOn)*(0.3+1.4*rand())*$MinIntervalTime*3600.0}]
 				}
 			}
 		} elseif {![info exists State($Device)] || $State($Device)!=0} {
-			Set $Device 0
+			::thc::Set $Device 0
 			catch {unset NextSwitchTime($Device)}
 		}
 		return [expr {[info exists State($Device)] && $State($Device)==1}]
 	}
 
 	##########################
-	# Proc: thc_RandomLight::Control
+	# Proc: thc::RandomLight::Control
 	#    Applies random settings to the lights
 	#
 	# Parameters:
@@ -132,25 +180,24 @@ namespace eval thc_RandomLight {
 	#    -
 	#    
 	# Examples:
-	#    > DefineJob -tag RdmLight -repeat 1m -description "Random light" {
-	#    >    thc_RandomLight::Control}
+	#    > thc::DefineJob -tag RdmLight -repeat 1m -description "Random light" {
+	#    >    thc::RandomLight::Control }
 	#
-	#    > thc_RandomLight::Control 0
+	#    > thc::RandomLight::Control 0
 	#    
 	# See also:
-	#    <thc_RandomLight::Define>
+	#    <thc::RandomLight::Define>
 	##########################
 
 
 	# Control [Force] - Force="": Random, Force=0/1: Force off/on
 	proc Control { {Force ""} } {
-		global State
 		variable DefaultDevices
 		variable Settings
 
 		# Random light Control - No alarm
 		if {$Force!=""} {
-			Set [array names Settings] $Force
+			::thc::Set [array names Settings] $Force
 		} else {
 			set NbrLightsOn 0
 			foreach Device [array names Settings] {
@@ -159,56 +206,48 @@ namespace eval thc_RandomLight {
 			if {!$NbrLightsOn} {
 				ControlSingleDevice [lindex $DefaultDevices [expr int(rand()*13567)%[llength $DefaultDevices]]] 1
 			}
-			Log {Random light control switch} 1
+			::thc::Log {Random light control switch} 1
 		}
 	}
 
 	##########################
-	# Proc: thc_RandomLight::EvaluateSunRiseSunSet
+	# Proc: thc::RandomLight::EvaluateSunRiseSunSet
 	#    Evaluates sun rise and set time. These two times are stored 
 	#    respectively inside the variables SunriseT and SunsetT. The
-	#    following variables need to be defined for the sun time calculation:
-	#
-	#    Longitude - Geographical longitude
-	#    Latitude - Geographical latitude
-	#    Zone - Time zone in hours (e.g. +2). If set to 'auto' or '' the time 
-	#           zone will be automatically evaluated
+	#    geographical location and time zone has to be defined to use this
+	#    function.
 	#
 	# Returns:
 	#    -
 	#    
 	# Examples:
-	#    > namespace eval thc_RandomLight {
-	#    >   set Longitude 6.8250
-	#    >   set Latitude 47.1013
-	#    >   set Zone auto }
+	#    > ::thc::RandomLight::Configure \
+	#    >                        -longitude 6.8250 -latitude 47.1013 -zone auto
 	#    >
-	#    > DefineJob -tag EvalSun -time 01h -repeat 24h -init_time +0 \
-	#    >           -description "Evaluate the sun shine time" {
-	#    >    thc_RandomLight::EvaluateSunRiseSunSet}
+	#    > thc::DefineJob -tag EvalSun -time 01h -repeat 24h -init_time +0 \
+	#    >                -description "Evaluate the sun shine time" {
+	#    >    thc::RandomLight::EvaluateSunRiseSunSet }
 	#    
 	# See also:
-	#    <thc_RandomLight::Define>
+	#    <thc::RandomLight::Configure> <thc::RandomLight::Define>
 	##########################
 
 	proc EvaluateSunRiseSunSet {} {
-		global Longitude Latitude Zone Time SunriseT SunsetT
-		variable Longitude
-		variable Latitude
-		variable Zone
+		variable Config
 		variable SunriseT
 		variable SunsetT
+		upvar #0 thc::Time Time
 
 		# Some constants
 		set pi 3.1415926536
 		set RAD [expr {$pi/180.0}]; # Factor Grad to  radian
 		set h [expr {-(50.0/60.0)*$RAD}]; # Sun center hight at sunrise/set: Radius+Refraction
 		
-		set B [expr {$Latitude*$RAD}]; # Geographical latitude in radian
+		set B [expr {$Config(-latitude)*$RAD}]; # Geographical latitude in radian
 		set T [string trimleft [clock format $Time -format %j] 0]; # Day in the year
 
 		# Set the time zone time shift. Determine it automatically if Zone is set to 'auto' or ''
-		set ZoneShift $Zone
+		set ZoneShift $Config(-zone)
 		if {$ZoneShift=="" || $ZoneShift=="auto"} {
 			set ZoneShift [clock format [clock seconds] -format %z];           # e.g. +0200, -1200
 			set ZoneShift [regsub {^([-+])0{0,1}(\d+)\d\d$} $ZoneShift {\1\2}]; # e.g. 2, -12
@@ -227,11 +266,13 @@ namespace eval thc_RandomLight {
 		
 		# Sunrise and sunset calculations
 		set SunRise0 [expr {12 - $TimeDifference - $TimeEquation}]; # Sunrise at 0° Longitude
-		set SunriseT [expr {$SunRise0 - $Longitude/15.0 + $ZoneShift}]; # Sunrise at specified Longitude and time zone in hours
+		set SunriseT [expr {$SunRise0 - $Config(-longitude)/15.0 + $ZoneShift}]; # Sunrise at specified Longitude and time zone in hours
 		set SunSet0 [expr {12 + $TimeDifference - $TimeEquation}]; # Sunset at 0° Longitude
-		set SunsetT  [expr {$SunSet0 - $Longitude/15.0 + $ZoneShift}]; # Sunset at specified Longitude and time zone in hours
+		set SunsetT  [expr {$SunSet0 - $Config(-longitude)/15.0 + $ZoneShift}]; # Sunset at specified Longitude and time zone in hours
 
-		Log [format "thc_RandomLight - Sunrise:%2ih%2i, sunset:%2ih%2i (zone %d)" [expr int($SunriseT)] [expr int($SunriseT*60)%60] [expr int($SunsetT)] [expr int($SunsetT*60)%60] $ZoneShift] 2
+		::thc::Log [format "thc_RandomLight - Sunrise:%2ih%2i, sunset:%2ih%2i (zone %d)" [expr int($SunriseT)] [expr int($SunriseT*60)%60] [expr int($SunsetT)] [expr int($SunsetT*60)%60] $ZoneShift] 2
 	}
 
 }; # end namespace thc_RandomLight
+
+return

@@ -112,12 +112,12 @@ exec tclsh "$0" ${1+"$@"}
 	
 	time {
 	switch [lindex $argv 0] {
-		list    {puts [thc_Rrd::RrdGetDeviceList $RrdFile]}
-		add     {puts [thc_Rrd::RrdAddDevices $RrdFile [lrange $argv 2 end]]}
-		rename  {puts [thc_Rrd::RrdRenameDevices $RrdFile [lrange $argv 2 end]]}
-		remove  {puts [thc_Rrd::RrdRemoveDevices $RrdFile [lrange $argv 2 end]]}
-		modif   {puts [thc_Rrd::RrdModifyDeviceValues $RrdFile {*}[lrange $argv 2 end]]}
-		range   {puts [thc_Rrd::RrdCheckDeviceValueRange $RrdFile {*}[lrange $argv 2 end]]}
+		list    {puts [thc::Rrd::RrdGetDeviceList $RrdFile]}
+		add     {puts [thc::Rrd::RrdAddDevices $RrdFile [lrange $argv 2 end]]}
+		rename  {puts [thc::Rrd::RrdRenameDevices $RrdFile [lrange $argv 2 end]]}
+		remove  {puts [thc::Rrd::RrdRemoveDevices $RrdFile [lrange $argv 2 end]]}
+		modif   {puts [thc::Rrd::RrdModifyDeviceValues $RrdFile {*}[lrange $argv 2 end]]}
+		range   {puts [thc::Rrd::RrdCheckDeviceValueRange $RrdFile {*}[lrange $argv 2 end]]}
 		default {Help}
 	}
 	}

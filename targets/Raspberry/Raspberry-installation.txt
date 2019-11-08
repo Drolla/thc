@@ -52,28 +52,16 @@ make it executable, and register it:
   > sudo chmod 775 ./thc.sh
   > sudo update-rc.d thc.sh defaults 98 02
 
-Topic: zWay/Razberry installation
+Topic: z-Way/Razberry installation
 
 To download the latest Z-Way version for your RaZberry, execute the following 
 line:
   > wget -q -O - razberry.z-wave.me/install | sudo bash 
 Avoid using z-Way version 1.7; performance issues have been observed with 
 this version. THC has been successfully tested with z-Way v1.5.0, 1.5.1, 2.0.1,
-2.1.1, 2.2.0, 2.3.8.
+2.1.1, 2.2.0, 2.3.8, 3.01
 
-  
-Topic: Others
+Install the THC extension for z-Way:
+  > sudo cp /opt/thc/modules/thc_zWay/thc_zWay.js /opt/z-way-server/automation
 
-Configure static IP address:
-Dhcpcd based configuration (Raspbian Wheezy 2015-05-05 and further, Raspbian Jessie 2015-09-24 and further).
-See http://raspberrypi.stackexchange.com/questions/37920/how-do-i-set-up-networking-wifi-static-ip
-Add to the end of the file /etc/dhcpcd.conf the following lines
-  > interface eth0
-  > static ip_address=<IpAddress>/24                (f.e: 192.168.1.21)
-  > static routers=<RouterAddress>                  (f.e: 192.168.1.1)
-  > static domain_name_servers=<DnsServerAddress>   (f.e: 192.168.1.1)
-
-Disable TV output (HDMI):
-Execute the following command
-  > sudo /opt/vc/bin/tvservice -o
-
+See also <thc_zWay> for more details regarding the THC setup for z-Way/Razberry.

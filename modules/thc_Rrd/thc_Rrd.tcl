@@ -28,15 +28,15 @@
 
 # Group: RRD module commands
 
-namespace eval thc_Rrd {
+namespace eval ::thc::Rrd {
 
-	set RrdTclAvailable [expr ![catch {package require Rrd}]]
-	set RrdToolAvailable [expr ![catch {exec rrdtool}]]
+	variable RrdTclAvailable [expr ![catch {package require Rrd}]]
+	variable RrdToolAvailable [expr ![catch {exec rrdtool}]]
 	variable RrdFile ""
 	variable RrdDeviceList {}
 
 	##########################
-	# Proc: thc_Rrd::Open
+	# Proc: thc::Rrd::Open
 	#    Creates or opens an RRD database. This command is a wrapper of the RRDTool
 	#    create function, using a simplified syntax. If the database doesn't 
 	#    exist it will be created. The round robin archives of the database are 
@@ -68,14 +68,14 @@ namespace eval thc_Rrd {
 	#    The following example opens or creates an RRD database that contains
 	#    3 MAX and AVERAGE archives :
 	#
-	#    > thc_Rrd::Open -file /var/thc/thc.rrd -step 60 \
+	#    > thc::Rrd::Open -file /var/thc/thc.rrd -step 60 \
 	#    >    -rra [list 1 [expr 26*60]] \
 	#    >    -rra [list 5 [expr 33*24*12]] \
 	#    >    -rra [list 60 [expr 358*24]]
 	#
 	#    This example runs the following command under the hood :
 	#
-	#    > Rrd::create /var/thc/thc.rrd --step 60 --start 1409169540 \
+	#    > thc::Rrd::create /var/thc/thc.rrd --step 60 --start 1409169540 \
 	#    >    DS:Surveillance_state:GAUGE:120:U:U \
 	#    >    DS:MotionSalon_state:GAUGE:120:U:U \
 	#    >    DS:LightSalon_state:GAUGE:120:U:U \
@@ -86,19 +86,19 @@ namespace eval thc_Rrd {
 	#    >    RRA:MAX:0.5:60:8592 RRA:AVERAGE:0.5:60:8592
 	#    
 	# See also:
-	#    <thc_Rrd::Log>, <thc_Rrd::Graph>, 
+	#    <thc::Rrd::Log>, <thc::Rrd::Graph>, 
 	#    RrdCreate documentation on <http://oss.oetiker.ch/rrdtool/doc/rrdcreate.en.html>
 	##########################
 
 	proc Open {args} {
-		global UpdateDeviceList
 		variable RrdTclAvailable
 		variable RrdToolAvailable
+		upvar #0 thc::UpdateDeviceList UpdateDeviceList
 
 		# Check if the RRD package is available
-		::Log {thc_Rrd::Open: Setup the RRD file for the graph generation} 3
+		::thc::Log {thc::Rrd::Open: Setup the RRD file for the graph generation} 3
 		if {!$RrdTclAvailable && !$RrdToolAvailable} {
-			::Log { -> Neither Tcl-Rrd package nor Rrd tools are available, graph generation is disabled} 3
+			::thc::Log { -> Neither Tcl-Rrd package nor Rrd tools are available, graph generation is disabled} 3
 			return
 		}
 		
@@ -119,7 +119,7 @@ namespace eval thc_Rrd {
 					}
 				}
 				default {
-					Assert 1 "thc_Rrd::Open: Option '-$arg' is unknown!"
+					::thc::Assert 1 "thc::Rrd::Open: Option '-$arg' is unknown!"
 				}
 			}
 		}
@@ -139,20 +139,20 @@ namespace eval thc_Rrd {
 		# existing. Check if the dataset setup in the current file
 		# corresponds to the current set of devices and add new devices if 
 		# necessary.
-		Assert [info exists Options(-file)] "thc_Rrd::Open: Option '-file' is mandatory!"
+		::thc::Assert [info exists Options(-file)] "thc::Rrd::Open: Option '-file' is mandatory!"
 		variable RrdFile $Options(-file)
 		variable Step $Options(-step)
 		if {[file exists $RrdFile]} {
 			# Check the existing dataset setup of the current file corresponds to the set of 
 			# new devices. This can only happen using the standalone Rrd tools.
 			if {!$RrdToolAvailable} {
-				::Log { -> Rrd tools are not installed, datasets cannot be verified/completed} 3$
+				::thc::Log { -> Rrd tools are not installed, datasets cannot be verified/completed} 3$
 				return
 			}
 			if {[catch {
 				set CurrentRrdDeviceList [RrdGetDeviceList $RrdFile]; # Devices defined in the current Rrd database
 			}]} {
-				::Log { -> 'Rrdtool info' failed, datasets cannot be verified/completed} 3
+				::thc::Log { -> 'Rrdtool info' failed, datasets cannot be verified/completed} 3
 				return
 			}
 
@@ -176,15 +176,15 @@ namespace eval thc_Rrd {
 
 			# Inform about not anymore used devices
 			if {$RemovedRrdDeviceList!={}} {
-				::Log { -> Not anymore used devices: $RemovedRrdDeviceList} 3
+				::thc::Log { -> Not anymore used devices: $RemovedRrdDeviceList} 3
 			}
 			
 			# Add the missing devices to the Rrd database if necessary
 			if {$MissingRrdDeviceList!={}} {
-				::Log { -> Found new devices: $MissingRrdDeviceList} 3
-				::Log { -> Trying now to extend current Rrd database ...} 3
+				::thc::Log { -> Found new devices: $MissingRrdDeviceList} 3
+				::thc::Log { -> Trying now to extend current Rrd database ...} 3
 				if {[catch {RrdAddDevices $RrdFile $MissingRrdDeviceList} ErrorMsg]} {
-					::Log { -> The new devices couldn't be added to the Rrd database, data logging is disabed} 3
+					::thc::Log { -> The new devices couldn't be added to the Rrd database, data logging is disabed} 3
 					set RrdFile ""
 					return
 				}
@@ -192,30 +192,30 @@ namespace eval thc_Rrd {
 				# The Rrd database extension was successful, add the new devices
 				# to the Rrd device list variable.
 				set RrdDeviceList [concat $CurrentRrdDeviceList $MissingRrdDeviceList]
-				::Log " -> New devices have been added. Backup of original database has been created." 3
+				::thc::Log " -> New devices have been added. Backup of original database has been created." 3
 			} else {
 				set RrdDeviceList $CurrentRrdDeviceList; # Use the device order of the existing database
-				::Log { -> Use current Rrd database} 3
+				::thc::Log { -> Use current Rrd database} 3
 			}
 			return
 		}
 
 		# The Rrd database doesn't exist, create a new one
 		if {[catch {RrdCreate $RrdFile $RRADefinitions} ErrorMsg]} {
-			::Log { -> $ErrorMsg, graph generation is disabled} 3
+			::thc::Log { -> $ErrorMsg, graph generation is disabled} 3
 			variable RrdFile ""; # This indicates to the other procedure that no database is available
 			return
 		}
 
-		::Log { -> New Rrd file has been created} 3
+		::thc::Log { -> New Rrd file has been created} 3
 	}
 
 
 	##########################
-	# thc_Rrd::RrdGetDeviceList
+	# thc::Rrd::RrdGetDeviceList
 	#    Get the list of devices defined by an Rrd database. An error will be 
 	#    generated if the file doesn't exist, or if the Rrd database cannot be 
-	#    parsed. This procedure is used by thc_Rrd::Open.
+	#    parsed. This procedure is used by thc::Rrd::Open.
 	#
 	# Parameters:
 	#    RrdFile - The name of the RRD database file
@@ -224,7 +224,7 @@ namespace eval thc_Rrd {
 	#    Device list
 	#    
 	# Examples:
-	#    thc_Rrd::RrdGetDeviceList thc.rrd
+	#    thc::Rrd::RrdGetDeviceList thc.rrd
 	##########################
 
 	proc RrdGetDeviceList {RrdFile} {
@@ -255,8 +255,8 @@ namespace eval thc_Rrd {
 
 	
 	##########################
-	# thc_Rrd::RrdAddDevices
-	#    Adds new devices to an existing RRD database. This procedure is used by thc_Rrd::Open.
+	# thc::Rrd::RrdAddDevices
+	#    Adds new devices to an existing RRD database. This procedure is used by thc::Rrd::Open.
 	#
 	# Parameters:
 	#    RrdFile - The name of the RRD database file
@@ -266,7 +266,7 @@ namespace eval thc_Rrd {
 	#    -
 	#
 	# Examples:
-	#    thc_Rrd::RrdAddDevices thc.rrd {Living,temp Living,hum}
+	#    thc::Rrd::RrdAddDevices thc.rrd {Living,temp Living,hum}
 	##########################
 
 	proc RrdAddDevices {RrdFile AddedDeviceList} {
@@ -333,7 +333,7 @@ namespace eval thc_Rrd {
 
 
 	##########################
-	# thc_Rrd::RrdRenameDevices
+	# thc::Rrd::RrdRenameDevices
 	#    Renames devices of an existing RRD database.
 	#
 	# Parameters:
@@ -344,11 +344,10 @@ namespace eval thc_Rrd {
 	#    -
 	#
 	# Examples:
-	#    thc_Rrd::RrdRenameDevices thc.rrd {Living,temp Living,temperature Living,hum Living,humidity}
+	#    thc::Rrd::RrdRenameDevices thc.rrd {Living,temp Living,temperature Living,hum Living,humidity}
 	##########################
 
 	proc RrdRenameDevices {RrdFile DeviceUpdateList} {
-
 		# Dump the current database
 		if {[catch {set Data [exec rrdtool dump $RrdFile]}]} {
 			error "Current Rrd database '$RrdFile' cannot be dumped".
@@ -383,8 +382,8 @@ namespace eval thc_Rrd {
 
 
 	##########################
-	# thc_Rrd::RrdRemoveDevices
-	#    Adds new devices to an existing RRD database. This procedure is used by thc_Rrd::Open.
+	# thc::Rrd::RrdRemoveDevices
+	#    Adds new devices to an existing RRD database. This procedure is used by thc::Rrd::Open.
 	#
 	# Parameters:
 	#    RrdFile - The name of the RRD database file
@@ -394,7 +393,7 @@ namespace eval thc_Rrd {
 	#    -
 	#
 	# Examples:
-	#    thc_Rrd::RrdRemoveDevices thc.rrd {Living,humidity}
+	#    thc::Rrd::RrdRemoveDevices thc.rrd {Living,humidity}
 	##########################
 
 	proc RrdRemoveDevices {RrdFile RemovedDeviceList} {
@@ -448,7 +447,7 @@ namespace eval thc_Rrd {
 
 	
 	##########################
-	# thc_Rrd::RrdModifyDeviceValues
+	# thc::Rrd::RrdModifyDeviceValues
 	#    Modify the values of a devices in an existing RRD database.
 	#
 	# Parameters:
@@ -466,7 +465,7 @@ namespace eval thc_Rrd {
 	#    -
 	#
 	# Examples:
-	#    thc_Rrd::RrdModifyDeviceValues thc.rrd "Living,temperature" {$Value+1.3}
+	#    thc::Rrd::RrdModifyDeviceValues thc.rrd "Living,temperature" {$Value+1.3}
 	##########################
 
 	proc RrdModifyDeviceValues {RrdFile Device Expression args} {
@@ -546,7 +545,7 @@ namespace eval thc_Rrd {
 
 	
 	##########################
-	# thc_Rrd::RrdCheckDeviceValueRange
+	# thc::Rrd::RrdCheckDeviceValueRange
 	#    Check the valid range of the values of a devices in an existing RRD 
 	#    database. Invalid values are marked as NaN
 	#
@@ -562,18 +561,18 @@ namespace eval thc_Rrd {
 	#    -
 	#
 	# Examples:
-	#    thc_Rrd::RrdCheckDeviceValueRange thc.rrd "Living,temperature" -5 40
+	#    thc::Rrd::RrdCheckDeviceValueRange thc.rrd "Living,temperature" -5 40
 	##########################
 
 	proc RrdCheckDeviceValueRange {RrdFile Device LowLimit HighLimit args} {
-		thc_Rrd::RrdModifyDeviceValues $RrdFile $Device \
+		thc::Rrd::RrdModifyDeviceValues $RrdFile $Device \
 			"(\$Value<$LowLimit || \$Value>$HighLimit ? \"\" : \$Value)" {*}$args
 	}
 
 	
 	##########################
-	# thc_Rrd::RrdCreate
-	#    Creates a new RRD database. This procedure is used by thc_Rrd::Open.
+	# thc::Rrd::RrdCreate
+	#    Creates a new RRD database. This procedure is used by thc::Rrd::Open.
 	#
 	# Parameters:
 	#    RrdFile - The name of the RRD database file
@@ -588,7 +587,7 @@ namespace eval thc_Rrd {
 		variable RrdToolAvailable
 		variable RrdDeviceList
 		variable Step
-		global Time
+		upvar #0 thc::Time Time
 
 		# Create the data source (DS) definitions for each device.
 		foreach RrdDevice $RrdDeviceList {
@@ -601,13 +600,13 @@ namespace eval thc_Rrd {
 		# Create the database using the Tcl-Rrd package or the standalone Rrdtool executable
 		if {$RrdTclAvailable} {
 			if {![catch {
-				::Log {Rrd file creation: $CmdArgs} 1
+				::thc::Log {Rrd file creation: $CmdArgs} 1
 				Rrd::create $RrdFile {*}$CmdArgs
 			}]} return
 		}
 		if {$RrdToolAvailable} {
 			if {![catch {
-				::Log {Rrd file creation: $CmdArgs} 1
+				::thc::Log {Rrd file creation: $CmdArgs} 1
 				exec rrdtool create $RrdFile {*}$CmdArgs]
 			}]} return
 		}
@@ -617,33 +616,36 @@ namespace eval thc_Rrd {
 
 
 	##########################
-	# Proc: thc_Rrd::Log
+	# Proc: thc::Rrd::Log
 	#    Logs the devices states. This command calls the RRDTool update 
 	#    function. The states of all declared devices is written to the opened 
 	#    RRD database.
 	#
 	#    For devices that have a sticky state, this sticky state is written 
 	#    instead of the instantaneous state. The sticky states has usually to 
-	#    be cleared with <ResetStickyStates> after having logged them by 
-	#    thc_Rrd::Log.
+	#    be cleared with <thc::ResetStickyStates> after having logged them by 
+	#    thc::Rrd::Log.
 	#
 	# Returns:
 	#    -
 	#    
 	# Examples:
-	#    > thc_Rrd::Log; ResetStickyStates
+	#    > thc::Rrd::Log; thc::ResetStickyStates
 	#    
 	# See also:
-	#    <thc_Rrd::Open>, <thc_Rrd::Graph>, <ResetStickyStates>,
+	#    <thc::Rrd::Open>, <thc::Rrd::Graph>, <thc::ResetStickyStates>,
 	#    RrdUpdate documentation on <http://oss.oetiker.ch/rrdtool/doc/rrdupdate.en.html>
 	##########################
 
 	proc Log {} {
-		global Time State StickyState UpdateDeviceList
 		variable RrdTclAvailable
 		variable RrdToolAvailable
 		variable RrdFile
 		variable Step
+		upvar #0 thc::Time Time
+		upvar #0 thc::State State
+		upvar #0 thc::StickyState StickyState
+		
 		if {$RrdFile==""} return
 
 		# Log the state of each device. If a state is not defined report 'U' (
@@ -662,7 +664,7 @@ namespace eval thc_Rrd {
 		}
 	
 		# Add the device states to the RRD database (via the rrdupdate command)
-		::Log {Rrd::update \"$RrdFile\" $Time:[join $StateList :]} 1
+		::thc::Log {Rrd::update \"$RrdFile\" $Time:[join $StateList :]} 1
 		if {[catch {
 			if {$RrdTclAvailable} {
 				Rrd::update $RrdFile $Time:[join $StateList ":"]
@@ -670,12 +672,12 @@ namespace eval thc_Rrd {
 				exec rrdtool update $RrdFile $Time:[join $StateList {:}]
 			}
 		}]} {
-			::Log {RrdLog error: ($::errorInfo)} 3
+			::thc::Log {RrdLog error: ($::errorInfo)} 3
 		}
 	}
 
 	##########################
-	# thc_Rrd::GetColorList
+	# thc::Rrd::GetColorList
 	#    Generates a set of <NbrColors> distinctive colors.
 	#    The algorithm has been found on:
 	#    <http://stackoverflow.com/questions/470690/how-to-automatically-generate-n-distinct-colors>
@@ -691,7 +693,7 @@ namespace eval thc_Rrd {
 	}
 
 	##########################
-	# Proc: thc_Rrd::Graph
+	# Proc: thc::Rrd::Graph
 	#    Generates a graph picture. This command calls the RRDTool graph 
 	#    function. The -type option allows specifying if the graphs have to be 
 	#    plotted overlaying (analog values), or if they have to be stacked 
@@ -706,7 +708,7 @@ namespace eval thc_Rrd {
 	#    GetDeviceCommand array variable.
 	#    
 	#    By specifying a dummy device the generated images can be displayed on
-	#    the website (see <DefineDevice>).
+	#    the website (see <thc::DefineDevice>).
 	#
 	# Parameters:
 	#    -file <PictureFile> - The name and path of the graph file to generate. 
@@ -727,7 +729,7 @@ namespace eval thc_Rrd {
 	#    
 	# Examples:
 	#    Plot of binary device states:
-	#    > thc_Rrd::Graph \
+	#    > thc::Rrd::Graph \
 	#    >   -file $::LogDir/thc.png \
 	#    >   -type binary \
 	#    >   -rrd_arguments [list \
@@ -741,7 +743,7 @@ namespace eval thc_Rrd {
 	#    >   {*}[lsearch -all -inline $DeviceList Light*,state]
 	#
 	#    Plot of analog device states :
-	#    > thc_Rrd::Graph \
+	#    > thc::Rrd::Graph \
 	#    >   -file $::LogDir/thc_bat.png \
 	#    >   -type analog \
 	#    >   -rrd_arguments [list \
@@ -753,7 +755,7 @@ namespace eval thc_Rrd {
 	#    >   {*}[lsearch -all -inline $DeviceList *,battery]
 	#
 	#    Plot two analog device states with different scales :
-	#    > thc_Rrd::Graph \
+	#    > thc::Rrd::Graph \
 	#    >   -file $::LogDir/thc_env.png \
 	#    >   -type analog \
 	#    >   -rrd_arguments [list \
@@ -765,18 +767,17 @@ namespace eval thc_Rrd {
 	#    >   Living,temp {Living,hum ",35,+,5,/"}
 	#
 	#    Display the generated image in the website: Use a dummy device :
-	#    > DefineDevice Battery,26hours \
+	#    > thc::DefineDevice Battery,26hours \
 	#    >       -name Battery -group "Graphs 26 hours" \
 	#    >       -type image -data $::LogDir/thc_bat.png
 	#
 	# See also:
-	#    <thc_Rrd::Open>, <thc_Rrd::Log>, 
+	#    <thc::Rrd::Open>, <thc::Rrd::Log>, 
 	#    RrdGraph  documentation on <http://oss.oetiker.ch/rrdtool/doc/rrdgraph.en.html>, 
 	#    Rrd RPN documentation on <http://http://oss.oetiker.ch/rrdtool/doc/rrdgraph_rpn.en.html>
 	##########################
 
 	proc Graph {args} {
-		global DeviceAttributes
 		variable RrdFile
 		variable RrdTclAvailable
 		variable RrdToolAvailable
@@ -799,8 +800,8 @@ namespace eval thc_Rrd {
 		}
 		
 		# Argument checks:
-		Assert [info exists Options(-file)] "thc_Rrd::Graph: Option '-file' is mandatory!"
-		Assert [llength $DeviceList] "thc_Rrd::Graph: Device list is empty"
+		::thc::Assert [info exists Options(-file)] "thc::Rrd::Graph: Option '-file' is mandatory!"
+		::thc::Assert [llength $DeviceList] "thc::Rrd::Graph: Device list is empty"
 
 		# Generate a list of distinctive colors
 		set ColorList [GetColorList [llength $DeviceList]]
@@ -813,7 +814,7 @@ namespace eval thc_Rrd {
 		foreach Device $DeviceList Color $ColorList {
 			# Extract an eventually provided RPN expression and cleanup the device name
 			set RpnExpression [lindex $Device 1]
-			set DeviceName $DeviceAttributes([lindex $Device 0],name)
+			set DeviceName $::thc::DeviceAttributes([lindex $Device 0],Name)
 			regsub -all {[,.]} [string range [lindex $Device 0] 0 18] {_} Device
 			
 			# Plot binary values stacked, based on the device counter variable:
@@ -834,7 +835,7 @@ namespace eval thc_Rrd {
 		# Generate the graph file via the rrdgraph command
 		set CmdArgs [list $Options(-file) {*}$Options(-rrd_arguments) \
 		                         {*}$DefList {*}$CDefList {*}$LineList]
-		::Log {Rrd graph generation: $CmdArgs} 1
+		::thc::Log {Rrd graph generation: $CmdArgs} 1
 		if {[catch {
 			if {$RrdTclAvailable} {
 				eval [list Rrd::graph {*}$CmdArgs]
@@ -842,8 +843,10 @@ namespace eval thc_Rrd {
 				exec rrdtool graph {*}$CmdArgs
 			}
 		}]} {
-			::Log {RrdGraph error: ($::errorInfo)} 3
+			::thc::Log {RrdGraph error: ($::errorInfo)} 3
 		}
 	}
 
 }; # end namespace thc_Rrd
+
+return

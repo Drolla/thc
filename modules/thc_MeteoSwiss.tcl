@@ -39,13 +39,13 @@
 #    > {thc_MeteoSwiss {<LocationAbbreviation> <WeatherParameter>}}
 # 
 # Examples:
-#    > DefineDevice Bern,temp \
+#    > thc::DefineDevice Bern,temp \
 #    >    -name Bern -group Environment -format "%sC" -range {-30 50} -update 10m \
 #    >    -get {thc_MeteoSwiss {"BER" "temperature"}}
 
 ######## Virtual device control functions ########
 
-namespace eval thc_MeteoSwiss {
+namespace eval ::thc::MeteoSwiss {
 
 	array set ParameterNames {
 		temperature tre200s0
@@ -62,7 +62,7 @@ namespace eval thc_MeteoSwiss {
 		# Fetch the current weather data
 		# Get the current weather data for the location
 		catch {
-			set LocationResponse [GetUrl "http://data.geo.admin.ch.s3.amazonaws.com/ch.meteoschweiz.swissmetnet/VQHA69.csv"]
+			set LocationResponse [::thc::GetUrl "http://data.geo.admin.ch.s3.amazonaws.com/ch.meteoschweiz.swissmetnet/VQHA69.csv"]
 			set LocationData [lindex $LocationResponse 2]
 		}
 			

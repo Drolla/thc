@@ -16,7 +16,7 @@
 # Group: Overview
 #
 # This module provides a simple but complete web interface for THC. To enable 
-# the interface it needs to be initiated with the command <thc_Web::Start>.
+# the interface it needs to be initiated with the command <thc::Web::Start>.
 #
 # The web interface adds to THC a HTTP web server and provides a web
 # application. Both the web application and the web server can be extended 
@@ -26,20 +26,20 @@
 
 package require t2ws
 
-proc t2ws::WriteLog {Message Tag} {
-	::Log "t2ws: $Message" 3
+proc ::t2ws::WriteLog {Message Tag} {
+	::thc::Log "t2ws: $Message" 3
 }
 
 # Group: Commands
 
-namespace eval thc_Web {
+namespace eval ::thc::Web {
 	namespace export Start Stop
 
 	# Module variables
 	variable Server ""; # Server handler
 
 	##########################
-	# Proc: thc_Web::Start
+	# Proc: thc::Web::Start
 	#    Starts the HTTP server. This command starts an HTTP web server at the 
 	#    specified port.
 	#
@@ -50,7 +50,7 @@ namespace eval thc_Web {
 	#    HTTP server socket identifier
 	#    
 	# Examples:
-	#    > thc_Web::Start 8087
+	#    > thc::Web::Start 8087
 	##########################
 	
 	proc Start {Port} {
@@ -60,26 +60,26 @@ namespace eval thc_Web {
 		
 		# Open the new socket server
 		set Server [t2ws::Start $Port -responder [namespace current]::GetRequestResponseData -method GET]
-		Log "thc_Web started (port $Port)" 3
+		thc::Log "thc_Web started (port $Port)" 3
 	}
 	
 	
 	##########################
-	# Proc: thc_Web::Stop
+	# Proc: thc::Web::Stop
 	#    Closes a running HTTP web server.
 	#
 	# Returns:
 	#    -
 	#    
 	# Examples:
-	#    > thc_Web::Stop
+	#    > thc::Web::Stop
 	##########################
 
 	proc Stop {} {
 		variable Server
 		# Stop the server if it is still running
 		if {$Server ne ""} {
-			Log "thc_Web stopped" 3
+			thc::Log "thc_Web stopped" 3
 			t2ws::Stop $Server
 			set Server ""
 		}
@@ -94,9 +94,9 @@ namespace eval thc_Web {
 	##########################
 
 	proc GetRequestResponseData {Request} {
-		global ThcHomeDir
+		set ThcHomeDir $::thc::ThcHomeDir
 		set GetRequestString [dict get $Request URI]
-		Log {GetRequestResponseData $GetRequestString} 1
+		thc::Log {GetRequestResponseData $GetRequestString} 1
 		
 		# Process API command GET requests
 		if {[regexp {^/api/(.*)$} $GetRequestString {} ApiCommand]} {
@@ -105,7 +105,7 @@ namespace eval thc_Web {
 			set ApiCommand [lindex $ApiCommand 0]
 
 			# Execute the command. Catch eventual errors
-			if {![catch {set ApiResult [thc_Web::API::$ApiCommand {*}$Args]} err]} {
+			if {![catch {set ApiResult [thc::Web::API::$ApiCommand {*}$Args]} err]} {
 				# If the MIME type is 'file', return the file path (the file 
 				# will be handled later). Otherwise return the content type 
 				# and data.
@@ -144,10 +144,12 @@ namespace eval thc_Web {
 
 
 # Load the main API commands
-source $::ThcHomeDir/../modules/thc_Web/thc_Web_API.tcl
+source $::thc::ThcHomeDir/../modules/thc_Web/thc_Web_API.tcl
 
 # Load the API commands from the other modules
-foreach WebAPIFile [glob -nocomplain $::ThcHomeDir/../modules/*/thc_Web/thc_Web_API.tcl] {
+foreach WebAPIFile [glob -nocomplain $::thc::ThcHomeDir/../modules/*/thc_Web/thc_Web_API.tcl] {
 	source $WebAPIFile
 }
 unset -nocomplain WebAPIFile
+
+return

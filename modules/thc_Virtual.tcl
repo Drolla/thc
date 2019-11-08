@@ -22,13 +22,14 @@
 # initialized to 0.
 #    
 # Examples:
-#    > DefineDevice Surveillance,state -get {thc_Virtual "Surveillance"} \
-#    >                                 -set {thc_Virtual "Surveillance"}
+#    > thc::DefineDevice Surveillance,state -get {thc_Virtual "Surveillance"} \
+#    >                                      -set {thc_Virtual "Surveillance"}
 
 ######## Virtual device control functions ########
 
-namespace eval thc_Virtual {
+namespace eval ::thc::Virtual {
 
+	variable DeviceStates
 	array set DeviceStates {}
 
 	##########################

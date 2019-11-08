@@ -24,7 +24,7 @@
 
 # Group: CSV log module commands
 
-namespace eval thc_Csv {
+namespace eval ::thc::Csv {
 
 	variable FHandle; # CSV file handle
 	variable CsvDeviceList {}; # List of devices to log
@@ -32,7 +32,7 @@ namespace eval thc_Csv {
 	variable MinInterval 0; # Minimum interval is ignored
 
 	##########################
-	# Proc: thc_Csv::Open
+	# Proc: thc::Csv::Open
 	#    Creates or opens an CSV data file. If the file exists already the new
 	#    logging data will be will be appended to the file. This works also if 
 	#    devices are added or removed. If the devices to are not explicitly 
@@ -42,7 +42,7 @@ namespace eval thc_Csv {
 	# Parameters:
 	#    -file <CsvFile> - The name of the CSV data file to open or to create
 	#    [-min_interval <MinInterval>] - Minimal interval in seconds in which 
-	#          the data are logged into the CSV data file. The thc_Csv::Log 
+	#          the data are logged into the CSV data file. The thc::Csv::Log 
 	#          command will be ignored if it is called in a shorter interval 
 	#          than the specified minimum interval.
 	#    [-devices <DeviceList>] - List of devices to log. By default all devices
@@ -55,24 +55,24 @@ namespace eval thc_Csv {
 	#    The following example opens or creates an CSV data file that logs the
 	#    states of all devices in a minimum interval of 5 minutes :
 	#
-	#    > thc_Csv::Open -file /var/thc/thc.csv -min_interval 300
+	#    > thc::Csv::Open -file /var/thc/thc.csv -min_interval 300
 	#    
 	# See also:
-	#    <thc_Csv::Log>
+	#    <thc::Csv::Log>
 	##########################
 
 	proc Open {args} {
-		global UpdateDeviceList
 		variable LastLogTime 0; # Last logging time, used to respect the min interval
 		variable FHandle; # CSV file handle
 		variable CsvDeviceList {}; # List of devices to log
+		
 		set CsvNewDeviceList {}; # New devices that are not in the existing database
 		set CsvRemovedDeviceList {}; # Devices removed from the existing database
 
-		::Log {thc_Csv::Open: Setup the CSV data logging file} 3
+		::thc::Log {thc::Csv::Open: Setup the CSV data logging file} 3
 
 		# Default options
-		set DeviceList $UpdateDeviceList; # List of devices to log
+		set DeviceList $::thc::UpdateDeviceList; # List of devices to log
 		variable MinInterval 0; # Minimum interval is ignored
 
 		# Parse all options, and check them
@@ -86,15 +86,15 @@ namespace eval thc_Csv {
 				-devices {
 					set DeviceList [lindex $args [incr a]] }
 				default {
-					Assert 1 "thc_Csv::Open: Option '-$arg' is unknown!" }
+					::thc::Assert 1 "thc::Csv::Open: Option '-$arg' is unknown!" }
 			}
 		}
-		Assert [info exists CsvFile] "thc_Csv::Open: Option '-file' is mandatory!"
-		Assert [string is integer -strict $MinInterval] "thc_Csv::Open: Option '-min_interval' has to be an integer!"
+		::thc::Assert [info exists CsvFile] "thc::Csv::Open: Option '-file' is mandatory!"
+		::thc::Assert [string is integer -strict $MinInterval] "thc::Csv::Open: Option '-min_interval' has to be an integer!"
 
 		# If the CSV file exists already: Read the list of the devices from the 1st line
 		if {[file exists $CsvFile]} {
-			::Log { -> Use current file} 3
+			::thc::Log { -> Use current file} 3
 			
 			# Read the first line, trim white spices at the line end
 			set FHandle [open $CsvFile r+]
@@ -126,7 +126,7 @@ namespace eval thc_Csv {
 				}
 			}
 		} else {
-			::Log { -> Create new file} 3
+			::thc::Log { -> Create new file} 3
 			set FHandle [open $CsvFile w]
 		}
 		
@@ -140,13 +140,13 @@ namespace eval thc_Csv {
 
 		# Inform about not anymore used devices
 		if {$CsvRemovedDeviceList!={}} {
-			::Log { -> Not anymore used devices: $CsvRemovedDeviceList} 3
+			::thc::Log { -> Not anymore used devices: $CsvRemovedDeviceList} 3
 		}
 
 		# If new devices are present: Create the entire 1st CSV line, reserve
 		# 2048 characters (for eventual further additional devices)
 		if {[llength $CsvNewDeviceList]>0} {
-			::Log { -> Adding new devices: $CsvNewDeviceList} 3
+			::thc::Log { -> Adding new devices: $CsvNewDeviceList} 3
 			set CsvLine "Date/Time,"
 			# Add double quotes if the device name contain commas
 			foreach Device $CsvDeviceList {
@@ -169,31 +169,34 @@ namespace eval thc_Csv {
 
 
 	##########################
-	# Proc: thc_Csv::Log
+	# Proc: thc::Csv::Log
 	#    Logs the devices states. The states of all declared devices is written 
 	#    to the opened CSV data file.
 	#
 	#    For devices that have a sticky state, this sticky state is written 
 	#    instead of the instantaneous state. The sticky states has usually to 
-	#    be cleared with <ResetStickyStates> after having logged them by 
-	#    thc_Csv::Log.
+	#    be cleared with <thc::ResetStickyStates> after having logged them by 
+	#    thc::Csv::Log.
 	#
 	# Returns:
 	#    -
 	#    
 	# Examples:
-	#    > thc_Csv::Log; ResetStickyStates
+	#    > thc::Csv::Log; ResetStickyStates
 	#    
 	# See also:
-	#    <thc_Csv::Open>, <ResetStickyStates>
+	#    <thc::Csv::Open>, <thc::ResetStickyStates>
 	##########################
 
 	proc Log {} {
-		global Time State StickyState
 		variable CsvDeviceList
 		variable MinInterval
 		variable LastLogTime
 		variable FHandle
+		upvar #0 thc::Time Time
+		upvar #0 thc::State State
+		upvar #0 thc::StickyState StickyState
+
 
 		# Ignore the logging request if no CSV file exists or if the minimum
 		# time interval is not respected.
@@ -215,13 +218,15 @@ namespace eval thc_Csv {
 		}
 
 		# Add the device states to the CSV data file
-		::Log {Csv::Log $StateLine} 1
+		::thc::Log {Csv::Log $StateLine} 1
 		if {[catch {
 			puts $FHandle $StateLine
 			flush $FHandle
 		}]} {
-			::Log {Csv::Log error: ($::errorInfo)} 3
+			::thc::Log {Csv::Log error: ($::errorInfo)} 3
 		}
 	}
 
 }; # end namespace thc_Csv
+
+return

@@ -20,7 +20,7 @@
 #
 # The web server provided by the module <Web interface> responds to *get*
 # requests. It return either files or results from the commands provided 
-# by the _thc_Web::API_ namespace.
+# by the _thc::Web::API_ namespace.
 #
 #   * File requests: The URL has to point to an existing file inside the web 
 #     home directory 'modules/thc_Web/www_simple/'. The master HTML file *index.html*
@@ -31,7 +31,7 @@
 #     considered as command that will be executed and whose result will be 
 #     returned. Command and arguments have to be separated by spaces (Tcl 
 #     syntax). The web server support all commands that are part of the 
-#     namespace _thc_Web::API_. An initial commands set is provided by this 
+#     namespace _thc::Web::API_. An initial commands set is provided by this 
 #     sub module (see <Web server commands>), but it can be extended if 
 #     necessary (see <Web server command set extension>).
 #
@@ -65,10 +65,10 @@
 # Group: Web server commands
 # This section provides the list of the standard web server commands. 
 
-namespace eval thc_Web::API {
+namespace eval ::thc::Web::API {
 
 	##########################
-	# Proc:  thc_Web::API::GetDeviceInfo
+	# Proc:  thc::Web::API::GetDeviceInfo
 	#    Returns device information. GetDeviceInfo returns information about all
 	#    available devices in the JSON format. The keys of the returned main 
 	#    list are the device identifiers. The values are sub lists composed
@@ -94,17 +94,16 @@ namespace eval thc_Web::API {
 	##########################
 
 	proc GetDeviceInfo {} {
-		global DeviceList DeviceAttributes
 		set DeviceInfoJSON "\{\n"
-		foreach Device $DeviceList {
-			if {$DeviceAttributes($Device,group)==""} continue; # Skip devices with no group
+		foreach Device $::thc::DeviceList {
+			if {$::thc::DeviceAttributes($Device,Group)==""} continue; # Skip devices with no group
 			append DeviceInfoJSON "\"$Device\":\n  \{"
 			
 			foreach {AttrName} {name type group data} {
-				append DeviceInfoJSON "\"$AttrName\":\"$DeviceAttributes($Device,$AttrName)\","
+				append DeviceInfoJSON "\"$AttrName\":\"$::thc::DeviceAttributes($Device,$AttrName)\","
 			}
-			append DeviceInfoJSON "\"range\":\[[join $DeviceAttributes($Device,range) ,]\],"
-			append DeviceInfoJSON "\"step\":\[[join $DeviceAttributes($Device,step) ,]\],"
+			append DeviceInfoJSON "\"range\":\[[join $::thc::DeviceAttributes($Device,Range) ,]\],"
+			append DeviceInfoJSON "\"step\":\[[join $::thc::DeviceAttributes($Device,Step) ,]\],"
 			append DeviceInfoJSON "\},\n"
 		}
 
@@ -115,7 +114,7 @@ namespace eval thc_Web::API {
 
 	
 	##########################
-	# Proc:  thc_Web::API::GetDeviceStatesAfterEvent
+	# Proc:  thc::Web::API::GetDeviceStatesAfterEvent
 	#    Waits on event and returns device states. GetDeviceStatesAfterEvent
 	#    waits on a change of a device state (event) and returns then the new
 	#    device states in the JSON format. This returned list contains pairs of
@@ -134,14 +133,14 @@ namespace eval thc_Web::API {
 	##########################
 
 	proc GetDeviceStatesAfterEvent {} {
-		after 60000 {set ::Event(*) 0}
-		vwait ::Event(*)
+		after 60000 {set ::thc::Event(*) 0}
+		vwait ::thc::Event(*)
 		return [GetDeviceStates]
 	}
 	
 	
 	##########################
-	# Proc:  thc_Web::API::GetDeviceStates
+	# Proc:  thc::Web::API::GetDeviceStates
 	#    Returns device states. GetDeviceStatesAfterEvent returns then the 
 	#    current device states in the JSON format. This returned list contains 
 	#    pairs of device identifiers and device states.
@@ -159,11 +158,10 @@ namespace eval thc_Web::API {
 	##########################
 
 	proc GetDeviceStates {} {
-		global UpdateDeviceList State DeviceAttributes
 		set DeviceStatesJSON "\{"
-		foreach Device $UpdateDeviceList {
-			set DeviceState $State($Device)
-			catch {set DeviceState [format $DeviceAttributes($Device,format) $DeviceState]}
+		foreach Device $::thc::UpdateDeviceList {
+			set DeviceState $::thc::State($Device)
+			catch {set DeviceState [format $::thc::DeviceAttributes($Device,Format) $DeviceState]}
 			append DeviceStatesJSON "\"$Device\":\"$DeviceState\","
 		}
 		append DeviceStatesJSON "\}"
@@ -172,7 +170,7 @@ namespace eval thc_Web::API {
 	}
 
 	##########################
-	# Proc:  thc_Web::API::SetDeviceState
+	# Proc:  thc::Web::API::SetDeviceState
 	#    Set device states. SetDeviceState sets the states of a list of devices 
 	#    accordantly to a specified level.
 	#
@@ -191,15 +189,13 @@ namespace eval thc_Web::API {
 	##########################
 
 	proc SetDeviceState {DeviceId NewState} {
-		variable DeviceStates
-		variable DeviceNbr
 		regsub -all {_} $DeviceId {,} DeviceId
-		Set $DeviceId $NewState
+		::thc::Set $DeviceId $NewState
 		return {text/plain ""}
 	}
 
 	##########################
-	# Proc:  thc_Web::API::GetDeviceData
+	# Proc:  thc::Web::API::GetDeviceData
 	#    Get device data. GetDeviceData returns the data attached to a device,
 	#    usually stored in an external file.
 	#
@@ -217,14 +213,13 @@ namespace eval thc_Web::API {
 	##########################
 
 	proc GetDeviceData {DeviceId} {
-		global DeviceAttributes
 		regsub -all {_} $DeviceId {,} DeviceId
 
-		set DeviceType $DeviceAttributes($DeviceId,type)
-		set DeviceData $DeviceAttributes($DeviceId,data)
+		set DeviceType $::thc::DeviceAttributes($DeviceId,Type)
+		set DeviceData $::thc::DeviceAttributes($DeviceId,Data)
 
 		if {$DeviceType=="image"} {
-			catch {set ContentType $::thc_Web::HttpdMimeType([file extension $DeviceData])}
+			catch {set ContentType $::thc::Web::HttpdMimeType([file extension $DeviceData])}
 			return [list file $DeviceData]
 		} else {
 			set ReturnContent "Device type '$DeviceType' unknown!"
@@ -232,18 +227,19 @@ namespace eval thc_Web::API {
 		}
 	}
 
-}; # end namespace thc_Web::API
+}; # end namespace thc::Web::API
 
+return
 
 # Group: Web server command set extension
 #
 # The initial web server command set can be extended by defining additional 
-# commands inside the namespace *thc_Web::API*. Such command definitions
+# commands inside the namespace *thc::Web::API*. Such command definitions
 # can for example be made inside the THC configuration file. The web server
 # commands need to return a list with 2 elements; The first one is the HTTP
 # response MIME type, the second one is the HTTP response itself.
 #
-#   : namespace eval thc_Web::API {
+#   : namespace eval ::thc::Web::API {
 #   :    proc GetDateTime {
 #   :       return [list text/plain \
 #   :                    [clock format $::Time -format {%A, %Y.%m.%d, %H:%M:%S}]]
@@ -255,7 +251,7 @@ namespace eval thc_Web::API {
 # path. The web server will in this case return the MIME type related to the 
 # file extension together with the file content.
 #
-#   : namespace eval thc_Web::API {
+#   : namespace eval ::thc::Web::API {
 #   :    proc GetLogo {
 #   :       return [list file "/opt/mystuff/mylogo.gif"]
 #   :    }
@@ -276,6 +272,6 @@ namespace eval thc_Web::API {
 #
 # If a file extension is not recognized the MIME type 'text/plain' is returned.
 # Additional MIME types can be declared via the array variable 
-# thc_Web::HttpdMimeType. Example:
+# thc::Web::HttpdMimeType. Example:
 #
-#   : set thc_Web::HttpdMimeType(.mp4) "audio/mp4"
+#   : set thc::Web::HttpdMimeType(.mp4) "audio/mp4"

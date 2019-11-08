@@ -8,8 +8,6 @@ THC requires that Tcl 8.5 or above is installed on the target system. The Tk ext
 
 To log device states and to plot graphs either the standalone RRD tools or the RRD package for Tcl needs to be installed.
 
-To use the mail alert module, the Unix 'mail' command needs to be available.
-
 
 Topics: Installing THC
 
@@ -22,65 +20,67 @@ See also: <THC installation on a Raspberry>
 
 Topics: Configuring THC
 
-THC requires the configuration file *config.tcl* that is usually stored inside the THC main directory. This configuration file declares devices and automation tasks (jobs). Configuration file template and example files are placed in the THC main directory. They provide good starting points to write a customized configuration file. Read also the <THC-Basics> documentation to get some basics about the way to handle device states and events. This information is required for the declaration of jobs.
+THC requires the configuration file *config.tcl* that is usually stored inside the THC main directory. This configuration file declares devices and automation tasks (jobs). An example configuration file is placed in the THC main directory. It provides a good starting point to write a customized configuration file. Read also the <THC-Basics> documentation to get some basics about the way to handle device states and events. This information is required for the declaration of jobs. The configuration file contains the following information:
 
 * Heartbeat definition: The heartbeat defines the update interval in milliseconds. The default update interval is 1000ms.
-   > set HeartBeatMS 1000
+   > thc::DefineHeartBeatMS 1000
 
-* Specify a log file and a log level (level: 0 - very detailed log, 3 - log of important messages, see also <DefineLog>)
-   > DefineLog 1 "/var/thc/thc_server.log" 1
+* Specify a log file and a log level (level: 0 - very detailed log, 3 - log of important messages, see also <thc::DefineLog>)
+   > thc::DefineLog 1 "/var/thc/thc_server.log" 1
 
-* Start the HTTP web server by providing the IP port to use
-	> thc_Web::Start 8086
+* Start the HTTP web server by providing the TCP/IP port to use
+   > thc::Web::Start 8086
 
-* If you use a z-Way/Razberry controller, define the z-Way server access IP port (see <thc_zWay::Init>)
-   > thc_zWay::Init "http://localhost:8083"
+* If you use a z-Way/Razberry controller, define the z-Way server access IP port (see <thc::zWay::Init>)
+   > thc::zWay::Init "http://localhost:8083"
 
-* Declare your devices (see <DefineDevice>)
+* Declare your devices (see <thc::DefineDevice>)
    > # Virtual devices
-	> 	DefineDevice Surveillance,state \
-	> 	    -name Surveillance -group Scenes -type switch \
-	> 	    -get {thc_Virtual "Surveillance"} \
-	> 	    -set {thc_Virtual "Surveillance"}
-	>
+   > thc::DefineDevice Surveillance,state \
+   >        -name Surveillance -group Scenes -type switch \
+   >        -get {thc_Virtual "Surveillance"} \
+   >        -set {thc_Virtual "Surveillance"}
+   >
    > # Z-Way devices
-	> DefineDevice MotionSalon,state  -get {thc_zWay "SensorBinary 12"} -sticky 1
-   > DefineDevice Sirene,state       -get {thc_zWay "SwitchBinary 16.0"} \
-   >                                 -set {thc_zWay "SwitchBinary 16.0"}
-   > DefineDevice LightSalon,state   -get {thc_zWay "SwitchBinary 8.1"} \
-   >                                 -set {thc_zWay "SwitchBinary 8.1"}
-	>
+   > thc::DefineDevice MotionLiving,state  -get {thc_zWay "SensorBinary 12"} -sticky 1
+   > thc::DefineDevice Sirene,state       -get {thc_zWay "SwitchBinary 16.0"} \
+   >                                      -set {thc_zWay "SwitchBinary 16.0"}
+   > thc::DefineDevice LightLiving,state   -get {thc_zWay "SwitchBinary 8.1"} \
+   >                                      -set {thc_zWay "SwitchBinary 8.1"}
+   >
    > # OpenWeatherMap devices
-	> DefineDevice ChauxDeFonds,temp \
-	>        -name Bern -group Environment -format "%sC" -range {-30 50} -update 10m \
-	>        -get {thc_OpenWeatherMap {"Bern,ch" "temp"}}
-	>
+   > thc::DefineDevice ChauxDeFonds,temp \
+   >        -name Bern -group Environment -format "%sC" -range {-30 50} -update 10m \
+   >        -get {thc_OpenWeatherMap {"Bern,ch" "temp"}}
+   >
    > # OpenWeatherMap devices
-	> DefineDevice ChauxDeFonds,chx_hum \
-	>        -name "Humidity Chaux-de-Fonds" -group Environment -format "%s%%" -update 10m \
-	>        -get {thc_MeteoSwiss {"CDF" "humidity"}}
+   > thc::DefineDevice ChauxDeFonds,chx_hum \
+   >        -name "Humidity Chaux-de-Fonds" -group Environment -format "%s%%" -update 10m \
+   >        -get {thc_MeteoSwiss {"CDF" "humidity"}}
 
-* Automation tasks/jobs definitions (see <DefineJob>)
-   > DefineJob -tag Surv -description "Alarm detection" \
-	>           -condition {$Event(Alarm,state)==1} {
-   >    Set {Sirene,state LightSalon,state} 1
-   >    Log "Alarm on" 1
+* Automation tasks/jobs definitions (see <thc::DefineJob>)
+   > thc::DefineJob -tag Surv -description "Alarm detection" \
+   >                -condition {$Event(Alarm,state)==1} {
    >
-   >    DefineJob -tag SirenOff -description "Stop the alarm siren" -time +3m {
-   >       Set Sirene,state 0
-   >       Log "Alarm siren stopped" 1
+   >    thc::Set {Sirene,state LightLiving,state} 1
+   >    thc::Log "Alarm on" 1
+   >
+   >    thc::DefineJob -tag SirenOff -description "Stop the alarm siren" -time +3m {
+   >       thc::Set Sirene,state 0
+   >       thc::Log "Alarm siren stopped" 1
    >    }
    >
-   >    DefineJob -tag LightOff -description "Switch off the alarm lights" -time +45m {
-   >       Set LightSalon,state 0
-   >       Log "Alarm lights turned off" 1
+   >    thc::DefineJob -tag LightOff -description "Switch off the alarm lights" -time +45m {
+   >       thc::Set LightLiving,state 0
+   >       thc::Log "Alarm lights turned off" 1
    >    }
+   > }
 
 Please refer to the documentation of the different extension modules to get information about module specific configurations.
 
 Topics: Start THC
 
-Before you run THC make sure that the THC main program is executable (on Unix like systems) and that the log directory exists (e.g. /var/thc). If the Tcl interpreter executable is named 'tclsh' THC can be directly launched with the following command :
+Before you run THC, make sure that the THC main program is executable (on Unix like systems) and that the log directory exists (e.g. /var/thc). If the Tcl interpreter executable is named 'tclsh' THC can be directly launched with the following command :
     > <THC_ROOT_DIR>/bin/thc.tcl [Options]
 
 Otherwise mention in the command line explicitly the Tcl interpreter command :
@@ -94,7 +94,7 @@ The options have to be pairs of THC internal variable names prefixed with '-' an
                 'config.tcl' that is stored inside the THC root directory.
 
 Example :
-   > tclsh thc.tcl -DebugScript HtcDebug.tcl
+   > tclsh thc.tcl -DebugScript ThcDebug.tcl
 
 
 Topics: Go test THC!

@@ -32,16 +32,16 @@
 #   - The THC server needs to be installed and running on the target system.
 #
 # *THC configuration (config.tcl)*
-#   - Initialize the interface with the <thc_zWay::Init> command. For z-Way 
+#   - Initialize the interface with the <thc::zWay::Init> command. For z-Way 
 #     revision 2.1.1 and above you need to provide the name and password of 
 #     a user registered by the z-Way server.
-#   - Declare the Z-Wave devices with <DefineDevice>, see <z-Way device definitions>
+#   - Declare the Z-Wave devices with <thc::DefineDevice>, see <z-Way device definitions>
 #
 # Once this setup is completed the declared Z-Wave devices are accessible via 
-# the global <Get> and <Set> commands.
+# the global <thc::Get> and <thc::Set> commands.
 
 # Topic: z-Way device definitions
-#    z-Way devices are defined with the global <DefineDevice> command. The 
+#    z-Way devices are defined with the global <thc::DefineDevice> command. The 
 #    'Set' and 'Get' command specifiers need to be composed in the following
 #    way:
 #
@@ -66,7 +66,7 @@
 #    Virtual - Allows accessing virtual devices from the z-way automation 
 #              system.
 #    TagReader - Provides info about the last event of the BeNEXT tag reader.
-#                The <Get> command returns a list of 2-3 elements. The first 
+#                The <thc::Get> command returns a list of 2-3 elements. The first 
 #                one corresponds to the last event time, the second one is one 
 #                of the following event names: 'lock', 'unlock', 'tamper', 
 #                'wrongcode'. In case the event is 'wrongcode' the 3rd element 
@@ -78,42 +78,42 @@
 #    Control - Allows implementing control states (=variables) on the z-Way server.
 #    
 # Examples:
-#    > thc_zWay::Init "http://192.168.1.21:8083" -user admain -password admin
+#    > thc::zWay::Init "http://192.168.1.21:8083" -user admain -password admin
 #    >
-#    > DefineDevice Surveillance,state -get {thc_zWay "Virtual DummyDevice_bn_5"} \
-#    >                                 -set {thc_zWay "Virtual DummyDevice_bn_5"}
+#    > thc::DefineDevice Surveillance,state -get {thc_zWay "Virtual DummyDevice_bn_5"} \
+#    >                                      -set {thc_zWay "Virtual DummyDevice_bn_5"}
 #    > 
-#    > DefineDevice LightCave,state    -get {thc_zWay "SwitchBinary 20.1"} \
-#    >                                 -set {thc_zWay "SwitchBinary 20.1"}
+#    > thc::DefineDevice LightCellar,state    -get {thc_zWay "SwitchBinary 20.1"} \
+#    >                                      -set {thc_zWay "SwitchBinary 20.1"}
 #    > 
-#    > DefineDevice LightLiv2,state    -type level \
-#    >                                 -get {thc_zWay "SwitchMultilevel 12.2"} \
-#    >                                 -set {thc_zWay "SwitchMultilevel 12.2"}
+#    > thc::DefineDevice LightLiv2,state    -type level \
+#    >                                      -get {thc_zWay "SwitchMultilevel 12.2"} \
+#    >                                      -set {thc_zWay "SwitchMultilevel 12.2"}
 #    > 
-#    > DefineDevice Sirene,state       -get {thc_zWay "SwitchBinary 16.0"} \
-#    >                                 -set {thc_zWay "SwitchBinary 16.0"}
-#    > DefineDevice Sirene,battery     -get {thc_zWay "Battery 16.0"} -update 1h
+#    > thc::DefineDevice Sirene,state       -get {thc_zWay "SwitchBinary 16.0"} \
+#    >                                      -set {thc_zWay "SwitchBinary 16.0"}
+#    > thc::DefineDevice Sirene,battery     -get {thc_zWay "Battery 16.0"} -update 1h
 #    > 
-#    > DefineDevice TagReader1,state   -get {thc_zWay "TagReader 22"} \
-#    >                                 -set {thc_zWay "SwitchBinary 22"}
-#    > DefineDevice TagReader1,battery -get {thc_zWay "Battery 22"} -update 1h
+#    > thc::DefineDevice TagReader1,state   -get {thc_zWay "TagReader 22"} \
+#    >                                      -set {thc_zWay "SwitchBinary 22"}
+#    > thc::DefineDevice TagReader1,battery -get {thc_zWay "Battery 22"} -update 1h
 #    > 
-#    > DefineDevice MultiCave,temp     -get {thc_zWay "SensorMultilevel 23.0.1"} -update 1m
-#    > DefineDevice MultiCave,hum      -get {thc_zWay "SensorMultilevel 23.0.5"} -update 1m
-#    > DefineDevice MultiCave,battery  -get {thc_zWay "Battery 23"} -update 1h
+#    > thc::DefineDevice MultiCellar,temp     -get {thc_zWay "SensorMultilevel 23.0.1"} -update 1m
+#    > thc::DefineDevice MultiCellar,hum      -get {thc_zWay "SensorMultilevel 23.0.5"} -update 1m
+#    > thc::DefineDevice MultiCellar,battery  -get {thc_zWay "Battery 23"} -update 1h
 #    > 
-#    > DefineDevice FourLevelFan,state -get {thc_zWay "SwitchMultiBinary 33.1.2"} \
-#    >                                 -set {thc_zWay "SwitchMultiBinary 33.1.2"}
+#    > thc::DefineDevice FourLevelFan,state -get {thc_zWay "SwitchMultiBinary 33.1.2"} \
+#    >                                      -set {thc_zWay "SwitchMultiBinary 33.1.2"}
 
 ######## z-Way device control functions ########
 
-namespace eval thc_zWay {
+namespace eval ::thc::zWay {
 
 	variable UrlBase ""; # URL used to access the z-Way server
 	variable GetUrlArgs {}; # Optional GetUrl headers (e.g. used for authentication (cookies))
 
 	##########################
-	# Proc: thc_zWay::Init
+	# Proc: thc::zWay::Init
 	#    Initializes the z-Way/Razberry interface. Init waits first until the 
 	#    z-Way server is accessible, and loads then the THC extension to the z-Way
 	#    JavaScript interpreter.
@@ -134,7 +134,7 @@ namespace eval thc_zWay {
 	#    -
 	#    
 	# Examples:
-	#    > thc_zWay::Init "http://192.168.1.21:8083" -user admain -password admin
+	#    > thc::zWay::Init "http://192.168.1.21:8083" -user admain -password admin
 	#    
 	# See also:
 	#    <z-Way device definitions>
@@ -153,26 +153,26 @@ namespace eval thc_zWay {
 		
 
 		array set InitArgs $args
-		Log {Open z-Way connection on $Url} 3
+		::thc::Log {Open z-Way connection on $Url} 3
 
 		# Wait until the z-Way server can be accessed, access the base path
 		while {1} {
 			if {![catch {
-				GetUrl "$Url" -method HEAD -validate 1 -noerror 0 -nbrtrials 1 {*}$GetUrlArgs
+				::thc::GetUrl "$Url" -method HEAD -validate 1 -noerror 0 -nbrtrials 1 {*}$GetUrlArgs
 			}]} {
 				break
 			}
 			
-			Log {  z-Way controller not accessible on $Url, try again in 30'} 3
+			::thc::Log {  z-Way controller not accessible on $Url, try again in 30'} 3
 			after 30000
 		}
 
 		# Check if authentication is required
-		set zWayRevResponse [GetUrl "$Url/JS/Run/zway.controller.data.softwareRevisionVersion.value" -method GET -noerror 0 {*}$GetUrlArgs]
+		set zWayRevResponse [::thc::GetUrl "$Url/JS/Run/zway.controller.data.softwareRevisionVersion.value" -method GET -noerror 0 {*}$GetUrlArgs]
 		if {[lindex $zWayRevResponse 0]>=400 && [lindex $zWayRevResponse 0]<500} { # 4xx error
-			Log {  Unexpected z-Way server response ($zWayRevResponse), try using authentication} 3
+			::thc::Log {  Unexpected z-Way server response ($zWayRevResponse), try using authentication} 3
 			if {![info exists InitArgs(-user)] || ![info exists InitArgs(-password)]} {
-				Log {  No user name/password defined! Call: thc_zWay::Init -user <User> -password <PW>} 3
+				::thc::Log {  No user name/password defined! Call: thc::zWay::Init -user <User> -password <PW>} 3
 				return
 			}
 
@@ -186,7 +186,7 @@ namespace eval thc_zWay {
 			http::cleanup $tok
 
 			if {$StatusCode!=200} {
-				Log {  Authentication failed, z-Way interface will be disabled ($Status)} 3
+				::thc::Log {  Authentication failed, z-Way interface will be disabled ($Status)} 3
 				return
 			}
 			
@@ -196,7 +196,7 @@ namespace eval thc_zWay {
 					lappend Cookies [lindex [split $v {;}] 0] }
 			}
 			if {![info exists Cookies]} {
-				Log {  Unable to login, no authentication cookie provided. z-Way interface will be disabled!} 3
+				::thc::Log {  Unable to login, no authentication cookie provided. z-Way interface will be disabled!} 3
 				return
 			}
 			
@@ -204,13 +204,13 @@ namespace eval thc_zWay {
 			set GetUrlArgs [list -headers [concat [lindex $GetUrlArgs 1] Cookie [join $Cookies {;}]]]
 			
 			# Try again to read the z-Way revision
-			set zWayRevResponse [GetUrl "$Url/JS/Run/zway.controller.data.softwareRevisionVersion.value" -method GET -noerror 0 {*}$GetUrlArgs]
+			set zWayRevResponse [::thc::GetUrl "$Url/JS/Run/zway.controller.data.softwareRevisionVersion.value" -method GET -noerror 0 {*}$GetUrlArgs]
 			if {[lindex $zWayRevResponse 0]!=200} {
-				Log {  Unable to communicate with the z-Way server response ($zWayRevResponse), z-Way interface will be disabled!} 3
+				::thc::Log {  Unable to communicate with the z-Way server response ($zWayRevResponse), z-Way interface will be disabled!} 3
 				return
 			}
 		}
-		Log {  z-Way software revision is: [lindex $zWayRevResponse 2]} 2
+		::thc::Log {  z-Way software revision is: [lindex $zWayRevResponse 2]} 2
 
 		
 		# Assure that the THC extension has been loaded to the z-Way server. The
@@ -226,9 +226,9 @@ namespace eval thc_zWay {
 		# The THC extension is loaded with the executeFile command:
 		#    http://<Url>/JS/Run/executeFile("thc_zWay.js");
 		if {![catch {
-			set CheckResResponse [GetUrl "$Url/JS/Run/Get_IndexArray(257.1)" -method GET {*}$GetUrlArgs -noerror 0]; # -> [257,1,0]
+			set CheckResResponse [::thc::GetUrl "$Url/JS/Run/Get_IndexArray(257.1)" -method GET {*}$GetUrlArgs -noerror 0]; # -> [257,1,0]
 		}] && [lindex $CheckResResponse 2]=={[257,1,0]}} {
-			Log {  z-Way THC extensions are available} 3
+			::thc::Log {  z-Way THC extensions are available} 3
 			set UrlBase $Url
 			return
 		}
@@ -236,13 +236,13 @@ namespace eval thc_zWay {
 		# The THC extension seems not be loaded. Load it, and check again if
 		# it has been correctly loaded.
 		if {![catch {
-			set StatusResponse [GetUrl "$Url/JS/Run/executeFile(\"thc_zWay.js\");" -method GET {*}$GetUrlArgs -noerror 0]; # -> Null
-			set CheckResResponse [GetUrl "$Url/JS/Run/Get_IndexArray(257.1)" -method GET {*}$GetUrlArgs -noerror 0]; # -> [257,1,0]
+			set StatusResponse [::thc::GetUrl "$Url/JS/Run/executeFile(\"thc_zWay.js\");" -method GET {*}$GetUrlArgs -noerror 0]; # -> Null
+			set CheckResResponse [::thc::GetUrl "$Url/JS/Run/Get_IndexArray(257.1)" -method GET {*}$GetUrlArgs -noerror 0]; # -> [257,1,0]
 		}] && [lindex $CheckResResponse 2]=={[257,1,0]}} {
-			Log {  Loaded z-Way THC extension} 3
+			::thc::Log {  Loaded z-Way THC extension} 3
 			set UrlBase $Url
 		} else {
-			Log {  Cannot load z-Way THC extension! Is it placed inside the automation folder? z-Way module is disabled.} 3
+			::thc::Log {  Cannot load z-Way THC extension! Is it placed inside the automation folder? z-Way module is disabled.} 3
 		}
 	}
 	
@@ -263,8 +263,8 @@ namespace eval thc_zWay {
 		switch $CommandGroup {
 			"TagReader" {
 				# Install the bindings for the alarms
-				Log {thc_zWay::DeviceSetup $DeviceNbr -> Configure TagReader} 1
-				set Response [GetUrl "$UrlBase/JS/Run/Configure_TagReader($DeviceNbr)" -method GET {*}$GetUrlArgs] }
+				::thc::Log {thc::zWay::DeviceSetup $DeviceNbr -> Configure TagReader} 1
+				set Response [::thc::GetUrl "$UrlBase/JS/Run/Configure_TagReader($DeviceNbr)" -method GET {*}$GetUrlArgs] }
 		}
 	}
 
@@ -284,7 +284,7 @@ namespace eval thc_zWay {
 		regsub -all { } $JsonFormatedArgs "\",\"" JsonFormatedArgs; # -> ["SensorBinary","12"],["SensorBinary","5"],["SwitchBinary","7.2"]
 		set JsonFormatedArgs "\[$JsonFormatedArgs\]"; # -> [["SensorBinary","12"],["SensorBinary","5"],["SwitchBinary","7.2"]]
 		
-		set NewStateResponse [GetUrl "$UrlBase/JS/Run/Get($JsonFormatedArgs)" -method GET {*}$GetUrlArgs]; # -> [0,"",1,[1407694169,"unlock"],\"\",17.7]
+		set NewStateResponse [::thc::GetUrl "$UrlBase/JS/Run/Get($JsonFormatedArgs)" -method GET {*}$GetUrlArgs]; # -> [0,"",1,[1407694169,"unlock"],\"\",17.7]
 		# Return empty states if the z-Way server response isn't OK (200)
 		if {[lindex $NewStateResponse 0]!=200} {
 			return [lrepeat $NbrDevices ""] }
@@ -317,7 +317,7 @@ namespace eval thc_zWay {
 		regsub -all { } $JsonFormatedArgs "\",\"" JsonFormatedArgs; # -> ["Control","Surveillance"],["SwitchBinary","20.1"]
 		set JsonFormatedArgs "\[$JsonFormatedArgs\]"; # -> [["Control","Surveillance"],["SwitchBinary","20.1"]]
 		
-		set NewStateResponse [GetUrl "$UrlBase/JS/Run/Set($JsonFormatedArgs,$NewState)" -method GET {*}$GetUrlArgs]
+		set NewStateResponse [::thc::GetUrl "$UrlBase/JS/Run/Set($JsonFormatedArgs,$NewState)" -method GET {*}$GetUrlArgs]
 		# Return empty states if the z-Way server response isn't OK (200)
 		if {[lindex $NewStateResponse 0]!=200} {
 			return [lrepeat $NbrDevices ""] }
@@ -335,7 +335,7 @@ namespace eval thc_zWay {
 	proc Sleep {ElementList} {
 		variable UrlBase
 		variable GetUrlArgs
-		global DeviceId
+		set DeviceId $::thc::DeviceId
 		
 		# Ignore this command if the z-Way URL isn't defined
 		if {$UrlBase==""} return
@@ -343,7 +343,9 @@ namespace eval thc_zWay {
 		foreach Element $ElementList {
 			lappend ElementIdList $DeviceId($Element)
 		}
-		GetUrl $UrlBase/JS/Run/Sleep(\[$ElementIdList\]) -method GET {*}$GetUrlArgs
+		::thc::GetUrl $UrlBase/JS/Run/Sleep(\[$ElementIdList\]) -method GET {*}$GetUrlArgs
 	}
 
 }; # end namespace thc_zWay
+
+return

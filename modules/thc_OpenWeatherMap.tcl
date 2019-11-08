@@ -16,7 +16,9 @@
 # Group: Introduction and setup
 #
 # The thc_OpenWeatherMap module implements THC devices that get data from the 
-# OpenWeatherMap site.
+# OpenWeatherMap site. A registration is required to use the OpenWeatherMap 
+# service. The API key obtained during the registration process needs to be 
+# declared with the <thc::OpenWeatherMap::Configure> command.
 #
 # To get weather data you need first to know a location recognized by 
 # OpenWeatherMap. The location can either be defined via the city name, the 
@@ -39,15 +41,52 @@
 #    > {thc_OpenWeatherMap {<Location> <WeatherParameter>}}
 # 
 # Examples:
-#    > DefineDevice Bern,temp \
+#    > thc::OpenWeatherMap::Configure \
+#    >    -api_key 1234567890abcd
+#    >
+#    > thc::DefineDevice Bern,temp \
 #    >    -name Bern -group Environment -format "%sC" -range {-30 50} -update 10m \
 #    >    -get {thc_OpenWeatherMap {"Bern,ch" "temp"}}
 
 ######## Virtual device control functions ########
 
-namespace eval thc_OpenWeatherMap {
+namespace eval ::thc::OpenWeatherMap {
+
+	##########################
+	# Proc: thc::OpenWeatherMap::Configure
+	#    Configures the OpenWeatherMap access.
+	#
+	# Parameters:
+	#    [-api_key <API_Key>] - OpenWeatherMap API Key.
+	#
+	# Returns:
+	#    -
+	#    
+	# Examples:
+	#    > thc::OpenWeatherMap::Configure \
+	#    >    -api_key 1234567890abcd
+	##########################
+	
+	variable Config
+	array set Config {
+		-api_key ""
+	}
+
+	proc Configure {args} {
+		variable Config
+		
+		if {$args=={}} {
+			return [array get Config]
+		} elseif {[llength $args]==1} {
+			return $Config($args)
+		} else {
+			array set Config $args
+		}
+	}
 
 	proc Get {GetCmdList} {
+		variable Config
+
 		# Evaluate the list of locations, together with the corresponding 
 		# parameter list
 		foreach GetCmd $GetCmdList {
@@ -58,7 +97,7 @@ namespace eval thc_OpenWeatherMap {
 		# data the requested parameters related to the location
 		foreach Location [array names Parameters] {
 			# Get the current weather data for the location
-			set LocationResponse [GetUrl "http://api.openweathermap.org/data/2.5/weather?q=$Location"]
+			set LocationResponse [thc::GetUrl "http://api.openweathermap.org/data/2.5/weather?q=${Location}&appid=$Config(-api_key)"]
 			set LocationData [lindex $LocationResponse 2]
 			
 			# The returned data has the following format:

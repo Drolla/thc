@@ -19,23 +19,23 @@
 # This module provides a Timer that allows controlling device states at a 
 # certain time, and in a certain interval. User can set and delete timers from 
 # the default web application (see <Web interface>). The timer settings are backed 
-# up in the recovery file defined by <ConfigureRecoveryFile>, and restored 
+# up in the recovery file defined by <thc::ConfigureRecoveryFile>, and restored 
 # after a restart of THC.
 
 # Group: thc_Timer module commands
 
-namespace eval thc_Timer {
+namespace eval ::thc::Timer {
 
-	set TimerCount 0; # Job counter
+	variable TimerCount 0; # Job counter
 
 	##########################
-	# Proc: thc_Timer::Define
+	# Proc: thc::Timer::Define
 	#    Registers a new timer task. A timer task allows controlling a device 
 	#    state at a certain time and in a certain interval.
 	#
 	# Parameters:
 	#    <Time> -     Timer time. Absolute and relative time definitions are 
-	#                 accepted. Supported formats: See the -time argument of <DefineJob>.
+	#                 accepted. Supported formats: See the -time argument of <thc::DefineJob>.
 	#    <Device> -   Device that will be controlled
 	#    <Command> -  Device control command. Allowed commands are: 'On', 
 	#                 'Off', 'Switch', 'Set <Value>'. The commands are case insensitive.
@@ -48,14 +48,14 @@ namespace eval thc_Timer {
 	#    Timer job identifier
 	# 
 	# Examples:
-	#    > thc_Timer::Define "2015-01-06 08:30" Surveillance,state Off 7d
+	#    > thc::Timer::Define "2015-01-06 08:30" Surveillance,state Off 7d
 	#    > -> timer0
 	#    > 
-	#    > thc_Timer::Define 08h30m LightLiving,state Switch 5m "Light switch"
+	#    > thc::Timer::Define 08h30m LightLiving,state Switch 5m "Light switch"
 	#    > -> timer1
 	#    
 	# See also:
-	#    <thc_Timer::Delete>, <thc_Timer::List>
+	#    <thc::Timer::Delete>, <thc::Timer::List>
 	##########################
 	
 	proc Define {Time Device Command {Repeat ""} {Description ""}} {
@@ -68,18 +68,18 @@ namespace eval thc_Timer {
 		set JobTag "timer$TimerCount"
 		
 		# Define the timer job
-		set JobCmd "thc_Timer::StateControl $Device $Command"
+		set JobCmd "thc::Timer::StateControl $Device $Command"
 		if {$Repeat==""} { # Delete the job after its execution if no repeat is defined
-			append JobCmd "\nDefineRecoveryCommand thc_Timer,$JobTag"}
+			append JobCmd "\n::thc::DefineRecoveryCommand thc_Timer,$JobTag"}
 		if {[catch {
-			::DefineJob -tag $JobTag -time $Time -repeat $Repeat -description $Description $JobCmd
+			::thc::DefineJob -tag $JobTag -time $Time -repeat $Repeat -description $Description $JobCmd
 		} Err]} {
-			regsub {DefineJob} $Err {thc_Timer::Define} Err
+			regsub {DefineJob} $Err {thc::Timer::Define} Err
 			return -code error $Err
 		}
 		
 		incr TimerCount
-		DefineRecoveryCommand thc_Timer,$JobTag "thc_Timer::Define \
+		::thc::DefineRecoveryCommand thc_Timer,$JobTag "thc::Timer::Define \
 		       \{$Time\} \{$Device\} \{$Command\} \{$Repeat\} \{$Description\}"
 
 		return $JobTag
@@ -87,7 +87,7 @@ namespace eval thc_Timer {
 
 
 	##########################
-	# Proc: thc_Timer::Delete
+	# Proc: thc::Timer::Delete
 	#    Delete one or multiple timer tasks.
 	#
 	# Parameters:
@@ -98,11 +98,11 @@ namespace eval thc_Timer {
 	#    -
 	#    
 	# Examples:
-	#    > thc_Timer::Delete timer15 timer7
-	#    > thc_Timer::Delete 15 7
+	#    > thc::Timer::Delete timer15 timer7
+	#    > thc::Timer::Delete 15 7
 	#    
 	# See also:
-	#    <thc_Timer::Define>, <thc_Timer::List>
+	#    <thc::Timer::Define>, <thc::Timer::List>
 	##########################
 
 	proc Delete {args} {
@@ -110,16 +110,16 @@ namespace eval thc_Timer {
 			regsub {^(\d+)$} $JobTag {timer\1} JobTag; # add prefix 'timer' if not yet defined
 			
 			# Kill the job
-			KillJob $JobTag
+			::thc::KillJob $JobTag
 
 			# Remove the job from the recovery command (without providing a command the job will be deleted)
-			DefineRecoveryCommand thc_Timer,$JobTag
+			::thc::DefineRecoveryCommand thc_Timer,$JobTag
 		}
 	}
 
 	
 	##########################
-	# Proc: thc_Timer::List
+	# Proc: thc::Timer::List
 	#    List all active timer tasks. The returned result is a list of timer 
 	#    task definitions. Each timer task definition itself is a list composed
 	#    by the following elements:
@@ -137,23 +137,23 @@ namespace eval thc_Timer {
 	#    Timer task list
 	#    
 	# Examples:
-	#    > thc_Timer::List
+	#    > thc::Timer::List
 	#    > -> {timer2 {Tue Jan 06 08:30:00 CET 2015} Surveillance,state On {} \
 	#    >            {Timer 2: Surveillance,state On @ 2015-01-06 08:30, rep=''}} \
 	#    >    {timer3 {Tue Jan 06 09:30:00 CET 2015} Surveillance,state Off 3600 \
 	#    >            {Timer 3: Surveillance,state Off @ 2015-01-06 09:30, rep='1h'}}
 	#    
 	# See also:
-	#    <thc_Timer::Define>, <thc_Timer::Delete>
+	#    <thc::Timer::Define>, <thc::Timer::Delete>
 	##########################
 
 	proc List {} {
 		set TimerTaskList  {}
 		
 		# Loop over all defined jobs
-		foreach Job $::JobList {
+		foreach Job $::thc::JobList {
 			# Job syntax:         { NextExecTime Tag RepeatInterval MinInterval Description Script }
-			# Job example:        { {1420533000 100} timer2 3600 {} {Timer 2: Surveillance,state Off @ 2015-01-06 09:30, rep='1h'} {thc_Timer::StateControl Surveillance,state Off} }
+			# Job example:        { {1420533000 100} timer2 3600 {} {Timer 2: Surveillance,state Off @ 2015-01-06 09:30, rep='1h'} {thc::Timer::StateControl Surveillance,state Off} }
 			# Timer task example: { timer2 {Tue Jan 06 09:30:00 CET 2015} Surveillance,state Off 3600 {Timer 2: Surveillance,state Off @ 2015-01-06 09:30, rep='1h'} }
 
 			# Skip jobs not related to this timer module
@@ -166,7 +166,7 @@ namespace eval thc_Timer {
 			if {[string is integer -strict $Repeat]} {
 				set Repeat [format "%2.2dD%2.2dH%2.2dM%2.2dS" [expr $Repeat/24/3600] [expr ($Repeat/3600)%24] [expr ($Repeat/60)%60] [expr $Repeat%60]] }
 			set Description [lindex $Job 4]
-			regexp {thc_Timer::StateControl\s+([^\s]+)\s+([^\s]+)\s} [info body ::Job($Tag)] - Device Command
+			regexp {thc::Timer::StateControl\s+([^\s]+)\s+([^\s]+)\s} [info body ::thc::Job($Tag)] - Device Command
 			
 			# Append the task to the task list
 			lappend TimerTaskList [list $Tag $Time $Device $Command $Repeat $Description]
@@ -176,7 +176,7 @@ namespace eval thc_Timer {
 
 	
 	##########################
-	# thc_Timer::StateControl
+	# thc::Timer::StateControl
 	#    Internal command called by the timer. Controls device states.
 	#
 	# Parameters:
@@ -189,13 +189,15 @@ namespace eval thc_Timer {
 
 	proc StateControl {Device Command} {
 		switch -nocase [lindex $Command 0] {
-			"on"  {Set $Device 1}
-			"off" {Set $Device 0}
-			"set" {Set $Device [lindex $Command 1]}
-			"switch" {Set $Device [expr {$::State($Device)!="1"}]}
+			"on"  {::thc::Set $Device 1}
+			"off" {::thc::Set $Device 0}
+			"set" {::thc::Set $Device [lindex $Command 1]}
+			"switch" {::thc::Set $Device [expr {$::thc::State($Device)!="1"}]}
 		}
 		return
 	}
 	
 	
 }; # end namespace thc_Timer
+
+return

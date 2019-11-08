@@ -50,45 +50,50 @@ Format: 1.52
 # --------------------------------------------------------------------------
 
 
-File: THC - Getting started  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\developper\doc\THC-Getting-started.txt)
-File: THC - Introduction  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\developper\doc\THC-Introduction.txt)
-File: Core functions  (no auto-title, C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\bin\thc.tcl)
-File: THC - Basics  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\developper\doc\THC-Basics.txt)
+File: THC - Getting started  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\developper\doc\THC-Getting-started.txt)
+File: THC - Introduction  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\developper\doc\THC-Introduction.txt)
+File: Core functions  (no auto-title, C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\bin\thc.tcl)
+File: THC - Basics  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\developper\doc\THC-Basics.txt)
 
 Group: Target interface modules  {
 
-   File: MeteoSwiss  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_MeteoSwiss.tcl)
-   File: OpenWeatherMap  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_OpenWeatherMap.tcl)
-   File: Virtual devices  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_Virtual.tcl)
-   File: z-Way/Razberry interface  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_zWay\thc_zWay.tcl)
+   File: HTTP debug server  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\modules\thc_HttpDServer\thc_HttpDServer.tcl)
+   File: MeteoSwiss  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\modules\thc_MeteoSwiss.tcl)
+   File: Multi binary switch devices  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\modules\thc_MultiBinarySwitch.tcl)
+   File: OpenWeatherMap  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\modules\thc_OpenWeatherMap.tcl)
+   File: Status logging in CSV format  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\modules\thc_Csv.tcl)
+   File: Virtual devices  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\modules\thc_Virtual.tcl)
+   File: z-Way/Razberry interface  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\modules\thc_zWay\thc_zWay.tcl)
    }  # Group: Target interface modules
 
 Group: Extension modules  {
 
-   File: Job timer  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_Timer\thc_Timer.tcl)
-   File: HTTP debug server  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_HttpDServer.tcl)
-   File: Mail alert  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_MailAlert.tcl)
-   File: Random light control  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_RandomLight.tcl)
-   File: Status logging and graph generation  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_Rrd\thc_Rrd.tcl)
-   File: Web interface  (no auto-title, C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_Web\thc_Web.tcl)
+   File: Job timer  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\modules\thc_Timer\thc_Timer.tcl)
+   File: Mail alert  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\modules\thc_MailAlert.tcl)
+   File: Random light control  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\modules\thc_RandomLight.tcl)
+   File: Status logging and graph generation  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\modules\thc_Rrd\thc_Rrd.tcl)
+   File: Web interface  (no auto-title, C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\modules\thc_Web\thc_Web.tcl)
    }  # Group: Extension modules
 
 Group: Targets  {
 
-   File: THC installation on a Raspberry  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\targets\Raspberry\Raspberry-installation.txt)
+   File: THC installation on a Raspberry  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\targets\Raspberry\Raspberry-installation.txt)
    }  # Group: Targets
 
 Group: Utilities  {
 
-   File: THC RRD database manipulation utility  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_Rrd\RrdManip.tcl)
+   File: THC RRD database manipulation utility  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\modules\thc_Rrd\RrdManip.tcl)
    }  # Group: Utilities
 
 Group: Developers  {
 
-   File: Developer information  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\developper\doc\THC-Developers.txt)
-   File: Web server API  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_Web\thc_Web_API.tcl)
-   File: z-Way extension for THC  (C:\Users\Andreas Drollinger\Development\Raspberry PI\thc\modules\thc_zWay\thc_zWay.js)
+   File: THC - Developers  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\developper\doc\THC-Developers.txt)
+   File: Web server API  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\modules\thc_Web\thc_Web_API.tcl)
+   File: z-Way extension for THC  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\modules\thc_zWay\thc_zWay.js)
    }  # Group: Developers
+
+File: nd2md - NaturalDocs to MarkDown translator  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\developper\doc\nd2md\nd2md.tcl)
+File: THC - Version 2  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\developper\doc\THC-Version-2.txt)
 
 Group: Index  {
 
@@ -99,7 +104,7 @@ Group: Index  {
 
 
 ##### Do not change or remove these lines. #####
-Data: 1(D3330wba6GH6bK\fHGp6XBHuoo8\`GHbBG/GouIEG\tbCp6IYGHHQXgvbtR9bfG/GouIIGHbfu9)
-Data: 1(h3330wba6GH6bK\fHGp6XBHuoo8\`GHbBG/GouIEG\tbCp6IYGHHQXgvbtR9bY8\)
-Data: 1(T3330wba6GH6bK\fHGp6XBHuoo8\`GHbBG/GouIEG\tbCp6IYGHHQXgvbtR9bEufNoG6)
-Data: 1(-3330wba6GH6bK\fHGp6XBHuoo8\`GHbBG/GouIEG\tbCp6IYGHHQXgvbtR9btpH`Gt6)
+Data: 1(D3330wba6GH6bK\fHGp6XBHuoo8\`GHbBG/GouIEG\tbL9obVPQXKII6btR9bfG/GouIIGHbfu9)
+Data: 1(h3330wba6GH6bK\fHGp6XBHuoo8\`GHbBG/GouIEG\tbL9obVPQXKII6btR9bY8\)
+Data: 1(T3330wba6GH6bK\fHGp6XBHuoo8\`GHbBG/GouIEG\tbL9obVPQXKII6btR9bEufNoG6)
+Data: 1(-3330wba6GH6bK\fHGp6XBHuoo8\`GHbBG/GouIEG\tbL9obVPQXKII6btR9btpH`Gt6)

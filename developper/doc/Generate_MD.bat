@@ -26,7 +26,8 @@ tclsh nd2md\nd2md.tcl ^
    "THC-Introduction.txt" ^
    "THC-Getting-started.txt" ^
    "THC-Basics.txt" ^
-   "THC-Developers.txt"
+   "THC-Developers.txt" ^
+   "THC-Version-2.txt"
 
 :: Core function documentation
 tclsh nd2md\nd2md.tcl ../../bin/thc.tcl

@@ -26,11 +26,11 @@
 
 package require t2ws
 
-proc t2ws::WriteLog {Message Tag} {
-	::Log "t2ws: $Message" 3
+proc ::t2ws::WriteLog {Message Tag} {
+	::thc::Log "t2ws: $Message" 3
 }
 
-namespace eval thc_HttpDServer {
+namespace eval ::thc::HttpDServer {
 	namespace export Start Stop
 
 	# Module variables
@@ -38,7 +38,7 @@ namespace eval thc_HttpDServer {
 	variable ThisModuleDir [file normalize [file dirname [info script]]]
 
 	##########################
-	# Proc: thc_HttpDServer::Start
+	# Proc: thc::HttpDServer::Start
 	#    Start the HTTP server. This command starts an HTTP server at the 
 	#    specified port. It accepts Tcl commands, evaluates them, 
 	#    and returns the result.
@@ -50,7 +50,7 @@ namespace eval thc_HttpDServer {
 	#    HTTP server socket identifier
 	#    
 	# Examples:
-	#    > thc_HttpDServer::Start 8085
+	#    > thc::HttpDServer::Start 8085
 	##########################
 	
 	proc Start {Port} {
@@ -61,24 +61,24 @@ namespace eval thc_HttpDServer {
 		t2ws::DefineRoute $Server [namespace current]::Responder_ShowFile -method GET -uri /showfile/*
 		t2ws::DefineRoute $Server [namespace current]::Responder_DownloadFile -method GET -uri /download/*
 		t2ws::DefineRoute $Server [namespace current]::Responder_TclCmd -method POST -uri /*
-		Log "thc Debug server started (port $Port)" 3
+		thc::Log "thc Debug server started (port $Port)" 3
 	}
 	
 	##########################
-	# Proc: thc_HttpDServer::Stop
+	# Proc: thc::HttpDServer::Stop
 	#    Closes a running HTTP server.
 	#
 	# Returns:
 	#    -
 	#    
 	# Examples:
-	#    > thc_HttpDServer::Stop
+	#    > thc::HttpDServer::Stop
 	##########################
 
 	proc Stop {} {
 		variable Server
 		if {$Server ne ""} {
-			Log "thc Debug server stopped" 3
+			thc::Log "thc Debug server stopped" 3
 			t2ws::Stop $Server
 			set Server ""
 		}
@@ -228,3 +228,5 @@ namespace eval thc_HttpDServer {
 	interp alias {} ::puts {} [namespace current]::PutsOrig
 
 }; # end namespace thc_HttpDServer
+
+return

@@ -25,24 +25,31 @@ exec tclsh "$0" ${1+"$@"}
 
 ######## Option definitions ########
 
-	set ThcHomeDir [file dirname [info script]]
-	set DebugScript ""; # No default debug script
-	set ConfigFile $::ThcHomeDir/../config.tcl; # Default configuration file
-
-	# Overwrite the constants by eventually provided arguments
+	namespace eval thc {
 	
-	for {set Indx 0} {$Indx<[llength $argv]} {incr Indx} {
-		if {[string index [lindex $argv $Indx] 0]!="-"} {
-			error "Wrong argument: [lindex $argv $Indx]"
+		### Options ###
+	
+		# THC home directory (location of this file)
+		variable ThcHomeDir [file dirname [info script]]
+		variable DebugScript ""; # No default debug script
+		set ConfigFile $ThcHomeDir/../config.tcl; # Default configuration file
+
+		# Overwrite the constants by eventually provided arguments
+	
+		for {set Indx 0} {$Indx<[llength $argv]} {incr Indx} {
+			if {[string index [lindex $argv $Indx] 0]!="-"} {
+				error "Wrong argument: [lindex $argv $Indx]"
+			}
+			variable [string range [lindex $argv $Indx] 1 end] [lindex $argv [incr Indx]]
 		}
-		set [string range [lindex $argv $Indx] 1 end] [lindex $argv [incr Indx]]
+		unset Indx
 	}
-	unset Indx
 
 
 ######## Library/package source paths ########
 
-	lappend auto_path [file normalize $ThcHomeDir/../libs]
+	lappend auto_path [file normalize $thc::ThcHomeDir/../libs]
+
 
 ######## Log ########
 
@@ -51,9 +58,9 @@ exec tclsh "$0" ${1+"$@"}
 # THC provides continuously information about ongoing activities activities, 
 # scheduled and executed jobs, and eventually encountered failures. The level
 # of detail as well as the log destination is specified with the command 
-# <DefineLog>. The command <Log> is available to log a message. It is used by
-# THC itself and by the provided extension modules, but it can also be used 
-# inside the user scripts and jobs.
+# <thc::DefineLog>. The command <thc::Log> is available to log a message. It 
+# is used by THC itself and by the provided extension modules, but it can also 
+# be used inside the user scripts and jobs.
 #
 # The level of detail is defined by the log level which is specified in the 
 # following way:
@@ -66,8 +73,14 @@ exec tclsh "$0" ${1+"$@"}
 #         provided by THC and its modules, errors
 #   3 - Logs only important commands and errors
 
+	# Variable declarations
+	namespace eval thc {
+		variable LogLevel 0
+		variable fLog stdout
+	}
+
 	##########################
-	# Proc: DefineLog
+	# Proc: thc::DefineLog
 	#    Configures the activity logging. DefineLog opens the log file and 
 	#    specifies the level of details that will be logged.
 	#    By default THC uses a log level of 2 and logs information to the 
@@ -86,28 +99,29 @@ exec tclsh "$0" ${1+"$@"}
 	#    -
 	#    
 	# Examples:
-	#    > DefineLog stdout 1
+	#    > thc::DefineLog stdout 1
 	#
-	#    > DefineLog "/var/thc/thc_server.log"
+	#    > thc::DefineLog "/var/thc/thc_server.log"
 	#    
 	# See also:
-	#    <Log>
+	#    <thc::Log>
 	##########################
 
-	proc DefineLog {LogFile {LogLevel 2}} {
-		set ::LogLevel $LogLevel
+	proc thc::DefineLog {LogFile {LogLevel 2}} {
+		set ::thc::LogLevel $LogLevel
+		variable fLog
 		Log {Log information will be written to $LogFile (level $LogLevel)}
 		if {$LogFile=="" || $LogFile=="stdout"} {
-			set ::fLog stdout
+			set fLog stdout
 		} else {
-			if {[catch {set ::fLog [open $LogFile a]}]} {
+			if {[catch {set fLog [open $LogFile a]}]} {
 				Log {Failing opening log file $LogFile. Log will be written to stdout}
 			}
 		}
 	}
 
 	##########################
-	# Proc: Log
+	# Proc: thc::Log
 	#    Log a message.
 	#
 	# Parameters:
@@ -119,19 +133,21 @@ exec tclsh "$0" ${1+"$@"}
 	#    -
 	#    
 	# Examples:
-	#    > Log {Switch light on: $Device} 2
+	#    > thc::Log {Switch light on: $Device} 2
 	#    
 	# See also:
-	#    <DefineLog>
+	#    <thc::DefineLog>
 	##########################
 
-	proc Log {Text {Level 3}} {
-		global fLog Time
-		if {[info exists fLog] && $Level>=$::LogLevel} {
+	proc thc::Log {Text {Level 3}} {
+		variable fLog
+		variable LogLevel
+		variable Time
+		if {[info exists fLog] && $Level>=$LogLevel} {
 			set Text [uplevel 1 "subst \{$Text\}"]
 			set Message [format "%s - %s" [clock format $Time -format "%Y.%m.%d,%H:%M:%S"] $Text]
-			puts $::fLog $Message
-			flush $::fLog
+			puts $fLog $Message
+			flush $fLog
 		}
 	}
 
@@ -140,12 +156,22 @@ exec tclsh "$0" ${1+"$@"}
 # Group: Device control
 # The following group of commands allows controlling the different devices.
 
+	namespace eval thc {
+		variable UpdateDeviceList {}
+		variable DeviceList {}
+		variable DeviceUpdate
+			catch {unset DeviceUpdate}
+			set DeviceUpdate(0) {}
+		variable DeviceAttributes
+			catch {unset DeviceAttributes}
+	}
+
 	##########################
-	# Proc: DefineDevice
+	# Proc: thc::DefineDevice
 	#    Registers a device. This command registers a device with all 
 	#    the information relevant for the device. Once the device is registered
-	#    its state is recorded and set via the global commands <Update> and 
-	#    <Set>, which call the commands specified respectively with the *-get* 
+	#    its state is recorded and set via the global commands <thc::Update> and 
+	#    <thc::Set>, which call the commands specified respectively with the *-get* 
 	#    and *-set* command definition parameters.
 	#
 	#    A command definition is a list with a first element that specifies the 
@@ -155,7 +181,7 @@ exec tclsh "$0" ${1+"$@"}
 	#    The state of a registered device is by default updated automatically 
 	#    each heartbeat. A slower update rate can be selected via the option 
 	#    *-update*. The provided update time interval uses the same time syntax 
-	#    as the absolute time definitions of the <DefineJob> command. It is
+	#    as the absolute time definitions of the <thc::DefineJob> command. It is
 	#    recommended to use reasonable slow update rates to reduce the 
 	#    interactions with the target devices (e.g. "1h" for battery updates, 
 	#    "10m" for weather data updates, etc.).
@@ -195,72 +221,76 @@ exec tclsh "$0" ${1+"$@"}
 	# Examples:
 	#    > ### Devices linked to a physical target ###
 	#    > 
-	#    > DefineDevice Sirene,state \
+	#    > thc::DefineDevice Sirene,state \
 	#    >       -get {thc_zWay "SwitchBinary 16.0"} \
 	#    >       -set {thc_zWay "SwitchBinary 16.0"} \
 	#    >       -type switch
-	#    > DefineDevice Dimmer,state \
+	#    > thc::DefineDevice Dimmer,state \
 	#    >       -get {thc_zWay "SwitchMultilevel 16.0"} \
 	#    >       -set {thc_zWay "SwitchMultilevel 16.0"} \
 	#    >       -type level -range {0 100}
-	#    > DefineDevice Sirene,battery -range {0 100} -update 1h \
+	#    > thc::DefineDevice Sirene,battery -range {0 100} -update 1h \
 	#    >       -get {thc_zWay "Battery 16.0"} -gexpr {$Value-0.3}
 	#    > 
 	#    > ### Device that acts on multiple physical targets ###
 	#    > 
-	#    > DefineDevice DoubleSwitch,state \
+	#    > thc::DefineDevice DoubleSwitch,state \
 	#    >       -get {thc_zWay "SwitchBinary 8.0"} \
 	#    >       -set {thc_zWay "SwitchBinary 8.0" "SwitchBinary 8.1" "SwitchBinary 8.2"} \
 	#    >       -type switch
 	#    > 
 	#    > ### Virtual device, stores a scenario ###
 	#    > 
-	#    > DefineDevice Surveillance,state \
+	#    > thc::DefineDevice Surveillance,state \
 	#    >       -name Surveillance -group Scenes -type switch \
 	#    >       -get {thc_Virtual "Surveillance"} \
 	#    >       -set {thc_Virtual "Surveillance"}
 	#    > 
 	#    > ### Dummy devices that add elements to the website ###
 	#    > 
-	#    > DefineDevice zWay,Links \
+	#    > thc::DefineDevice zWay,Links \
 	#    >       -type link -data http://192.168.1.21:8083
-	#    > DefineDevice Environment,1_day \
+	#    > thc::DefineDevice Environment,1_day \
 	#    >       -name Environment -group "Graphs 1 day" \
 	#    >       -type image -data $::LogDir/thc_env_1d.png
 	#    
 	# See also:
-	#    <Update>, <Set>, <ResetStickyStates>
+	#    <thc::Update>, <thc::Set>, <thc::ResetStickyStates>
 	##########################
 	
-	set UpdateDeviceList {}
-	set DeviceList {}
-	catch {unset DeviceUpdate}; set DeviceUpdate(0) {}
-	catch {unset DeviceAttributes}
-
-	proc DefineDevice {Device args} {
-		global DeviceList UpdateDeviceList StickyDevices DeviceUpdate NextState State StickyState Event DeviceAttributes
+	proc thc::DefineDevice {Device args} {
+		variable DeviceList
+		variable UpdateDeviceList
+		variable StickyDevices
+		variable DeviceUpdate
+		variable NextState
+		variable State
+		variable StickyState
+		variable Event
+		variable DeviceAttributes
 
 		if {[lsearch $DeviceList $Device]<0} {lappend DeviceList $Device}
 		
 		# Default attributes
 		set Update 0
 		set Sticky 0
-		set DeviceAttributes($Device,name) $Device
-		set DeviceAttributes($Device,group) ""
-		set DeviceAttributes($Device,type) ""
-		set DeviceAttributes($Device,range) ""
-		set DeviceAttributes($Device,step) ""
-		set DeviceAttributes($Device,format) "%s"
-		set DeviceAttributes($Device,data) {}
-		regexp {(.*),(.*)} $Device {} DeviceAttributes($Device,name) DeviceAttributes($Device,group)
+		set DeviceAttributes($Device,Name) $Device
+		set DeviceAttributes($Device,Group) ""
+		set DeviceAttributes($Device,Type) ""
+		set DeviceAttributes($Device,Range) ""
+		set DeviceAttributes($Device,Step) ""
+		set DeviceAttributes($Device,Format) "%s"
+		set DeviceAttributes($Device,Data) {}
+		regexp {(.*),(.*)} $Device {} DeviceAttributes($Device,Name) DeviceAttributes($Device,Group)
 		
 		# Process all provided attributes
 		foreach {Option Value} $args {
-			set Command [string totitle [string range $Option 1 end]]
 			switch -- $Option {
 				-set -
 				-get {
-					set DeviceAttributes($Device,${Command}Command) $Value}
+					regsub {^thc_(.*)$} $Value {\1} Value; # thc_zWay -> zWay
+					set Command [string totitle [string range $Option 1 end]]
+					set DeviceAttributes($Device,${Command}CmdDef) $Value}
 				-update {
 					set Update $Value}
 				-sticky {
@@ -276,7 +306,7 @@ exec tclsh "$0" ${1+"$@"}
 				-format -
 				-data -
 				-name {
-					set DeviceAttributes($Device,[string range $Option 1 end]) $Value}
+					set DeviceAttributes($Device,[string totitle [string range $Option 1 end]]) $Value}
 				default {
 					Assert 0 "DefineDevice $Device: Unknown option $Option"
 				}
@@ -290,16 +320,16 @@ exec tclsh "$0" ${1+"$@"}
 		# - Register the update information
 		# - Try to access the get command
 		# - Define the initial states
-		if {[info exist DeviceAttributes($Device,GetCommand)]} {
+		if {[info exist DeviceAttributes($Device,GetCmdDef)]} {
 			if {[lsearch $UpdateDeviceList $Device]<0} {
 				lappend UpdateDeviceList $Device}
 			lappend DeviceUpdate($Update) $Device
 		
 			# Run an eventually defined setup command from the relevant interface 
 			# module.
-			set Module [lindex $DeviceAttributes($Device,GetCommand) 0]
+			set Module [lindex $DeviceAttributes($Device,GetCmdDef) 0]
 			if {[info command ${Module}::DeviceSetup]!=""} {
-				${Module}::DeviceSetup [lindex $DeviceAttributes($Device,GetCommand) 1]
+				${Module}::DeviceSetup [lindex $DeviceAttributes($Device,GetCmdDef) 1]
 			}
 
 			# Try to access the device (via the Update command (that uses the specified -get command)
@@ -324,7 +354,7 @@ exec tclsh "$0" ${1+"$@"}
 	}
 
 	##########################
-	# Proc: Update
+	# Proc: thc::Update
 	#    Update device states. The device states will be stored inside the State
 	#    array variable. A new state will be set to '' if getting the device
 	#    state fails, or if the device state is not within a specified range.
@@ -340,27 +370,28 @@ exec tclsh "$0" ${1+"$@"}
 	#    -
 	#    
 	# Examples:
-	#    > Update {LightCorridor,state Siren,state}
+	#    > thc::Update {LightCorridor,state Siren,state}
 	#    
 	# See also:
-	#    <Set>
+	#    <thc::Set>
 	##########################
 
-	proc Update {DeviceList} {
-		global NextState DeviceAttributes
+	proc thc::Update {DeviceList} {
+		variable NextState
+		variable DeviceAttributes
 		
 		array set ModuleGetCmdList {}
 		foreach Device $DeviceList {
-			lappend ModuleGetCmdList([lindex $DeviceAttributes($Device,GetCommand) 0]) [lindex $DeviceAttributes($Device,GetCommand) 1]
-			lappend ModuleDeviceList([lindex $DeviceAttributes($Device,GetCommand) 0]) $Device
+			lappend ModuleGetCmdList([lindex $DeviceAttributes($Device,GetCmdDef) 0]) [lindex $DeviceAttributes($Device,GetCmdDef) 1]
+			lappend ModuleDeviceList([lindex $DeviceAttributes($Device,GetCmdDef) 0]) $Device
 		}
 		foreach Module [array names ModuleGetCmdList] {
 			set StateList [${Module}::Get $ModuleGetCmdList($Module)]
 			foreach Device $ModuleDeviceList($Module) Stat $StateList {
-				if {$DeviceAttributes($Device,range)!=""} {
+				if {$DeviceAttributes($Device,Range)!=""} {
 					if {![string is double $Stat] ||
-					    $Stat<[lindex $DeviceAttributes($Device,range) 0] ||
-						 $Stat>[lindex $DeviceAttributes($Device,range) 1]} {
+					    $Stat<[lindex $DeviceAttributes($Device,Range) 0] ||
+						 $Stat>[lindex $DeviceAttributes($Device,Range) 1]} {
 						set Stat ""
 					}
 				}
@@ -384,8 +415,8 @@ exec tclsh "$0" ${1+"$@"}
 	}
 
 	##########################
-	# Proc: Set
-	#    Set device state. This command sets the state for one or multiple 
+	# Proc: thc::Set
+	#    Set device states. This command sets the state for one or multiple 
 	#    devices. The updated effective states will be stored inside 
 	#    the *NextState* array variable. The state change will be applied
 	#    beginning of the next heartbeat cycle (e.g. the *State* array 
@@ -399,18 +430,19 @@ exec tclsh "$0" ${1+"$@"}
 	#    -
 	#    
 	# Examples:
-	#    > Set {LightCorridor,state LightCave,state} 1
+	#    > thc::Set {LightCorridor,state LightCellar,state} 1
 	#    
 	# See also:
-	#    <Update>
+	#    <thc::Update>, <thc::Get>
 	##########################
 
-	proc Set {DeviceList NewState} {
-		global NextState DeviceAttributes
+	proc thc::Set {DeviceList NewState} {
+		variable NextState
+		variable DeviceAttributes
 		array set ModuleSetCmdList {}
 		foreach Device $DeviceList {
-			lappend ModuleSetCmdList([lindex $DeviceAttributes($Device,SetCommand) 0]) {*}[lrange $DeviceAttributes($Device,SetCommand) 1 end]
-			lappend ModuleDeviceList([lindex $DeviceAttributes($Device,SetCommand) 0]) $Device
+			lappend ModuleSetCmdList([lindex $DeviceAttributes($Device,SetCmdDef) 0]) {*}[lrange $DeviceAttributes($Device,SetCmdDef) 1 end]
+			lappend ModuleDeviceList([lindex $DeviceAttributes($Device,SetCmdDef) 0]) $Device
 		}
 		foreach Module [array names ModuleSetCmdList] {
 			set StateList [${Module}::Set $ModuleSetCmdList($Module) $NewState]
@@ -422,15 +454,44 @@ exec tclsh "$0" ${1+"$@"}
 
 
 	##########################
-	# RegisterDeviceUpdateJobs
+	# Proc: thc::Get
+	#    Get device states. This command returns the state for one or multiple 
+	#    devices.
+	#
+	# Parameters:
+	#    <DeviceList> - Device list
+	#
+	# Returns:
+	#    -
+	#    
+	# Examples:
+	#    > thc::Get {LightCorridor,state LightCellar,state}
+	#    >    {1 0}
+	#    
+	# See also:
+	#    <thc::Set>
+	##########################
+
+	proc thc::Get {DeviceList} {
+		variable State
+		set States {}
+		foreach Device $DeviceList {
+			lappend States $State($Device)
+		}
+		return $States
+	}
+
+	##########################
+	# thc::RegisterDeviceUpdateJobs
 	#    Registers the device update jobs. The update information is taken from
 	#    the DefineDevice command. This procedure is internally used.
 	##########################
 
-	proc RegisterDeviceUpdateJobs {} {
-		global DeviceUpdate
+	proc thc::RegisterDeviceUpdateJobs {} {
+		variable DeviceUpdate
+
 		foreach {Update UpdateDeviceList} [array get DeviceUpdate] {
-			DefineJob -tag U_$Update -repeat $Update -description "Device update $Update" "Update \{$UpdateDeviceList\}"
+			DefineJob -tag U_$Update -repeat $Update -description "Device update $Update" "thc::Update \{$UpdateDeviceList\}"
 		}
 	}
 
@@ -438,13 +499,19 @@ exec tclsh "$0" ${1+"$@"}
 ######## State updates ########
 
 	##########################
-	# UpdateStates
+	# thc::UpdateStates
 	#    Update the states and the events. Do this update only if the current 
 	#    state is valid (=not '').
 	##########################
 
-	proc UpdateStates {} {
-		global Event UpdateDeviceList NextState State StickyDevices StickyState
+	proc thc::UpdateStates {} {
+		variable Event
+		variable UpdateDeviceList
+		variable NextState
+		variable State
+		variable StickyDevices
+		variable StickyState
+		
 		set Event(*_tmp) 0
 		foreach Index $UpdateDeviceList { # Evaluate the events and sticky states
 			set Event($Index) ""
@@ -465,21 +532,23 @@ exec tclsh "$0" ${1+"$@"}
 	
 
 	##########################
-	# Proc: ResetStickyStates
+	# Proc: thc::ResetStickyStates
 	#    Reset sticky states. Performs a reset of the registered sticky states.
 	#
 	# Returns:
 	#    -
 	#    
 	# Examples:
-	#    > ResetStickyStates
+	#    > thc::ResetStickyStates
 	#    
 	# See also:
-	#    <DefineDevice>
+	#    <thc::DefineDevice>
 	##########################
 
-	proc ResetStickyStates {} {
-		global UpdateDeviceList StickyDevices StickyState
+	proc thc::ResetStickyStates {} {
+		variable UpdateDeviceList
+		variable StickyDevices
+		variable StickyState
 		foreach Device $UpdateDeviceList {
 			if {$StickyDevices($Device)} {
 				set StickyState($Device) ""
@@ -493,13 +562,17 @@ exec tclsh "$0" ${1+"$@"}
 # Group: Job handling
 # The following commands allow defining and deleting jobs.
 
-	set JobList {}; # Job: {NextExecTime Tag RepeatInterval MinInterval Description Script}
-	set PermanentJobList {}; # Job: {Tag Description Script}
-	set JobCount 0; # Job counter
-
+	namespace eval thc {
+		set JobList {}; # Job: {NextExecTime Tag RepeatInterval MinInterval Description Script}
+		set PermanentJobList {}; # Job: {Tag Description Script}
+		set JobCount 0; # Job counter
+		variable KilledJobs
+		variable EarliestNextJobExec
+			array set EarliestNextJobExec {}
+	}
 
 	##########################
-	# ParseTime
+	# thc::ParseTime
 	#    Parses time in the format accepted by DefineJob.
 	#
 	# Parameters:
@@ -518,20 +591,22 @@ exec tclsh "$0" ${1+"$@"}
 	#    Time interval or Unix time stamp
 	#    
 	# Examples:
-	#    > ParseTime 1h1m1s i
+	#    > thc::ParseTime 1h1m1s i
 	#    >    1 hours 1 minutes 1 seconds
-	#    > ParseTime 11h59m59s ""
+	#    > thc::ParseTime 11h59m59s ""
 	#    >    1428746399
-	#    > ParseTime 11:59:59 ""
+	#    > thc::ParseTime 11:59:59 ""
 	#    >    1428659999
-	#    > ParseTime 11:59:59 {5 hours}
+	#    > thc::ParseTime 11:59:59 {5 hours}
 	#    >    1428677999
-	#    > ParseTime +11h59m59s ""
+	#    > thc::ParseTime +11h59m59s ""
 	#    >    1428703199
 	##########################
 
-	proc ParseTime {TimeDef RepeatDef} {
+	proc thc::ParseTime {TimeDef RepeatDef} {
 		if {$TimeDef==""} {return ""}
+		
+		variable Time
 		
 		set TimeIsIncremental 0
 		set TimeIsAbsolute 0
@@ -575,7 +650,7 @@ exec tclsh "$0" ${1+"$@"}
 			}
 
 			# Transform the relative time into an absolute time.
-			set T [clock add $::Time {*}$I]
+			set T [clock add $Time {*}$I]
 
 		# Evaluate an absolute time
 		} else {
@@ -591,16 +666,16 @@ exec tclsh "$0" ${1+"$@"}
 					regexp {^0+(\d)} $Value {\1} Value; # Remove leading 0 (to avoid that the number is interpreted as octal value)
 					incr TimePieces($Unit) $Value
 				}
-				set T [clock scan "$TimePieces(h):$TimePieces(m):$TimePieces(s)" -base $::Time]
+				set T [clock scan "$TimePieces(h):$TimePieces(m):$TimePieces(s)" -base $Time]
 				# puts "clock scan $TimePieces(h):$TimePieces(m):$TimePieces(s) -> $T"
-				if {$T<$::Time} { # Add one day if the evaluated time is in the past
+				if {$T<$Time} { # Add one day if the evaluated time is in the past
 					set T [clock add $T 1 days]
 				}
 
 			# The time is defined in a style accepted by 'clock scan' (e.g. '09:05:10',
 			# '02/25/2016 09:05:10', 'Fri Feb 26 09:05:10 CET 2016'
-			} elseif {![catch {set T [clock scan $TimeDef -base $::Time]}]} {
-				#if {$T<$::Time} { # Add one day if the evaluated time is in the past
+			} elseif {![catch {set T [clock scan $TimeDef -base $Time]}]} {
+				#if {$T<$Time} { # Add one day if the evaluated time is in the past
 				#	set T [clock add $T 1 days]
 				#}
 				
@@ -611,7 +686,7 @@ exec tclsh "$0" ${1+"$@"}
 		}
 
 		# If the time is already in the past and a repetition is defined, go to the next occurrence
-		if {$T<$::Time && $RepeatDef!=""} {
+		if {$T<$Time && $RepeatDef!=""} {
 			# Interval, using as base time '0'. This allows avoiding time switch.
 			set Interv [clock add 0 {*}$RepeatDef]
 			array set IntervArr $RepeatDef; # Interval array
@@ -621,12 +696,12 @@ exec tclsh "$0" ${1+"$@"}
 			# calculate purely mathematically the next occurrence. This will not
 			# respect any time adjustments (e.g. daylight saving time).
 			if {$Interv<24*3600 || $Interv%(24*3600)!=0} {
-				set T [expr {$T+int(ceil(double($::Time-$T)/$Interv)*$Interv)}]
+				set T [expr {$T+int(ceil(double($Time-$T)/$Interv)*$Interv)}]
 
 			# Go to the next occurrence by incrementing the intervals. This will 
 			# respect time changes.
 			} else {
-				while {$T<$::Time} {
+				while {$T<$Time} {
 					set T [clock add $T {*}$RepeatDef] }
 			}
 		}
@@ -636,7 +711,7 @@ exec tclsh "$0" ${1+"$@"}
 
 
 	##########################
-	# Proc: DefineJob
+	# Proc: thc::DefineJob
 	#    Registers a new job. A job is a command sequence that is executed 
 	#    either at a certain moment or in a certain interval. If a job with
 	#    the same tag already exists it will be replaced by the new job.
@@ -738,22 +813,22 @@ exec tclsh "$0" ${1+"$@"}
 	#    > 
 	#    > # Check if any of the specified intrusion detection devices detected an activity:
 	#    > proc GetSensorEvent {} {
-	#    >   foreach Sensor $::SensorDeviceList {
-	#    >     if {$::Event($Sensor)==1} {return 1}
+	#    >   foreach Sensor $SensorDeviceList {
+	#    >     if {$thc::Event($Sensor)==1} {return 1}
 	#    >   }
 	#    >   return 0
 	#    > }
 	#    > 
 	#    > # Disable surveillance: Disable a running siren, disable alert related jobs
-	#    > DefineJob -tag SurvDis -description "Surveillance disabling" -repeat 0 -condition {$Event(Surveillance,state)==0} {
+	#    > thc::DefineJob -tag SurvDis -description "Surveillance disabling" -repeat 0 -condition {$Event(Surveillance,state)==0} {
 	#    >   Set $SireneDeviceList 0
 	#    >   KillJob AlarmOn AlrtMail SirenOff
 	#    > }
 	#    > 
 	#    > # Intrusion detection
-	#    > DefineJob -tag Intrusion -description "Intrusion detection" \
+	#    > thc::DefineJob -tag Intrusion -description "Intrusion detection" \
 	#    >           -repeat 0 -min_interval $AlarmRetriggerT \
-	#    >           -condition {$State(Surveillance,state)==1 && [GetSensorEvent]} {
+	#    >           -condition {$thc::State(Surveillance,state)==1 && [GetSensorEvent]} {
 	#    >   # An intrusion has been detected: Run new jobs to initiate the alarm and to send alert mails/SMS
 	#    > 
 	#    >   # Run the sirens (next heartbeat)
@@ -777,14 +852,20 @@ exec tclsh "$0" ${1+"$@"}
 	#    > }
 	#    
 	# See also:
-	#    <KillJob>
+	#    <thc::KillJob>
 	##########################
 	
-	proc DefineJob {args} {
+	proc thc::DefineJob {args} {
+		variable JobList
+		variable PermanentJobList
+		variable JobCount
+		variable EarliestNextJobExec
+		variable Time
+
 		# Option definitions
 		Assert {[llength $args]%2==1} "DefineJob, incorrect parameters!"
 		# Set default options
-		array set Options [list -tag "j$::JobCount" -time "+0" -repeat "" -init_time "" -min_interval "" -condition 1 -description ""]
+		array set Options [list -tag "j$JobCount" -time "+0" -repeat "" -init_time "" -min_interval "" -condition 1 -description ""]
 		# Override default options with explicitly specified ones
 		foreach {OpName OpValue} [lrange $args 0 end-1] {
 			Assert {[info exists Options($OpName)]} "DefineJob, unknown option: $OpName!"
@@ -812,19 +893,19 @@ exec tclsh "$0" ${1+"$@"}
 
 		# Create the job procedure
 		set Tag $Options(-tag)
-		set JobProc "proc Job($Tag) \{\} \{\n"
+		set JobProc "proc ::thc::Job($Tag) \{\} \{\n"
 		append JobProc "  uplevel \#0 \{\n"; # "
 		if {$Options(-condition)!="" && $Options(-condition)!=1} {
 			append JobProc "    if \{!($Options(-condition))\} return\n" }
 		if {$Options(-min_interval)!="" && $Options(-min_interval)!=1} {
-			if {![info exists ::EarliestNextJobExec($Tag)]} {
-				set ::EarliestNextJobExec($Tag) -1 }
-			append JobProc "    if \{\$Time<\$::EarliestNextJobExec($Tag)\} \{\n"
-			append JobProc "      Log \{Cancel $Tag - $Options(-description)\} 1\n"
+			if {![info exists EarliestNextJobExec($Tag)]} {
+				set EarliestNextJobExec($Tag) -1 }
+			append JobProc "    if \{\$thc::Time<\$thc::EarliestNextJobExec($Tag)\} \{\n"
+			append JobProc "      thc::Log \{Cancel $Tag - $Options(-description)\} 1\n"
 			append JobProc "      return\}\n"
-			append JobProc "    set ::EarliestNextJobExec($Tag) \[clock add \$::Time $Options(-min_interval)\]\n"
+			append JobProc "    set thc::EarliestNextJobExec($Tag) \[clock add \$thc::Time $Options(-min_interval)\]\n"
 		}
-		append JobProc "    Log \{Exec $Tag - $Options(-description)\} [expr {$IsPermanentJob?0:2}]\n\n"
+		append JobProc "    thc::Log \{Exec $Tag - $Options(-description)\} [expr {$IsPermanentJob?0:2}]\n\n"
 		append JobProc [string trim [lindex $args end] "\n"]
 		append JobProc "\n\n  \}\n"
 		append JobProc "\}"
@@ -833,21 +914,21 @@ exec tclsh "$0" ${1+"$@"}
 
 		# Permanently executed job: A repeat interval of 0 is defined
 		if {$IsPermanentJob} {
-			lappend ::PermanentJobList [list $Options(-tag) $Options(-description)]
+			lappend PermanentJobList [list $Options(-tag) $Options(-description)]
 		} else { # Non permanent job
-			lappend ::JobList [list $Options(-time) $Options(-tag) $Options(-repeat_smpl) $Options(-min_interval) $Options(-description)]
+			lappend JobList [list $Options(-time) $Options(-tag) $Options(-repeat_smpl) $Options(-min_interval) $Options(-description)]
 			if {$Options(-init_time)!=""} {
-				lappend ::JobList [list $Options(-init_time) $Options(-tag) {} $Options(-min_interval) $Options(-description)]
+				lappend JobList [list $Options(-init_time) $Options(-tag) {} $Options(-min_interval) $Options(-description)]
 			}
-			set ::JobList [lsort -integer -index 0 $::JobList]
+			set JobList [lsort -integer -index 0 $JobList]
 		}
-		
-		incr ::JobCount
+
+		incr JobCount
 		return
 	}
 	
 	##########################
-	# Proc: KillJob
+	# Proc: thc::KillJob
 	#    Kill one or multiple jobs.
 	#
 	# Parameters:
@@ -858,38 +939,47 @@ exec tclsh "$0" ${1+"$@"}
 	#    -
 	#    
 	# Examples:
-	#    > KillJob AlarmOn AlrtMail SirenOff LightOff RdmLight
+	#    > thc::KillJob AlarmOn AlrtMail SirenOff LightOff RdmLight
 	#    
 	# See also:
-	#    <DefineJob>
+	#    <thc::DefineJob>
 	##########################
 
-	proc KillJob {args} {
-		foreach {JobListVar TagIndex} {::JobList 1 ::PermanentJobList 0} {
-			set JobList {}
+	proc thc::KillJob {args} {
+		variable KilledJobs
+		variable JobList
+		variable PermanentJobList
+
+		foreach {JobListVar TagIndex} {JobList 1 PermanentJobList 0} {
+			set JList {}
 			foreach Job [set $JobListVar] {
 				if {[lsearch $args [lindex $Job $TagIndex]]<0} {
-					lappend JobList $Job
+					lappend JList $Job
 				}
 			}
-			set $JobListVar $JobList
+			set $JobListVar $JList
 		}
+		lappend KilledJobs {*}$args
 	}
 	
 	##########################
-	# ExecJobs
+	# thc::ExecJobs
 	#    Execute jobs scheduled for the current time.
 	#
 	# Parameters:
 	#    -
 	##########################
 
-	proc ExecJobs {} {
-		global JobList Time LastJobExec PermanentJobList
+	proc thc::ExecJobs {} {
+		variable JobList
+		variable PermanentJobList
+		variable KilledJobs
+		variable Time
+		set KilledJobs {}
 		
 		# Execute all permanent jobs
 		foreach Job $PermanentJobList {
-			if {[catch {uplevel #0 Job([lindex $Job 0])}]} {
+			if {[catch {uplevel #0 thc::Job([lindex $Job 0])}]} {
 				Log {Execution of [lindex $Job 0]([lindex $Job 2]) failed! Error: $::errorInfo} 3
 			}
 		}
@@ -902,12 +992,12 @@ exec tclsh "$0" ${1+"$@"}
 			set JobList [lrange $JobList 1 end]
 			set Tag [lindex $Job 1]
 
-			if {[catch {uplevel #0 Job($Tag)}]} {
+			if {[catch {uplevel #0 thc::Job($Tag)}]} {
 				Log {Execution of ${Tag}([lindex $Job 4]) failed! Error: $::errorInfo} 3
 			}
 			
 			set Repeat [lindex $Job 2]
-			if {$Repeat!={}} {
+			if {$Repeat!={} && $Tag ni $KilledJobs} {
 				set NextTime [clock add [lindex $Job 0] {*}$Repeat]
 				lappend JobList [list $NextTime {*}[lrange $Job 1 end]]
 				incr Resort
@@ -922,7 +1012,7 @@ exec tclsh "$0" ${1+"$@"}
 	}
 
 	##########################
-	# Proc: JobsString
+	# Proc: thc::JobsString
 	#    Returns the currently scheduled jobs in form of a formatted string.
 	#    Useful for debugging.
 	#
@@ -934,22 +1024,26 @@ exec tclsh "$0" ${1+"$@"}
 	#    -
 	#    
 	# Examples:
-	#    > JobsString
+	#    > thc::JobsString
 	#    
 	# See also:
-	#    <DefineJob>
+	#    <thc::DefineJob>
 	##########################
 
-	proc JobsString { {WithPermanentJobs 0} } {
+	proc thc::JobsString { {WithPermanentJobs 0} } {
+		variable JobList
+		variable PermanentJobList
+		variable Time
+
 		set line ""
 		if {$WithPermanentJobs} {
-			foreach Job $::PermanentJobList {
+			foreach Job $PermanentJobList {
 				append line [format "%3s:%-8s " 0s [lindex $Job 0]]
 			}
 		}
 		
-		foreach Job $::JobList {
-			set Delay [expr {[lindex $Job 0]-$::Time}]
+		foreach Job $JobList {
+			set Delay [expr {[lindex $Job 0]-$Time}]
 			if {$Delay>=3600} {
 				set DelayTxt "[expr {$Delay/3600}]h"
 			} elseif {$Delay>=60} {
@@ -962,9 +1056,90 @@ exec tclsh "$0" ${1+"$@"}
 		return $line
 	}
 
-	proc LogJobs { {WithPermanentJobs 0} } {
+	proc thc::LogJobs { {WithPermanentJobs 0} } {
 		Log [string repeat " " 30][JobsString $WithPermanentJobs] 1
 	}
+
+
+######## Utilities ########
+
+# Group: Utilities
+
+	##########################
+	# Proc: thc::Assert
+	#    Assert a condition. This procedure assert that a condition is 
+	#    satisfied. If the provided condition is not true an error is raised.
+	#
+	# Parameters:
+	#    <Condition> - Logic condition that needs to be satisfied
+	#    <Message> - Error message
+	#
+	# Returns:
+	#    -
+	#    
+	# Examples:
+	#    > thc::Assert {$Value<=1.0} "Define: The maximum allowed value is 1.0"
+	##########################
+
+	proc thc::Assert {Condition Message} {
+		if {[uplevel 1 expr $Condition]} return
+		error $Message
+	}
+
+######## Time handling ########
+
+# Group: Time handling
+
+	namespace eval thc {
+		variable HeartBeatCount 0
+		variable HeartBeatMS 1000; # Update interval in milliseconds. Default is 1000 (ms).
+		variable Time [clock seconds]
+		variable DayTime
+	}
+
+	##########################
+	# Proc: thc::DefineHeartBeat
+	#    Defines the heart beat. This procedure defines the heart beat rate that
+	#    is the interval in which THC updates the device states.
+	#
+	# Parameters:
+	#    <HeartBeat> - Heart beat value
+	#    [Unit] - Unit, accepted units are S and MS, default=MS
+	#
+	# Returns:
+	#    -
+	#    
+	# Examples:
+	#    > thc::DefineHeartBeat 1000 ms
+	##########################
+
+	proc thc::DefineHeartBeat {HeartBeat {Unit MS}} {
+		set Unit [string toupper $Unit]
+		Assert {$Unit in {"S", "MS"}}, "Heart beat unit is S or MS"
+		if {$Unit=="S"} {
+			set HeartBeat [expr {$HeartBeat*1000}]
+		variable HeartBeatMS $HeartBeat
+	}
+
+	proc thc::HeartBeat { {WaitNextBeat 1} } {
+		variable Time
+		variable DayTime
+		variable HeartBeatMS
+		
+		after [expr {$WaitNextBeat*$HeartBeatMS}] {incr ::thc::HeartBeatCount}
+		vwait ::thc::HeartBeatCount
+		set Time [clock seconds]
+		set DayTime [expr double($Time-[clock scan 00:00])/3600]
+	}
+
+	proc thc::ClockFormat { {NewTime ""} } {
+		variable Time
+		if {$NewTime==""} {
+			set NewTime $::Time
+		}
+		return [clock format $NewTime -format %H:%M:%S]
+	}
+
 
 ######## HTTP communication ########
 
@@ -973,62 +1148,67 @@ exec tclsh "$0" ${1+"$@"}
 	# Apply patch for Tcl bug '6ca52aec14e0b33543d3cd9895f060b852ac4dbc', Memory 
 	# leak if client requests "Connection: close" but server responses with "Connection: keep-alive"
 	
-	set HttpPackageRevision [package require http]
-	
-	if { ([string range $HttpPackageRevision 0 2]=="2.7" && [package vcompare $HttpPackageRevision 2.7.13]<=0)
-	  || ([string range $HttpPackageRevision 0 2]!="2.7" && [package vcompare $HttpPackageRevision 2.8.9]<=0)} {
-	
-		Log {Http package is version $HttpPackageRevision. Apply patch for Tcl bug '6ca52aec14e0b33543d3cd9895f060b852ac4dbc'} 3
+	namespace eval thc {
+		variable HttpPackageRevision [package require http]
 		
-		proc http::Finish {token {errormsg ""} {skipCB 0}} {
-			variable $token
-			upvar 0 $token state
-			global errorInfo errorCode
-			if {$errormsg ne ""} {
-				set state(error) [list $errormsg $errorInfo $errorCode]
-				set state(status) "error"
-			}
-			if { ($state(status) eq "timeout") 
-				 || ($state(status) eq "error")
-				 || ([info exists state(-keepalive)] && !$state(-keepalive))
-				 || ([info exists state(connection)] && ($state(connection) eq "close"))
-			} {
-				CloseSocket $state(sock) $token
-			}
-			if {[info exists state(after)]} {
-				after cancel $state(after)
-			}
-			if {[info exists state(-command)] && !$skipCB
-					&& ![info exists state(done-command-cb)]} {
-				set state(done-command-cb) yes
-				if {[catch {eval $state(-command) {$token}} err] && $errormsg eq ""} {
-					set state(error) [list $err $errorInfo $errorCode]
-					set state(status) error
+		if { ([string range $HttpPackageRevision 0 2]=="2.7" && [package vcompare $HttpPackageRevision 2.7.13]<=0)
+		  || ([string range $HttpPackageRevision 0 2]!="2.7" && [package vcompare $HttpPackageRevision 2.8.9]<=0)} {
+		
+			Log {Http package is version $HttpPackageRevision. Apply patch for Tcl bug '6ca52aec14e0b33543d3cd9895f060b852ac4dbc'} 3
+			
+			proc ::http::Finish {token {errormsg ""} {skipCB 0}} {
+				variable $token
+				upvar 0 $token state
+				global errorInfo errorCode
+				if {$errormsg ne ""} {
+					set state(error) [list $errormsg $errorInfo $errorCode]
+					set state(status) "error"
+				}
+				if { ($state(status) eq "timeout") 
+					 || ($state(status) eq "error")
+					 || ([info exists state(-keepalive)] && !$state(-keepalive))
+					 || ([info exists state(connection)] && ($state(connection) eq "close"))
+				} {
+					CloseSocket $state(sock) $token
+				}
+				if {[info exists state(after)]} {
+					after cancel $state(after)
+				}
+				if {[info exists state(-command)] && !$skipCB
+						&& ![info exists state(done-command-cb)]} {
+					set state(done-command-cb) yes
+					if {[catch {eval $state(-command) {$token}} err] && $errormsg eq ""} {
+						set state(error) [list $err $errorInfo $errorCode]
+						set state(status) error
+					}
 				}
 			}
-		}
-
-	}
-	unset HttpPackageRevision
 	
+		}
+		unset HttpPackageRevision
+	}
+		
 	##########################
-	# EncodeUrl
+	# thc::EncodeUrl
 	#    Encodes an URL string. Special characters are replaced by the 
 	#    hexadecimal representation '%xx%.
 	##########################
 
-	set UrlEncodingMap {}
-	foreach Char {"[" "]" "(" ")" "\"" " "} {
-		lappend UrlEncodingMap $Char [format %%%2X [scan $Char %c]]
+	namespace eval thc {
+		variable UrlEncodingMap {}
+		foreach Char {"[" "]" "(" ")" "\"" " "} {
+			lappend UrlEncodingMap $Char [format %%%2X [scan $Char %c]]
+		}
+		unset Char
 	}
 	
-	proc EncodeUrl {Url} {
+	proc thc::EncodeUrl {Url} {
 		variable UrlEncodingMap
 		return [string map $UrlEncodingMap $Url]
 	}
 	
 	##########################
-	# Proc: GetUrl
+	# Proc: thc::GetUrl
 	#    Performs HTTP transactions. This command performs HTTP transactions 
 	#    using the http::geturl command that is extended by following features:
 	#    * The URL query string is URL encoded
@@ -1053,14 +1233,14 @@ exec tclsh "$0" ${1+"$@"}
 	#      Response body - HTTP response body
 	#    
 	# Examples:
-	#    > GetUrl "http://ipecho.net/plain"
+	#    > thc::GetUrl "http://ipecho.net/plain"
 	#    > -> {200 OK 188.60.11.219}
 	#    >
-	#    > GetUrl "http://www.google.com/hello"
+	#    > thc::GetUrl "http://www.google.com/hello"
 	#    > -> {404 {Not Found} {<html><body><h1>404 Not Found</h1></body></html>}}
 	##########################
 	
-	proc GetUrl {Url args} {
+	proc thc::GetUrl {Url args} {
 		# Geturl argument handling
 		array set GetUrlArgs {-noerror 1 -nbrtrials 10 -timeout 5000}
 		array set GetUrlArgs $args
@@ -1079,9 +1259,8 @@ exec tclsh "$0" ${1+"$@"}
 			set Error [catch {
 				set h [::http::geturl $EncodedUrl {*}[array get GetUrlArgs]]
 				upvar #0 $h HttpState
-				set HttpStatus $HttpState(status); # [::http::status $h]
-				set Body $HttpState(body); # [http::data $h]
-				#regexp "^\"(.*)\"$" $Body {} Body
+				set HttpStatus $HttpState(status)
+				set Body $HttpState(body)
 				regexp {([0-9]{3})\s+(.*)$} $HttpState(http) {} StatusCode StatusText; # [http::code $h]
 				::http::cleanup $h
 			}]
@@ -1105,45 +1284,6 @@ exec tclsh "$0" ${1+"$@"}
 		return [list $StatusCode $StatusText $Body]
 	}
 
-######## Utilities ########
-
-# Group: Utilities
-
-	##########################
-	# Proc: Assert
-	#    Assert a condition. This procedure assert that a condition is 
-	#    satisfied. If the provided condition is not true an error is raised.
-	#
-	# Returns:
-	#    -
-	#    
-	# Examples:
-	#    > Assert {$Value<=1.0} "Define: The maximum allowed value is 1.0"
-	##########################
-
-	proc Assert {Condition Message} {
-		if {[uplevel 1 expr $Condition]} return
-		error $Message
-	}
-
-######## Time handling ########
-
-	set HeartBeatCount 0
-
-	proc HeartBeat { {WaitNextBeat 1} } {
-		global Time DayTime HeartBeatMS
-		after [expr {$WaitNextBeat*$HeartBeatMS}] {incr ::HeartBeatCount}
-		vwait ::HeartBeatCount
-		set Time [clock seconds]
-		set DayTime [expr double($Time-[clock scan 00:00])/3600]
-	}
-
-	proc ClockFormat { {Time ""} } {
-		if {$Time==""} {
-			set Time $::Time
-		}
-		clock format $Time -format %H:%M:%S
-	}
 
 ######## State recovery ########
 
@@ -1152,15 +1292,23 @@ exec tclsh "$0" ${1+"$@"}
 # State backup and restore mechanism. THC allows setting up a backup/restore 
 # mechanism that allows restoring important device states, variables, etc 
 # after a crash once THC is restarted. To use this mechanism a backup file 
-# needs to be specified first with <ConfigureRecoveryFile>. Then, devices whose 
-# states should be restored can be declared with <DefineRecoveryDeviceStates>. 
+# needs to be specified first with <thc::ConfigureRecoveryFile>. Then, devices whose 
+# states should be restored can be declared with <thc::DefineRecoveryDeviceStates>. 
 # The restoration of custom settings and variables is defined 
-# with <DefineRecoveryCommand>.
+# with <thc::DefineRecoveryCommand>.
+
+	namespace eval thc {
+		variable RecoveryCommands
+			array set RecoveryCommands {}
+		variable RecoverFile
+		variable RecoverDevices {}
+		variable RecoverAllOngoing 0
+	}
 
 	##########################
-	# Proc: ConfigureRecoveryFile
-	#          Defines the recovery file. This file needs to 
-	#          be specified before a recovery command or device is defined.
+	# Proc: thc::ConfigureRecoveryFile
+	#    Defines the recovery file. This file needs to be specified before
+	#    a recovery command or device is defined.
 	#
 	# Parameters:
 	#    <RecoverFile> - Recovery file that stores the device states
@@ -1169,17 +1317,17 @@ exec tclsh "$0" ${1+"$@"}
 	#    -
 	#    
 	# Examples:
-	#    > ConfigureRecoveryFile "/var/thc/thc_server.state"
+	#    > thc::ConfigureRecoveryFile "/var/thc/thc_server.state"
 	##########################
 
-	proc ConfigureRecoveryFile {RecoverFile} {
-		set ::RecoverFile $RecoverFile
+	proc thc::ConfigureRecoveryFile {RFile} {
+		variable RecoverFile $RFile
 		return
 	}
 
 	
 	##########################
-	# Proc: DefineRecoveryCommand
+	# Proc: thc::DefineRecoveryCommand
 	#    Defines a recovery command. The defined command will be added to the
 	#    recovery file that is executed if THC restarts. Variables can be
 	#    recovered by using 'set' as command.
@@ -1194,12 +1342,14 @@ exec tclsh "$0" ${1+"$@"}
 	#    -
 	#    
 	# Examples:
-	#    > DefineRecoveryCommand DeviceState {Set Surveillance,state 0}
-	#    > DefineRecoveryCommand VariableState {set MyVar 123}
+	#    > thc::DefineRecoveryCommand DeviceState {Set Surveillance,state 0}
+	#    > thc::DefineRecoveryCommand VariableState {set MyVar 123}
 	##########################
 	
-	proc DefineRecoveryCommand {RecoveryId {Command ""}} {
-		global RecoveryCommands RecoverFile
+	proc thc::DefineRecoveryCommand {RecoveryId {Command ""}} {
+		variable RecoveryCommands
+		variable RecoverFile
+		variable RecoverAllOngoing
 		
 		# Check if the recovery command has changed
 		if {[info exists RecoveryCommands($RecoveryId)] && $RecoveryCommands($RecoveryId) eq $Command} {
@@ -1217,7 +1367,7 @@ exec tclsh "$0" ${1+"$@"}
 
 		# Do not update the recover file if DefineRecoveryCommand has been called 
 		# during the recovery phase itself
-		if {[info exists ::RecoverAllOngoing]} return
+		if {$RecoverAllOngoing} return
 
 		# Store the updated recovery commands in the recovery file
 		if {[catch {
@@ -1231,13 +1381,11 @@ exec tclsh "$0" ${1+"$@"}
 			Log {SaveRecoverStates: Recover states couldn't be written into $RecoverFile} 3
 		}
 		return
-	}
-
-	array set RecoveryCommands {}
+	}	
 	
 	
 	##########################
-	# Proc: DefineRecoveryDeviceStates
+	# Proc: thc::DefineRecoveryDeviceStates
 	#    Defines device states that have to be backed up. The provided arguments 
 	#    are the devices whose states need to be backed up, and recovered during 
 	#    a restart of THC. Instead of providing as arguments multiple devices
@@ -1250,28 +1398,28 @@ exec tclsh "$0" ${1+"$@"}
 	#    -
 	#    
 	# Examples:
-	#    > DefineRecoveryDeviceStates Surveillance,state
+	#    > thc::DefineRecoveryDeviceStates Surveillance,state
 	##########################
 
-	proc DefineRecoveryDeviceStates {args} {
-		lappend ::RecoverDevices {*}$args
+	proc thc::DefineRecoveryDeviceStates {args} {
+		variable RecoverDevices
+		lappend RecoverDevices {*}$args
 	}
-
-	set RecoverDevices {}
 
 	
 	##########################
-	# SaveRecoverDeviceStates
+	# thc::SaveRecoverDeviceStates
 	#    THC internal command: Checks if the state of one of the recovery device 
 	#    states has been changed. Stores all recovery states in the recovery 
 	#    file if this is the case.
 	##########################
 	
-	proc SaveRecoverDeviceStates {} {
-		global State
+	proc thc::SaveRecoverDeviceStates {} {
+		variable State
+		variable RecoverDevices
 		
 		# Loop over every each device whose state has to be backed up
-		foreach Device $::RecoverDevices {
+		foreach Device $RecoverDevices {
 			# Store the recovery device states. The function 'DefineRecoveryCommand' 
 			# will evaluate if the the new device state definition command needs to
 			# be stored because it has been changed.
@@ -1281,72 +1429,86 @@ exec tclsh "$0" ${1+"$@"}
 
 	
 	##########################
-	# RecoverAll
+	# thc::RecoverAll
 	#    Internal function: Sources the recovery file to restore all objects. 
 	#    This function is called at the startup of THC.
 	##########################
 
-	proc RecoverAll {} {
+	proc thc::RecoverAll {} {
 		# Source the recovery file. Catch every failure (for example if the 
 		# recover file doesn't exists).
 		# The recovery file contains calls of the function 'DefineRecoveryCommand'
 		# that rewrites itself again the recovery file. To avoid rewriting the 
 		# recovery file during its proper execution the variable 'RecoverAllOngoing'
 		# is used that indicates when the recovery file is executed.
-		set ::RecoverAllOngoing 1
-		catch {uplevel #0 source $::RecoverFile}
-		unset ::RecoverAllOngoing
+		variable RecoverFile
+		variable RecoverAllOngoing 1
+		catch {uplevel #0 source $RecoverFile}
+		set RecoverAllOngoing 0
 	}
 
 
 ######## Include the different modules ########
 
-	set HeartBeatMS 1000; # Update interval in milliseconds. Default is 1000 (ms).
-	HeartBeat 0
-	DefineLog stdout 2; # Default log destination
+	namespace eval thc {
+	
+		HeartBeat 0
+		DefineLog stdout 2; # Default log destination
 
-	foreach Module [glob -directory "$::ThcHomeDir/../modules" -types f "thc_*.tcl"] {
-		if {[catch {source $Module}]} {
-			Log {Loading module $Module failed: $errorInfo} 3
-			return 1
+		foreach Module [glob -directory "$ThcHomeDir/../modules" -types f "thc_*.tcl"] {
+			if {[catch {source $Module}]} {
+				Log {Loading module $Module failed: $errorInfo} 3
+				return 1
+			}
 		}
-	}
-	foreach Module [glob -directory "$::ThcHomeDir/../modules" -types d "*"] {
-		if {[catch {source "$Module/[file tail $Module].tcl"}]} {
-			Log {Loading module $Module failed: $errorInfo} 3
-			return 1
+		foreach Module [glob -directory "$ThcHomeDir/../modules" -types d "*"] {
+			if {[catch {source "$Module/[file tail $Module].tcl"}]} {
+				Log {Loading module $Module failed: $errorInfo} 3
+				return 1
+			}
 		}
+		unset Module
 	}
-	unset Module
 
 ######## Load the system configuration and check the access to all devices ########
 
-	# Load the debug script if defined
-	if {$DebugScript!=""} {
-		source $DebugScript
-		# Stop the application if no configuration file is specified
-		if {$ConfigFile==""} {
-			return
-		}
-	}
+	namespace eval thc {
 
-	if {[catch {source $ConfigFile}]} {
-		Log {Error loading the configuration file 'config.tcl', error: $errorInfo} 3
+		# Export the principal commands
+		namespace export DefineLog Log DefineDevice \
+			Update Set Get ResetStickyStates \
+			ParseTime Assert DefineHeartBeatMS GetUrl \
+			DefineJob KillJob ExecJobs JobsString \
+			ConfigureRecoveryFile DefineRecoveryCommand \
+			DefineRecoveryDeviceStates SaveRecoverDeviceStates
+
+		# Load the debug script if defined
+		if {$DebugScript!=""} {
+			uplevel #0 source $DebugScript
+			# Stop the application if no configuration file is specified
+			if {$ConfigFile==""} {
+				return
+			}
+		}
+
+		if {[catch {uplevel #0 source $ConfigFile}]} {
+			Log {Error loading the configuration file 'config.tcl', error: $errorInfo} 3
+		}
 	}
 
 ### Initialization and main control loop ###
 
 	##########################
-	# ControlLoop
+	# thc::ControlLoop
 	#    The procedure ControlLoop runs continuously the control loop. The only
 	#    situations this loop is stopped are either a process or debug script 
-	#    that sets the global variable ::Stop to 1, or a fatal error of one of 
+	#    that sets the variable thc::Stop to 1, or a fatal error of one of 
 	#    the commands executed in the control loop.
 	##########################
 
-	proc ControlLoop {} {
-		set ::Stop 0
-		while {!$::Stop} {
+	proc thc::ControlLoop {} {
+		variable Stop 0
+		while {!$Stop} {
 			# Job execution
 			ExecJobs
 
@@ -1367,32 +1529,37 @@ exec tclsh "$0" ${1+"$@"}
 	#    The procedure Main registers first the device update jobs, recovers 
 	#    then eventually stored states and calls then the control loop.
 	#    If the control loop is stopped non arbitrarily (e.g. not by setting
-	#    the variable ::Stop to 1), the control loop is relaunched a minute 
+	#    the variable thc::Stop to 1), the control loop is relaunched a minute 
 	#    later again if the application is not debugged (e.g. no debug script
 	#    is defined).
 	##########################
 	
-	RegisterDeviceUpdateJobs
+	namespace eval thc {
+		variable DebugScript
+		variable Event
+		variable Stop
+		
+		RegisterDeviceUpdateJobs
 
-	# Recover the surveillance state
-	RecoverAll
+		# Recover the surveillance state
+		RecoverAll
 
-	# Run the main control loop without catching the errors if a debug script is loaded
-	set ::Event(*) 0
-	while {1} {
-		Log {THC control loop started} 3
-		LogJobs
+		# Run the main control loop without catching the errors if a debug script is loaded
+		set Event(*) 0
+		while {1} {
+			Log {THC control loop started} 3
+			LogJobs
 
-		catch {ControlLoop}
+			catch {ControlLoop}
+			if {$Stop} break
 
-		if {$::Stop} break
-
-		Log {Crash, info=$::errorInfo} 3
-		if {$::DebugScript==""} { # Normal mode, report the crash and restart
-			after 60000; # Wait a minute before a new trial is made
-		} else { # Debug mode (raise an error if the program has not been stopped explicitly)
-			error "Crash, info=$::errorInfo"
+			Log {Crash, info=$::errorInfo} 3
+			if {$DebugScript==""} { # Normal mode, report the crash and restart
+				after 60000; # Wait a minute before a new trial is made
+			} else { # Debug mode (raise an error if the program has not been stopped explicitly)
+				error "Crash, info=$::errorInfo"
+			}
 		}
-	}
 	
-	Log {THC stopped} 3
+		Log {THC stopped} 3
+	}
