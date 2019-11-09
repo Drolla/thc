@@ -9,6 +9,7 @@ Topic: THC installation
 Install Tcl:
 Run the following command to install Tcl 8.5 without graphical extension (Tk)
   > sudo apt-get install tcl8.5
+
 Optionally you can also install the graphical extension/toolkit Tk by running 
 the following command
   > sudo apt-get install tk
@@ -16,18 +17,21 @@ the following command
 Install the RRDTool library for Tcl:
 Run the following command to install the RRDTool library for Tcl
   > sudo apt-get install rrdtool-tcl
+
 You can also install the standalone RRDTools. This provides tools to manipulate 
 the RRD databases:
   > sudo apt-get install rrdtool
 
 Install mail send support:
-For details see https://raspberry-projects.com/pi/software_utilities/email/ssmtp-to-send-emails
+For details see https://raspberry-projects.com/pi/software_utilities/email/ssmtp-to-send-emails.
+
 Run the following command
   > sudo apt-get install ssmtp
   > sudo apt-get install mailutils
 
 Configure the SMTP settings inside /etc/ssmtp/ssmtp.conf
   > sudo nano /etc/ssmtp/ssmtp.conf
+
 Check with the command 'mail' that the mail settings are correct
   > mail <MailDestinationAddress> ...
 
@@ -46,7 +50,7 @@ Create the log directory if necessary (default log directory is /var/thc).
   > sudo mkdir -p /var/thc
 
 Setup THC as a service:
- Copy the THC service start/stop script from the Razberry target into /etc/init.d, 
+Copy the THC service start/stop script from the Razberry target into /etc/init.d, 
 make it executable, and register it:
   > cd /etc/init.d
   > sudo cp /opt/thc/targets/Raspberry/thc.sh .
@@ -58,6 +62,7 @@ Topic: z-Way/Razberry installation
 To download the latest Z-Way version for your RaZberry, execute the following 
 line:
   > wget -q -O - razberry.z-wave.me/install | sudo bash 
+
 Avoid using z-Way version 1.7; performance issues have been observed with 
 this version. THC has been successfully tested with z-Way v1.5.0, 1.5.1, 2.0.1,
 2.1.1, 2.2.0, 2.3.8, 3.01
