@@ -1115,9 +1115,9 @@ exec tclsh "$0" ${1+"$@"}
 
 	proc thc::DefineHeartBeat {HeartBeat {Unit MS}} {
 		set Unit [string toupper $Unit]
-		Assert {$Unit in {"S", "MS"}}, "Heart beat unit is S or MS"
+		Assert {{"$Unit" in {"S" "MS"}}} "Heart beat unit is S or MS"
 		if {$Unit=="S"} {
-			set HeartBeat [expr {$HeartBeat*1000}]
+			set HeartBeat [expr {$HeartBeat*1000}] }
 		variable HeartBeatMS $HeartBeat
 	}
 
