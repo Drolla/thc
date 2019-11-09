@@ -1456,13 +1456,13 @@ exec tclsh "$0" ${1+"$@"}
 		DefineLog stdout 2; # Default log destination
 
 		foreach Module [glob -directory "$ThcHomeDir/../modules" -types f "thc_*.tcl"] {
-			if {[catch {source $Module}]} {
+			if {[catch {uplevel #0 source $Module}]} {
 				Log {Loading module $Module failed: $errorInfo} 3
 				return 1
 			}
 		}
 		foreach Module [glob -directory "$ThcHomeDir/../modules" -types d "*"] {
-			if {[catch {source "$Module/[file tail $Module].tcl"}]} {
+			if {[catch {uplevel #0 source "$Module/[file tail $Module].tcl"}]} {
 				Log {Loading module $Module failed: $errorInfo} 3
 				return 1
 			}
