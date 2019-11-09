@@ -99,8 +99,8 @@ namespace eval ::thc::Web::API {
 			if {$::thc::DeviceAttributes($Device,Group)==""} continue; # Skip devices with no group
 			append DeviceInfoJSON "\"$Device\":\n  \{"
 			
-			foreach {AttrName} {name type group data} {
-				append DeviceInfoJSON "\"$AttrName\":\"$::thc::DeviceAttributes($Device,$AttrName)\","
+			foreach {AttrName} {Name Type Group Data} {
+				append DeviceInfoJSON "\"[string tolower $AttrName]\":\"$::thc::DeviceAttributes($Device,$AttrName)\","
 			}
 			append DeviceInfoJSON "\"range\":\[[join $::thc::DeviceAttributes($Device,Range) ,]\],"
 			append DeviceInfoJSON "\"step\":\[[join $::thc::DeviceAttributes($Device,Step) ,]\],"
@@ -257,7 +257,7 @@ return
 #   :    }
 #   : }
 #
-# The web server is recognizes the following file extensions :
+# The web server recognizes the following file extensions :
 #
 # - .txt - text/plain
 # - .htm - text/html .html text/html
