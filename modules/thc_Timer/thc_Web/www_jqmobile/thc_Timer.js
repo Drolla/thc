@@ -31,7 +31,7 @@ function AddDefinedAdd() {
 	JobDef['device']=$('#DeviceSelection').val();
 	JobDef['command']=$('#DeviceState').val();
 	JobDef['repeat']=$('#RepeatTime').val();
-	$.get("/api/thc_Timer_Define "+JSON.stringify(JobDef), function(Result) {
+	$.get("/api/TimerDefine "+JSON.stringify(JobDef), function(Result) {
 		// Select_PageMain(); // This doesn't work, the page isn't rendered correctly
 		window.location.replace( window.location.href.split('#')[0] );
 	}) .fail(function() {
@@ -47,14 +47,14 @@ function AddDefinedCancel() {
 function DeleteTimer(TimerId) {
 	if (!confirm("Are you sure you want to delete timer '"+TimerId+"'?"))
 		return;
-	$.get('/api/thc_Timer_Delete '+TimerId, function() {
+	$.get('/api/TimerDelete '+TimerId, function() {
 		// Select_PageMain(); // This doesn't work, the page isn't rendered correctly
 		window.location.replace( window.location.href.split('#')[0] );
 	});
 }
 
 function Select_PageMain() {
-	$.getJSON('/api/thc_Timer_List', function(TimerInfo) {
+	$.getJSON('/api/TimerList', function(TimerInfo) {
 		$("#page_main_content").empty();
 		$.each(TimerInfo, function(TimerId, TimerData) {
 			$("#page_main_content").append(

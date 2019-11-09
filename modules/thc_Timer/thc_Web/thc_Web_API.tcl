@@ -1,7 +1,7 @@
 ##########################################################################
 # THC - Tight Home Control
 ##########################################################################
-# thc_Web_API.tcl - Timer module commands provided to the THC web server
+# thc::Web_API.tcl - Timer module commands provided to the THC web server
 # 
 # This module provides all the commands available to the THC web server for THC.
 #
@@ -11,11 +11,11 @@
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 ##########################################################################
 
-namespace eval thc_Web::API {
+namespace eval thc::Web::API {
 
-	proc thc_Timer_List {} {
+	proc TimerList {} {
 		set TimerListJson "\{"
-		foreach TimerTask [thc_Timer::List] {
+		foreach TimerTask [::thc::Timer::List] {
 			append TimerListJson "\"[lindex $TimerTask 0]\":\{"
 			append TimerListJson "\"time\":\"[lindex $TimerTask 1]\", "
 			append TimerListJson "\"device\":\"[lindex $TimerTask 2]\", "
@@ -27,12 +27,12 @@ namespace eval thc_Web::API {
 		return [list application/json $TimerListJson]
 	}
 
-	proc thc_Timer_Delete {args} {
-		thc_Timer::Delete {*}$args
+	proc TimerDelete {args} {
+		::thc::Timer::Delete {*}$args
 	}
 	
-	proc thc_Timer_Define {JsonJobDefinition} {
-		# puts "thc_Timer_Define: $JsonJobDefinition"
+	proc TimerDefine {JsonJobDefinition} {
+		# puts "TimerDefine: $JsonJobDefinition"
 
 		# JsonJobDefinition: {"time":"2014/12/30 21:46","device":"Surveillance_state","repeat":"20:00"}
 		# ListJobDefinition: {"time" "2014/12/30 21:46" "device" "Surveillance_state" "repeat" "20:00"}
@@ -45,8 +45,8 @@ namespace eval thc_Web::API {
 		regsub {^(\d+):(\d+):(\d+)$} $JobDefinition(repeat) {\1h\2m\3s} JobDefinition(repeat); # 20:08:01 -> 20h08m01s
 		
 		puts "Define $JobDefinition(time) $JobDefinition(device) $JobDefinition(command) $JobDefinition(repeat)"
-		thc_Timer::Define $JobDefinition(time) $JobDefinition(device) $JobDefinition(command) $JobDefinition(repeat)
+		::thc::Timer::Define $JobDefinition(time) $JobDefinition(device) $JobDefinition(command) $JobDefinition(repeat)
 	}
 
 
-}; # end namespace thc_Web::API
+}; # end namespace thc::Web::API

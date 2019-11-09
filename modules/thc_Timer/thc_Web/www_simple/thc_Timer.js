@@ -66,7 +66,7 @@ function AddTimer() {
 		JobDef['device']=$('#DeviceSelection').val();
 		JobDef['command']=$('#DeviceState').val();
 		JobDef['repeat']=$('#repeattime').val();
-		$.get("/api/thc_Timer_Define "+JSON.stringify(JobDef), function(Result) {
+		$.get("/api/TimerDefine "+JSON.stringify(JobDef), function(Result) {
 			BuildGui();
 		}) .fail(function() {
 			alert( "The form contains invalid date. Please correct!" );
@@ -81,13 +81,13 @@ function AddTimer() {
 function DeleteTimer(TimerId) {
 	if (!confirm("Are you sure you want to delete timer '"+TimerId+"'?"))
 		return;
-	$.get('/api/thc_Timer_Delete '+TimerId, function(data) {
+	$.get('/api/TimerDelete '+TimerId, function(data) {
 		BuildGui();
 	});
 }
 
 function BuildGui() {
-	$.getJSON('/api/thc_Timer_List', function(TimerInfo) {
+	$.getJSON('/api/TimerList', function(TimerInfo) {
 	
 		$("body").empty();
 		$("body").append('\
