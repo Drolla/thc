@@ -21,9 +21,10 @@ the RRD databases:
   > sudo apt-get install rrdtool
 
 Install mail send support:
-For details see http://rpi.tnet.com/project/faqs/smtp.
+For details see https://raspberry-projects.com/pi/software_utilities/email/ssmtp-to-send-emails
 Run the following command
-  > sudo apt-get install ssmtp heirloom-mailx
+  > sudo apt-get install ssmtp
+  > sudo apt-get install mailutils
 
 Configure the SMTP settings inside /etc/ssmtp/ssmtp.conf
   > sudo nano /etc/ssmtp/ssmtp.conf
