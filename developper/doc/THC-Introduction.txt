@@ -28,4 +28,4 @@ Start exploring the documentation resources for THC.
 * <THC - Core functions> provides documentation for the THC core functions.
 * <THC - Developers> provides information for developers that write THC modules or that contribute to the evolution of THC.
 * <THC - Version 2> provides information about the internal changes from THC version 1 to 2 and a migration guide for the user configuration scripts.
-* <Raspberry-installation> THC installation on a Raspberry PI.
+* <Target-Raspberry-installation> THC installation on a Raspberry PI.
