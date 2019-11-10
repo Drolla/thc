@@ -26,3 +26,4 @@ Start exploring the documentation resources for THC.
 * [THC - Developers](https://github.com/Drolla/thc/wiki/THC-Developers) provides information for developers that write THC modules or that contribute to the evolution of THC.
 * [THC - Index](https://github.com/Drolla/thc/wiki/THC-Index) provides an index to the different documentation pages and API procedures.
 * [THC - Version 2](https://github.com/Drolla/thc/wiki/THC-Version-2) provides information about the internal changes between THC version 1 to 2 and a migration guide for the user configuration scripts.
+* [THC - Raspberry PI](https://github.com/Drolla/thc/wiki/Target-Raspberry-installation) THC installation on a Raspberry PI.

@@ -77,7 +77,7 @@ Group: Extension modules  {
 
 Group: Targets  {
 
-   File: THC installation on a Raspberry  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\targets\Raspberry\Raspberry-installation.txt)
+   File: THC installation on a Raspberry PI  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\targets\Raspberry\Raspberry-installation.txt)
    }  # Group: Targets
 
 Group: Utilities  {

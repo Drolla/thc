@@ -1,7 +1,7 @@
-Title: THC installation on a Raspberry
+Title: THC installation on a Raspberry PI
 
-These are the instruction about the the THC installation on a Raspberry running
-with the Raspbian/Debian Wheezy operating system.
+These are the instruction about the the THC installation on a Raspberry PI 
+running with the Raspbian/Debian Wheezy operating system.
 
 
 Topic: THC installation
