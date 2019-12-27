@@ -1423,7 +1423,7 @@ exec tclsh "$0" ${1+"$@"}
 			# Store the recovery device states. The function 'DefineRecoveryCommand' 
 			# will evaluate if the the new device state definition command needs to
 			# be stored because it has been changed.
-			DefineRecoveryCommand DeviceState,$Device "Set $Device $State($Device)"
+			DefineRecoveryCommand DeviceState,$Device "thc::Set $Device $State($Device)"
 		}
 	}
 
