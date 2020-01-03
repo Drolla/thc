@@ -41,6 +41,7 @@ tclsh nd2md\nd2md.tcl ^
    ../../modules/thc_RandomLight.tcl ^
    ../../modules/thc_Virtual.tcl ^
    ../../modules/thc_WavePlusBridge.tcl ^
+   ../../modules/thc_MultiBinarySwitch.tcl ^
    ../../modules/thc_Rrd/thc_Rrd.tcl ^
    ../../modules/thc_Rrd/RrdManip.tcl ^
    ../../modules/thc_Timer/thc_Timer.tcl ^
