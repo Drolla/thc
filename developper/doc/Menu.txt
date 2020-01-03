@@ -63,6 +63,7 @@ Group: Target interface modules  {
    File: OpenWeatherMap  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\modules\thc_OpenWeatherMap.tcl)
    File: Status logging in CSV format  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\modules\thc_Csv.tcl)
    File: Virtual devices  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\modules\thc_Virtual.tcl)
+   File: Wave Plus Bridge interface  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\modules\thc_WavePlusBridge.tcl)
    File: z-Way/Razberry interface  (C:\Users\Andreas Drollinger\Development\Tcl\_My Apps\thc\modules\thc_zWay\thc_zWay.tcl)
    }  # Group: Target interface modules
 
