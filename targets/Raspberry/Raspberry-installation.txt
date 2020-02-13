@@ -14,6 +14,9 @@ Optionally you can also install the graphical extension/toolkit Tk by running
 the following command
   > sudo apt-get install tk
 
+Install TLS/HTTPS support:
+  > sudo apt-get install tcl-tls
+
 Install the RRDTool library for Tcl:
 Run the following command to install the RRDTool library for Tcl
   > sudo apt-get install rrdtool-tcl
