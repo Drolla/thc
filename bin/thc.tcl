@@ -1187,7 +1187,7 @@ exec tclsh "$0" ${1+"$@"}
 		}
 		unset HttpPackageRevision
 	}
-		
+	
 	##########################
 	# thc::EncodeUrl
 	#    Encodes an URL string. Special characters are replaced by the 
@@ -1206,6 +1206,24 @@ exec tclsh "$0" ${1+"$@"}
 		variable UrlEncodingMap
 		return [string map $UrlEncodingMap $Url]
 	}
+	
+	##########################
+	# thc::TlsSocket
+	#    Handles correctly HTTPS/TLS sockets.
+	#    See: https://wiki.tcl-lang.org/page/tls
+	#    And: http://forum.egghelp.org/viewtopic.php?t=20506
+	##########################
+	
+	package require tls 1.6.7
+	
+	proc thc::TlsSocket args {
+		set opts [lrange $args 0 end-2]
+		set host [lindex $args end-1]
+		set port [lindex $args end]
+		::tls::socket -servername $host {*}$opts $host $port
+	}
+	
+	http::register https 443 thc::TlsSocket
 	
 	##########################
 	# Proc: thc::GetUrl
