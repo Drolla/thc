@@ -111,6 +111,7 @@ namespace eval ::thc::zWay {
 
 	variable UrlBase ""; # URL used to access the z-Way server
 	variable GetUrlArgs {}; # Optional GetUrl headers (e.g. used for authentication (cookies))
+	variable InitArgs {}
 
 	##########################
 	# Proc: thc::zWay::Init
@@ -143,6 +144,7 @@ namespace eval ::thc::zWay {
 	proc Init {Url args} {
 		variable UrlBase ""
 		variable GetUrlArgs {}
+		variable InitArgs
 
 		# Avoid bug with http 2.8.9 and Tcl8.6(.4) related to the deflate 
 		# compression (http://core.tcl.tk/tcl/info/b9d0434667d94e5f)
@@ -151,8 +153,7 @@ namespace eval ::thc::zWay {
 			set GetUrlArgs [list -headers [list Accept-Encoding "gzip"]]
 		}
 		
-
-		array set InitArgs $args
+		array set ArgsArray $args
 		::thc::Log {Open z-Way connection on $Url} 3
 
 		# Wait until the z-Way server can be accessed, access the base path
@@ -171,7 +172,7 @@ namespace eval ::thc::zWay {
 		set zWayRevResponse [::thc::GetUrl "$Url/JS/Run/zway.controller.data.softwareRevisionVersion.value" -method GET -noerror 0 {*}$GetUrlArgs]
 		if {[lindex $zWayRevResponse 0]>=400 && [lindex $zWayRevResponse 0]<500} { # 4xx error
 			::thc::Log {  Unexpected z-Way server response ($zWayRevResponse), try using authentication} 3
-			if {![info exists InitArgs(-user)] || ![info exists InitArgs(-password)]} {
+			if {![info exists ArgsArray(-user)] || ![info exists ArgsArray(-password)]} {
 				::thc::Log {  No user name/password defined! Call: thc::zWay::Init -user <User> -password <PW>} 3
 				return
 			}
@@ -179,7 +180,7 @@ namespace eval ::thc::zWay {
 			# Login with the user name and password
 			set tok [http::geturl "$Url/ZAutomation/api/v1/login" -method POST \
 			            -type application/json {*}$GetUrlArgs \
-			            -query "\{\"form\": true, \"login\": \"$InitArgs(-user)\", \"password\": \"$InitArgs(-password)\", \"keepme\": false, \"default_ui\": 1\}" ]
+			            -query "\{\"form\": true, \"login\": \"$ArgsArray(-user)\", \"password\": \"$ArgsArray(-password)\", \"keepme\": false, \"default_ui\": 1\}" ]
 			set StatusCode [http::ncode $tok]
 			set Status [http::code $tok]
 			set Meta [http::meta $tok]
@@ -212,7 +213,6 @@ namespace eval ::thc::zWay {
 		}
 		::thc::Log {  z-Way software revision is: [lindex $zWayRevResponse 2]} 2
 
-		
 		# Assure that the THC extension has been loaded to the z-Way server. The
 		# command 'Get_IndexArray' will be executed:
 		#    http://<Url>/JS/Run/Get_IndexArray(8.1);
@@ -229,6 +229,7 @@ namespace eval ::thc::zWay {
 			set CheckResResponse [::thc::GetUrl "$Url/JS/Run/Get_IndexArray(257.1)" -method GET {*}$GetUrlArgs -noerror 0]; # -> [257,1,0]
 		}] && [lindex $CheckResResponse 2]=={[257,1,0]}} {
 			::thc::Log {  z-Way THC extensions are available} 3
+			set InitArgs $args
 			set UrlBase $Url
 			return
 		}
@@ -240,10 +241,26 @@ namespace eval ::thc::zWay {
 			set CheckResResponse [::thc::GetUrl "$Url/JS/Run/Get_IndexArray(257.1)" -method GET {*}$GetUrlArgs -noerror 0]; # -> [257,1,0]
 		}] && [lindex $CheckResResponse 2]=={[257,1,0]}} {
 			::thc::Log {  Loaded z-Way THC extension} 3
+			set InitArgs $args
 			set UrlBase $Url
 		} else {
 			::thc::Log {  Cannot load z-Way THC extension! Is it placed inside the automation folder? z-Way module is disabled.} 3
 		}
+	}
+
+	##########################
+	# thc::zWay::ReInit
+	#    Re-initializes the z-Way/Razberry interface using the arguments
+	#    previously provided to thc::zWay::Init. thc::zWay::ReInit is called
+	#    by thc::zWay::Get and thc::zWay::Set if they receive the response 401 
+	#    (Unauthorized).
+	##########################
+
+	proc ReInit {} {
+		variable UrlBase
+		variable InitArgs
+		::thc::Log "thc::zWay::ReInit - Reinitialize the zWay connection" 2
+		Init $UrlBase {*}$InitArgs
 	}
 	
 	##########################
@@ -285,8 +302,13 @@ namespace eval ::thc::zWay {
 		set JsonFormatedArgs "\[$JsonFormatedArgs\]"; # -> [["SensorBinary","12"],["SensorBinary","5"],["SwitchBinary","7.2"]]
 		
 		set NewStateResponse [::thc::GetUrl "$UrlBase/JS/Run/Get($JsonFormatedArgs)" -method GET {*}$GetUrlArgs]; # -> [0,"",1,[1407694169,"unlock"],\"\",17.7]
+
 		# Return empty states if the z-Way server response isn't OK (200)
 		if {[lindex $NewStateResponse 0]!=200} {
+			::thc::Log "thc::zWay::Get: $UrlBase/JS/Run/Get returned [lindex $NewStateResponse 0], [lindex $NewStateResponse 1]" 2
+			# Reinitialize zWay for the next time
+			if {[lindex $NewStateResponse 0]==401} {
+				ReInit }
 			return [lrepeat $NbrDevices ""] }
 		set NewStateResult [lindex $NewStateResponse 2]
 
@@ -320,6 +342,10 @@ namespace eval ::thc::zWay {
 		set NewStateResponse [::thc::GetUrl "$UrlBase/JS/Run/Set($JsonFormatedArgs,$NewState)" -method GET {*}$GetUrlArgs]
 		# Return empty states if the z-Way server response isn't OK (200)
 		if {[lindex $NewStateResponse 0]!=200} {
+			::thc::Log "thc::zWay::Set: $UrlBase/JS/Run/Set returned [lindex $NewStateResponse 0], [lindex $NewStateResponse 1]" 2
+			# Reinitialize zWay for the next time
+			if {[lindex $NewStateResponse 0]==401} {
+				ReInit }
 			return [lrepeat $NbrDevices ""] }
 		set NewStateResult [lindex $NewStateResponse 2]
 
