@@ -569,7 +569,6 @@
 	namespace eval t2ws {
 		variable ConfigDefinitions [dict create \
 			-protocol {"" {[lsearch -exact {"" "HTTP/1.0" "HTTP/1.1"} $Value]>=0}} \
-			-connection {"" {[lsearch -exact {"" "close" "keep"} $Value]>=0}} \
 			-default_Content-Type {"text/plain" 1} \
 			-zip_threshold {100 {[string is integer -strict $Value] && $Value>=0}} \
 			-log_level {1 {[string is integer -strict $Value] && $Value>=0 && $Value<=3}} \
@@ -1081,7 +1080,10 @@
 
 		# Read the Body (if the header section was read successfully)
 		if {$State=="Body"} {
-			set RequestBody [read $Socket]
+			set RequestBody {}
+			while {![eof $Socket]} {
+				append RequestBody [read $Socket]
+			}
 			if {$RequestBody!=""} {
 				Log {$RequestBody} input 3 }
 		}
