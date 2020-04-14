@@ -1080,10 +1080,7 @@
 
 		# Read the Body (if the header section was read successfully)
 		if {$State=="Body"} {
-			set RequestBody {}
-			while {![eof $Socket]} {
-				append RequestBody [read $Socket]
-			}
+			set RequestBody [read $Socket]
 			if {$RequestBody!=""} {
 				Log {$RequestBody} input 3 }
 		}
