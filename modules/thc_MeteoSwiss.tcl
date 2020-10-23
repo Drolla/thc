@@ -74,20 +74,17 @@ namespace eval ::thc::MeteoSwiss {
 		}
 			
 		# The returned data has the following format:
-		# :  
-		# :  MeteoSchweiz / MeteoSuisse / MeteoSvizzera / MeteoSwiss
-		# :  
-		# :  stn;time;tre200s0;sre000z0;rre150z0;dkl010z0;fu3010z0;pp0qnhs0;fu3010z1;ure200s0;prestas0;pp0qffs0
-		# :  TAE;201411301700;2.0;0;0.0;62;5.0;1009.2;10.4;99;946.3;1011.2
-		# :  COM;201411301700;9.3;0;0.1;155;5.0;1011.6;6.8;97;944.3;1011.8
-		# :  ABO;201411301700;8.9;0;0.0;340;1.8;1008.7;3.2;62;859.7;-
-		# :  AIG;201411301700;7.7;0;0.0;250;0.7;1008.6;1.8;89;963.7;1009.2
+		# :  Station/Location;Date;tre200s0;rre150z0;sre000z0;gre000z0;ure200s0;tde200s0;dkl010z0;fu3010z0;fu3010z1;prestas0;pp0qffs0;pp0qnhs0;ppz850s0;ppz700s0;dv1towz0;fu3towz0;fu3towz1;ta1tows0;uretows0;tdetows0
+		# :  TAE;202010231530;13.50;0.50;0.00;10.00;89.10;11.70;253.00;7.20;15.10;952.50;1015.10;1015.80;-;-;-;-;-;-;-;-
+		# :  COM;202010231530;10.40;0.10;0.00;5.00;100.00;10.40;336.00;0.40;1.40;951.30;1019.00;1019.00;-;-;-;-;-;-;-;-
+		# :  ABO;202010231530;9.40;0.30;0.00;7.00;96.80;8.90;351.00;2.50;5.40;867.60;-;1017.60;1495.70;-;-;-;-;-;-;-
+		# :  AIG;202010231530;13.00;0.80;0.00;7.00;95.00;12.20;343.00;7.90;13.30;971.80;1016.80;1017.00;-;-;-;-;-;-;-;-
 		# :  ...
-		
+
 		# Identify the position of the different fields
 		catch {
 			set Fields [split [lindex \
-					[regexp -inline -line {^.*\ystn\y.*$} $LocationData] 0] ";"]
+					[regexp -inline -line {^.*\ytre200s0\y.*$} $LocationData] 0] ";"]
 		}
 		
 	 	# Extract from the data the requested parameters for the different 
