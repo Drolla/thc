@@ -277,7 +277,7 @@
 	DeviceWidget["module"].Create = function(Parent, ChildId, DeviceId, DeviceInfo) {
 		$(Parent).append(
 			'<label for="' + ChildId + '">' + DeviceInfo["name"] + '</label>' +
-			'<a href="module/'+DeviceInfo["data"]+'/index.html" target="_blank">Open</a>');
+			'<a href="module/'+DeviceInfo["data"]+'/index.html" target="_blank" rel="opener">Open</a>');
 	}
 
 /**** Image ****/
