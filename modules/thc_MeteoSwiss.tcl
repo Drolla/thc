@@ -20,7 +20,7 @@
 # SwissMetNet. For details about the data set, see
 # https://opendata.swiss/en/dataset/automatische-wetterstationen-aktuelle-messwerte
 # or
-# https://data.geo.admin.ch/ch.meteoschweiz.messwerte-aktuell.
+# https://data.geo.admin.ch/ch.meteoschweiz.messwerte-aktuell
 #
 # To get weather data you need first to know the abbreviation of the location
 # you are interested in. For this, open data legend file
